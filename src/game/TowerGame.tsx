@@ -10,6 +10,12 @@ import lobbyImg from "@/assets/block-lobby.png";
 import cloudImg from "@/assets/cloud.png";
 import hookImg from "@/assets/hook.png";
 import cityImg from "@/assets/city-bg.jpg";
+import sideBlue from "@/assets/side-blue.png";
+import sidePink from "@/assets/side-pink.png";
+import sideYellow from "@/assets/side-yellow.png";
+import sideTeal from "@/assets/side-teal.png";
+import roofImg from "@/assets/roof.png";
+import residentsImg from "@/assets/residents.png";
 
 // ---- Tunables ----
 const BW = 2.4; // block width
@@ -21,7 +27,15 @@ const ROPE = 3.6;
 const GRAVITY = 26;
 const SPRING_K = 7;
 const SPRING_DAMP = 0.9;
-const PERFECT = 0.18;
+// ---- Difficulty levels (ramp every 100 floors) ----
+const LEVELS = [
+  { name: "Rookie",  omega: 1.9, amp: 0.45, perfect: 0.18, wind: 0    },
+  { name: "Builder", omega: 2.3, amp: 0.55, perfect: 0.15, wind: 0.05 },
+  { name: "Pro",     omega: 2.7, amp: 0.65, perfect: 0.12, wind: 0.10 },
+  { name: "Master",  omega: 3.1, amp: 0.75, perfect: 0.10, wind: 0.16 },
+  { name: "Legend",  omega: 3.5, amp: 0.85, perfect: 0.08, wind: 0.22 },
+] as const;
+const levelFor = (floors: number) => LEVELS[Math.min(Math.floor(floors / 100), LEVELS.length - 1)]!;
 const MAX_LIVES = 3;
 const PALETTE = ["#3f6fc4", "#ef8a78", "#f2b93b", "#2fa3ad"];
 
@@ -29,7 +43,7 @@ const pal = (i: number): string => PALETTE[((i % PALETTE.length) + PALETTE.lengt
 type Phase = "menu" | "play" | "over";
 type Landed = { x: number; color: string; awning: boolean; id: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; color: string; id: number };
-type Hud = { score: number; combo: number; lives: number; floors: number; pop: number; msg: string; msgKey: number };
+type Hud = { score: number; combo: number; lives: number; floors: number; pop: number; msg: string; msgKey: number; level: string };
 
 // ---- Audio ----
 let actx: AudioContext | null = null;
@@ -80,22 +94,50 @@ function cityTexture(seed: number) {
   return t;
 }
 
-// ---- Apartment block (illustrated facade on a 3D body) ----
+// ---- Painted resident sprites (6 characters in one sheet) ----
+let residentsTex: THREE.Texture | null = null;
+function residentSprite(): THREE.Mesh | null {
+  if (!residentsTex) {
+    residentsTex = new THREE.TextureLoader().load(residentsImg);
+    residentsTex.colorSpace = THREE.SRGBColorSpace;
+  }
+  const N_CHARS = 6;
+  const idx = Math.floor(Math.random() * N_CHARS);
+  const t = residentsTex.clone();
+  t.repeat.set(1 / N_CHARS, 1);
+  t.offset.set(idx / N_CHARS, 0);
+  t.needsUpdate = true;
+  const h = 0.85;
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(h / 3, h),
+    new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.05, toneMapped: false, side: THREE.DoubleSide })
+  );
+  return m;
+}
+
+// ---- Apartment block (full illustrated wrap on every face) ----
 const FACADE_IMG: Record<string, string> = { "#3f6fc4": blueImg, "#ef8a78": pinkImg, "#f2b93b": yellowImg, "#2fa3ad": tealImg };
+const SIDE_IMG: Record<string, string> = { "#3f6fc4": sideBlue, "#ef8a78": sidePink, "#f2b93b": sideYellow, "#2fa3ad": sideTeal };
 function Apartment({ color }: { color: string; awning?: boolean; ground?: boolean }) {
   const tex = useTexture(FACADE_IMG[color] ?? blueImg);
+  const sideTex = useTexture(SIDE_IMG[color] ?? sideBlue);
+  const roofTex = useTexture(roofImg);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
-  const side = useMemo(() => new THREE.Color(color).multiplyScalar(0.72), [color]);
+  sideTex.colorSpace = THREE.SRGBColorSpace;
+  sideTex.anisotropy = 8;
+  roofTex.colorSpace = THREE.SRGBColorSpace;
+  const mats = useMemo(() => {
+    const side = () => new THREE.MeshBasicMaterial({ map: sideTex, toneMapped: false });
+    const roof = new THREE.MeshBasicMaterial({ map: roofTex, toneMapped: false });
+    const under = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.5), roughness: 0.9 });
+    // box faces: +x, -x, +y, -y, +z, -z
+    return [side(), side(), roof, under, side(), side()];
+  }, [sideTex, roofTex, color]);
   return (
     <group>
-      <mesh castShadow receiveShadow position={[0, BH / 2, -0.02]}>
+      <mesh castShadow receiveShadow position={[0, BH / 2, -0.02]} material={mats}>
         <boxGeometry args={[BW * 0.96, BH * 0.9, BW * 0.9]} />
-        <meshStandardMaterial color={side} roughness={0.8} />
-      </mesh>
-      <mesh position={[0, BH - 0.03, -0.02]} receiveShadow>
-        <boxGeometry args={[BW * 1.0, 0.06, BW * 0.94]} />
-        <meshStandardMaterial color="#e9e3d8" />
       </mesh>
       <mesh position={[0, BH / 2, BW * 0.45 + 0.01]}>
         <planeGeometry args={[BW * 1.04, BH]} />
@@ -267,11 +309,12 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
     if (bgRef.current) bgRef.current.style.transform = `translateY(${Math.max(0, g.camY - 3) * 4}%)`;
     if (skyRef.current) { skyRef.current.style.backgroundColor = `#${sky.getHexString()}`; skyRef.current.style.opacity = String(Math.min(1, Math.max(0, (ty - 6) / 22))); }
 
-    // crane pendulum
-    const level = n;
-    const amp = Math.min(0.45 + level * 0.015, 0.85);
-    const omega = Math.min(1.9 + level * 0.03, 3.2);
-    const theta = amp * Math.sin(g.t * omega);
+    // crane pendulum (difficulty scales with level)
+    const lvl = levelFor(n);
+    const amp = lvl.amp;
+    const omega = lvl.omega;
+    const wind = lvl.wind * Math.sin(g.t * 0.7) * Math.sin(g.t * 0.23 + 1.7);
+    const theta = amp * Math.sin(g.t * omega) + wind;
     const thetaV = amp * omega * Math.cos(g.t * omega);
     const pivotY = g.camY + 6.2;
     const hx = Math.sin(theta) * ROPE;
@@ -307,7 +350,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
           const off = f.x - towerTopX;
           if (Math.abs(off) < BW * 0.78) {
             const localX = f.x - swayAt(n - 1, n + 1) ;
-            const perfect = Math.abs(off) < PERFECT;
+            const perfect = Math.abs(off) < lvl.perfect;
             const finalX = perfect ? topLocalX() : localX;
             setLanded((L) => [...L, { x: finalX, color: f.color, awning: nextColor.current.awning, id: f.id }]);
             g.swayV += off * 2.2 + (n ? 0 : 0);
@@ -384,10 +427,9 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
         pp.t += dt * 1.4;
         if (!pp.g) {
           const pg = new THREE.Group();
-          const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.2, 4, 8), new THREE.MeshStandardMaterial({ color: pal(Math.floor(Math.random() * PALETTE.length)) }));
-          const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshStandardMaterial({ color: "#f5c9a0" }));
-          head.position.y = 0.3;
-          pg.add(body, head); grp.add(pg); pp.g = pg;
+          const sprite = residentSprite();
+          if (sprite) pg.add(sprite);
+          grp.add(pg); pp.g = pg;
         }
         const k = Math.max(0, Math.min(pp.t, 1));
         pp.g.visible = pp.t > 0;
@@ -460,7 +502,7 @@ export function TowerGame() {
   const [phase, setPhase] = useState<Phase>("menu");
   const [landed, setLanded] = useState<Landed[]>([]);
   const [misses, setMisses] = useState<Faller[]>([]);
-  const [hud, setHud] = useState<Hud>({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0 });
+  const [hud, setHud] = useState<Hud>({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0, level: LEVELS[0]!.name });
   const [best, setBest] = useState(0);
   const [round, setRound] = useState(0);
 
@@ -471,7 +513,7 @@ export function TowerGame() {
 
   const onHud = (msg?: string) => {
     const g = w.current;
-    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors: floorsRef.current, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
+    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors: floorsRef.current, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey, level: levelFor(floorsRef.current).name }));
   };
   const onOver = () => {
     setPhase("over");
@@ -484,7 +526,7 @@ export function TowerGame() {
     actx?.resume();
     w.current = { ...freshWorld(), phase: "play", camY: 3 };
     setLanded([]); setMisses([]); setRound((r) => r + 1);
-    setHud({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0 });
+    setHud({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0, level: LEVELS[0]!.name });
     setPhase("play");
   };
 
@@ -527,7 +569,7 @@ export function TowerGame() {
                 <span key={i} className={`text-2xl transition-opacity ${i < hud.lives ? "opacity-100" : "opacity-20"}`}>🏠</span>
               ))}
             </div>
-            <div className="hud-pill items-end"><span className="hud-label">FLOORS · POP</span><span className="hud-value text-lg">{hud.floors} · {hud.pop}</span></div>
+            <div className="hud-pill items-end"><span className="hud-label">{hud.level.toUpperCase()} · FLOORS · POP</span><span className="hud-value text-lg">{hud.floors} · {hud.pop}</span></div>
           </div>
         </div>
 
