@@ -502,7 +502,7 @@ export function TowerGame() {
   const [phase, setPhase] = useState<Phase>("menu");
   const [landed, setLanded] = useState<Landed[]>([]);
   const [misses, setMisses] = useState<Faller[]>([]);
-  const [hud, setHud] = useState<Hud>({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0 });
+  const [hud, setHud] = useState<Hud>({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0, level: LEVELS[0]!.name });
   const [best, setBest] = useState(0);
   const [round, setRound] = useState(0);
 
@@ -513,7 +513,7 @@ export function TowerGame() {
 
   const onHud = (msg?: string) => {
     const g = w.current;
-    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors: floorsRef.current, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
+    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors: floorsRef.current, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey, level: levelFor(floorsRef.current).name }));
   };
   const onOver = () => {
     setPhase("over");
@@ -526,7 +526,7 @@ export function TowerGame() {
     actx?.resume();
     w.current = { ...freshWorld(), phase: "play", camY: 3 };
     setLanded([]); setMisses([]); setRound((r) => r + 1);
-    setHud({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0 });
+    setHud({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0, level: LEVELS[0]!.name });
     setPhase("play");
   };
 
@@ -569,7 +569,7 @@ export function TowerGame() {
                 <span key={i} className={`text-2xl transition-opacity ${i < hud.lives ? "opacity-100" : "opacity-20"}`}>🏠</span>
               ))}
             </div>
-            <div className="hud-pill items-end"><span className="hud-label">FLOORS · POP</span><span className="hud-value text-lg">{hud.floors} · {hud.pop}</span></div>
+            <div className="hud-pill items-end"><span className="hud-label">{hud.level.toUpperCase()} · FLOORS · POP</span><span className="hud-value text-lg">{hud.floors} · {hud.pop}</span></div>
           </div>
         </div>
 
