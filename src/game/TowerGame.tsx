@@ -27,7 +27,15 @@ const ROPE = 3.6;
 const GRAVITY = 26;
 const SPRING_K = 7;
 const SPRING_DAMP = 0.9;
-const PERFECT = 0.18;
+// ---- Difficulty levels (ramp every 100 floors) ----
+const LEVELS = [
+  { name: "Rookie",  omega: 1.9, amp: 0.45, perfect: 0.18, wind: 0    },
+  { name: "Builder", omega: 2.3, amp: 0.55, perfect: 0.15, wind: 0.05 },
+  { name: "Pro",     omega: 2.7, amp: 0.65, perfect: 0.12, wind: 0.10 },
+  { name: "Master",  omega: 3.1, amp: 0.75, perfect: 0.10, wind: 0.16 },
+  { name: "Legend",  omega: 3.5, amp: 0.85, perfect: 0.08, wind: 0.22 },
+] as const;
+const levelFor = (floors: number) => LEVELS[Math.min(Math.floor(floors / 100), LEVELS.length - 1)]!;
 const MAX_LIVES = 3;
 const PALETTE = ["#3f6fc4", "#ef8a78", "#f2b93b", "#2fa3ad"];
 
