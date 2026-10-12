@@ -86,6 +86,27 @@ function cityTexture(seed: number) {
   return t;
 }
 
+// ---- Painted resident sprites (6 characters in one sheet) ----
+let residentsTex: THREE.Texture | null = null;
+function residentSprite(): THREE.Mesh | null {
+  if (!residentsTex) {
+    residentsTex = new THREE.TextureLoader().load(residentsImg);
+    residentsTex.colorSpace = THREE.SRGBColorSpace;
+  }
+  const N_CHARS = 6;
+  const idx = Math.floor(Math.random() * N_CHARS);
+  const t = residentsTex.clone();
+  t.repeat.set(1 / N_CHARS, 1);
+  t.offset.set(idx / N_CHARS, 0);
+  t.needsUpdate = true;
+  const h = 0.85;
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(h / 3, h),
+    new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.05, toneMapped: false, side: THREE.DoubleSide })
+  );
+  return m;
+}
+
 // ---- Apartment block (full illustrated wrap on every face) ----
 const FACADE_IMG: Record<string, string> = { "#3f6fc4": blueImg, "#ef8a78": pinkImg, "#f2b93b": yellowImg, "#2fa3ad": tealImg };
 const SIDE_IMG: Record<string, string> = { "#3f6fc4": sideBlue, "#ef8a78": sidePink, "#f2b93b": sideYellow, "#2fa3ad": sideTeal };
