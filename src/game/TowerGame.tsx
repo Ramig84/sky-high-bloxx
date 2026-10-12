@@ -280,7 +280,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
     blockRefs.current.forEach((b, i) => {
       if (!b) return;
       const s = swayAt(i, n);
-      b.position.x = landed[i]?.x + s;
+      b.position.x = (landed[i]?.x ?? 0) + s;
       b.rotation.z = -w.current.swayV * 0.004 * (i / Math.max(n, 1)) - (s - swayAt(i - 1, n)) * 0.25;
     });
     const towerTopX = topLocalX() + swayAt(n - 1, n);
