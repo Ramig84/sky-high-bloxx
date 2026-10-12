@@ -14,6 +14,7 @@ const PERFECT = 0.18;
 const MAX_LIVES = 3;
 const PALETTE = ["#4f7fd9", "#ef8f87", "#f4c04e", "#4cc2c4", "#9ad06b", "#c48bdc", "#f39a4f"];
 
+const pal = (i: number): string => PALETTE[((i % PALETTE.length) + PALETTE.length) % PALETTE.length]!;
 type Phase = "menu" | "play" | "over";
 type Landed = { x: number; color: string; awning: boolean; id: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; color: string; id: number };
@@ -193,9 +194,9 @@ const SKY = [
 ];
 function skyAt(h: number, out: THREE.Color) {
   for (let i = 0; i < SKY.length - 1; i++) {
-    if (h <= SKY[i + 1].h) return out.copy(SKY[i].c).lerp(SKY[i + 1].c, (h - SKY[i].h) / (SKY[i + 1].h - SKY[i].h));
+    if (h <= SKY[i + 1]!.h) return out.copy(SKY[i]!.c).lerp(SKY[i + 1]!.c, (h - SKY[i]!.h) / (SKY[i + 1]!.h - SKY[i]!.h));
   }
-  return out.copy(SKY[SKY.length - 1].c);
+  return out.copy(SKY[SKY.length - 1]!.c);
 }
 
 // ---- Game world ----
@@ -222,7 +223,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   const active = useRef<THREE.Group>(null);
   const rope = useRef<THREE.Mesh>(null);
   const crane = useRef<THREE.Group>(null);
-  const nextColor = useRef({ color: PALETTE[0], awning: true });
+  const nextColor = useRef({ color: pal(0), awning: true });
   const fog = useMemo(() => new THREE.Fog("#8fd0ff", 25, 70), []);
   const sky = useMemo(() => new THREE.Color(), []);
   const idRef = useRef(1);
@@ -234,7 +235,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const confColors = useMemo(() => {
     const arr = new Float32Array(N * 3); const c = new THREE.Color();
-    for (let i = 0; i < N; i++) { c.set(PALETTE[i % PALETTE.length]); c.toArray(arr, i * 3); }
+    for (let i = 0; i < N; i++) { c.set(pal(i % PALETTE.length)); c.toArray(arr, i * 3); }
     return arr;
   }, []);
   // residents
@@ -357,7 +358,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
               onHud(Math.abs(off) < 0.6 ? "GOOD" : "WOBBLY!");
             }
             const ci = (n + 1) % PALETTE.length;
-            nextColor.current = { color: PALETTE[ci], awning: Math.random() < 0.5 };
+            nextColor.current = { color: pal(ci), awning: Math.random() < 0.5 };
             g.faller = null;
             g.hanging = true;
             // tower collapse if bias too extreme
@@ -410,7 +411,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
         pp.t += dt * 1.4;
         if (!pp.g) {
           const pg = new THREE.Group();
-          const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.2, 4, 8), new THREE.MeshStandardMaterial({ color: PALETTE[Math.floor(Math.random() * PALETTE.length)] }));
+          const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.2, 4, 8), new THREE.MeshStandardMaterial({ color: pal(Math.floor(Math.random() * PALETTE.length)) }));
           const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshStandardMaterial({ color: "#f5c9a0" }));
           head.position.y = 0.3;
           pg.add(body, head); grp.add(pg); pp.g = pg;
