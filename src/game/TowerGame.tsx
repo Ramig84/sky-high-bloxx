@@ -69,56 +69,53 @@ function cityTexture(seed: number) {
   return t;
 }
 
-// ---- Apartment block ----
-function Apartment({ color, awning, ground }: { color: string; awning: boolean; ground?: boolean }) {
-  const tex = useMemo(() => windowTexture(color), [color]);
+// ---- Apartment block (illustrated facade on a 3D body) ----
+const FACADE_IMG: Record<string, string> = { "#3f6fc4": blueImg, "#ef8a78": pinkImg, "#f2b93b": yellowImg, "#2fa3ad": tealImg };
+function Apartment({ color }: { color: string; awning?: boolean; ground?: boolean }) {
+  const tex = useTexture(FACADE_IMG[color] ?? blueImg);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  const side = useMemo(() => new THREE.Color(color).multiplyScalar(0.72), [color]);
   return (
     <group>
-      <mesh castShadow receiveShadow position={[0, BH / 2, 0]}>
-        <boxGeometry args={[BW, BH - 0.12, BW]} />
-        <meshStandardMaterial map={tex} roughness={0.7} />
+      <mesh castShadow receiveShadow position={[0, BH / 2, -0.02]}>
+        <boxGeometry args={[BW * 0.96, BH * 0.9, BW * 0.9]} />
+        <meshStandardMaterial color={side} roughness={0.8} />
       </mesh>
-      <mesh position={[0, 0.06, 0]} castShadow>
-        <boxGeometry args={[BW + 0.14, 0.12, BW + 0.14]} />
-        <meshStandardMaterial color="#f4efe6" />
+      <mesh position={[0, BH - 0.03, -0.02]} receiveShadow>
+        <boxGeometry args={[BW * 1.0, 0.06, BW * 0.94]} />
+        <meshStandardMaterial color="#e9e3d8" />
       </mesh>
-      {[-0.55, 0.55].map((wx) => (
-        <group key={wx} position={[wx, BH * 0.55, BW / 2 + 0.01]}>
-          <mesh>
-            <planeGeometry args={[0.6, 0.62]} />
-            <meshStandardMaterial color="#ffd77a" emissive="#ffb547" emissiveIntensity={0.8} />
-          </mesh>
-          <mesh position={[0, 0, 0.005]}>
-            <planeGeometry args={[0.04, 0.62]} />
-            <meshStandardMaterial color="#5a3b2a" />
-          </mesh>
-          <mesh position={[0, -0.33, 0.18]}>
-            <boxGeometry args={[0.8, 0.06, 0.36]} />
-            <meshStandardMaterial color="#e9e4dc" />
-          </mesh>
-          <mesh position={[0, -0.2, 0.35]}>
-            <boxGeometry args={[0.8, 0.22, 0.03]} />
-            <meshStandardMaterial color="#2c2f3a" transparent opacity={0.85} />
-          </mesh>
-          {awning && (
-            <mesh position={[0, 0.4, 0.15]} rotation-x={0.5}>
-              <boxGeometry args={[0.7, 0.04, 0.36]} />
-              <meshStandardMaterial color={wx < 0 ? "#e2483d" : "#ffffff"} />
-            </mesh>
-          )}
-        </group>
-      ))}
-      <mesh position={[BW / 2 - 0.25, BH - 0.02, BW / 2 - 0.3]} castShadow>
-        <boxGeometry args={[0.28, 0.28, 0.28]} />
-        <meshStandardMaterial color="#5fae4a" />
+      <mesh position={[0, BH / 2, BW * 0.45 + 0.01]}>
+        <planeGeometry args={[BW * 1.04, BH]} />
+        <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
       </mesh>
-      {ground && (
-        <mesh position={[0, BH * 0.35, BW / 2 + 0.02]}>
-          <planeGeometry args={[0.6, 0.6]} />
-          <meshStandardMaterial color="#3a6fbf" emissive="#1c3d7a" emissiveIntensity={0.5} />
-        </mesh>
-      )}
     </group>
+  );
+}
+function Lobby() {
+  const tex = useTexture(lobbyImg);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return (
+    <group>
+      <mesh position={[0, LOBBY_H / 2, BW * 0.2]}>
+        <planeGeometry args={[LOBBY_W, LOBBY_H]} />
+        <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, LOBBY_H / 2, -0.6]}>
+        <boxGeometry args={[LOBBY_W * 0.85, LOBBY_H * 0.95, 1.4]} />
+        <meshStandardMaterial color="#5b4a44" />
+      </mesh>
+    </group>
+  );
+}
+function Cloud({ position, scale }: { position: [number, number, number]; scale: number }) {
+  const tex = useTexture(cloudImg);
+  return (
+    <mesh position={position} scale={scale}>
+      <planeGeometry args={[3, 2]} />
+      <meshBasicMaterial map={tex} transparent depthWrite={false} toneMapped={false} />
+    </mesh>
   );
 }
 
