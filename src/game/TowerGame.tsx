@@ -520,7 +520,6 @@ export function TowerGame() {
     setPhase("play");
   };
 
-  if (typeof window !== "undefined") (window as any).__w = w;
   const onTap = () => {
     if (phase === "play") w.current.dropReq = true;
   };
