@@ -133,7 +133,7 @@ function Cloud({ position, scale }: { position: [number, number, number]; scale:
 function HookSprite() {
   const tex = useTexture(hookImg);
   return (
-    <mesh position={[0, BH + 0.55, BW * 0.5]}>
+    <mesh position={[0, BH + 0.7, BW * 0.5]}>
       <planeGeometry args={[BW * 0.95, BW * 0.95 * (482 / 753)]} />
       <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
     </mesh>
@@ -286,7 +286,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
       if (g.respawn > 0) { g.respawn -= dt; if (g.respawn <= 0) g.hanging = true; }
       if (g.dropReq && g.hanging) {
         g.hanging = false;
-        g.faller = { x: hx, y: hy - BH - 0.15, vx: thetaV * ROPE * Math.cos(theta), vy: 0, rot: theta, vr: 0, color: nextColor.current.color, id: idRef.current++ };
+        g.faller = { x: hx, y: hy - BH - 1.4, vx: thetaV * ROPE * Math.cos(theta), vy: 0, rot: theta, vr: 0, color: nextColor.current.color, id: idRef.current++ };
       }
     }
     g.dropReq = false;
@@ -295,7 +295,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
     if (active.current) {
       if (g.hanging && g.phase !== "over") {
         active.current.visible = true;
-        active.current.position.set(hx, hy - BH - 0.15, 0);
+        active.current.position.set(hx, hy - BH - 1.4, 0);
         active.current.rotation.z = theta * 0.6;
       } else if (g.faller) {
         const f = g.faller;
@@ -425,10 +425,6 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
         <meshStandardMaterial color="#2a2d33" />
       </mesh>
       <group ref={active}>
-        <mesh position={[0, BH + 0.08, 0]}>
-          <boxGeometry args={[1.2, 0.16, 0.5]} />
-          <meshStandardMaterial color="#f2b41f" />
-        </mesh>
         <HookSprite />
         <ActiveSkin nextColor={nextColor} />
       </group>
