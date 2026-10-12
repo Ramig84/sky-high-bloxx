@@ -10,6 +10,12 @@ import lobbyImg from "@/assets/block-lobby.png";
 import cloudImg from "@/assets/cloud.png";
 import hookImg from "@/assets/hook.png";
 import cityImg from "@/assets/city-bg.jpg";
+import sideBlue from "@/assets/side-blue.png";
+import sidePink from "@/assets/side-pink.png";
+import sideYellow from "@/assets/side-yellow.png";
+import sideTeal from "@/assets/side-teal.png";
+import roofImg from "@/assets/roof.png";
+import residentsImg from "@/assets/residents.png";
 
 // ---- Tunables ----
 const BW = 2.4; // block width
@@ -80,22 +86,29 @@ function cityTexture(seed: number) {
   return t;
 }
 
-// ---- Apartment block (illustrated facade on a 3D body) ----
+// ---- Apartment block (full illustrated wrap on every face) ----
 const FACADE_IMG: Record<string, string> = { "#3f6fc4": blueImg, "#ef8a78": pinkImg, "#f2b93b": yellowImg, "#2fa3ad": tealImg };
+const SIDE_IMG: Record<string, string> = { "#3f6fc4": sideBlue, "#ef8a78": sidePink, "#f2b93b": sideYellow, "#2fa3ad": sideTeal };
 function Apartment({ color }: { color: string; awning?: boolean; ground?: boolean }) {
   const tex = useTexture(FACADE_IMG[color] ?? blueImg);
+  const sideTex = useTexture(SIDE_IMG[color] ?? sideBlue);
+  const roofTex = useTexture(roofImg);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
-  const side = useMemo(() => new THREE.Color(color).multiplyScalar(0.72), [color]);
+  sideTex.colorSpace = THREE.SRGBColorSpace;
+  sideTex.anisotropy = 8;
+  roofTex.colorSpace = THREE.SRGBColorSpace;
+  const mats = useMemo(() => {
+    const side = () => new THREE.MeshBasicMaterial({ map: sideTex, toneMapped: false });
+    const roof = new THREE.MeshBasicMaterial({ map: roofTex, toneMapped: false });
+    const under = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.5), roughness: 0.9 });
+    // box faces: +x, -x, +y, -y, +z, -z
+    return [side(), side(), roof, under, side(), side()];
+  }, [sideTex, roofTex, color]);
   return (
     <group>
-      <mesh castShadow receiveShadow position={[0, BH / 2, -0.02]}>
+      <mesh castShadow receiveShadow position={[0, BH / 2, -0.02]} material={mats}>
         <boxGeometry args={[BW * 0.96, BH * 0.9, BW * 0.9]} />
-        <meshStandardMaterial color={side} roughness={0.8} />
-      </mesh>
-      <mesh position={[0, BH - 0.03, -0.02]} receiveShadow>
-        <boxGeometry args={[BW * 1.0, 0.06, BW * 0.94]} />
-        <meshStandardMaterial color="#e9e3d8" />
       </mesh>
       <mesh position={[0, BH / 2, BW * 0.45 + 0.01]}>
         <planeGeometry args={[BW * 1.04, BH]} />
