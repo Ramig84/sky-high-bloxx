@@ -1,18 +1,29 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Environment, Lightformer, useTexture } from "@react-three/drei";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import blueImg from "@/assets/block-blue.png";
+import pinkImg from "@/assets/block-pink.png";
+import yellowImg from "@/assets/block-yellow.png";
+import tealImg from "@/assets/block-teal.png";
+import lobbyImg from "@/assets/block-lobby.png";
+import cloudImg from "@/assets/cloud.png";
+import hookImg from "@/assets/hook.png";
+import cityImg from "@/assets/city-bg.jpg";
 
 // ---- Tunables ----
-const BW = 2.2; // block width
-const BH = 1.3; // block height
+const BW = 2.4; // block width
+const BH = 1.45; // block height
+const LOBBY_W = 3.4;
+const LOBBY_H = LOBBY_W * (607 / 978);
+const BASE_Y = LOBBY_H;
 const ROPE = 3.6;
 const GRAVITY = 26;
 const SPRING_K = 7;
 const SPRING_DAMP = 0.9;
 const PERFECT = 0.18;
 const MAX_LIVES = 3;
-const PALETTE = ["#4f7fd9", "#ef8f87", "#f4c04e", "#4cc2c4", "#9ad06b", "#c48bdc", "#f39a4f"];
+const PALETTE = ["#3f6fc4", "#ef8a78", "#f2b93b", "#2fa3ad"];
 
 const pal = (i: number): string => PALETTE[((i % PALETTE.length) + PALETTE.length) % PALETTE.length]!;
 type Phase = "menu" | "play" | "over";
