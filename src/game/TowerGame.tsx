@@ -500,6 +500,7 @@ export function TowerGame() {
         <div className="absolute inset-0 bg-sky-top" />
         <div ref={bgRef} className="absolute inset-x-0 bottom-0 h-full will-change-transform">
           <img src={cityImg} alt="" className="h-full w-full object-cover object-bottom" draggable={false} />
+          <div className="absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-sky-top to-transparent" />
         </div>
         <div ref={skyRef} className="absolute inset-0 opacity-0" />
         <Canvas shadows dpr={[1, 2]} gl={{ alpha: true }} camera={{ position: [0, 5, 15], fov: 55 }} key={round} className="!absolute inset-0">

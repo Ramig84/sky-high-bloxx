@@ -169,5 +169,5 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .title-logo { font-size: 4.5rem; line-height: 0.9; font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 3px oklch(0.4 0.14 40); text-shadow: 0 6px 0 oklch(0.4 0.14 40); }
 .play-btn { pointer-events: auto; background: var(--combo); color: oklch(0.3 0.1 40); font-weight: 900; font-size: 1.4rem; padding: 1rem 2.4rem; border-radius: 999px; box-shadow: 0 6px 0 oklch(0.5 0.14 50); }
 .play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 oklch(0.5 0.14 50); }
-:root { --sky-top: oklch(0.8 0.1 235); }
+:root { --sky-top: oklch(0.72 0.12 245); }
 @theme inline { --color-sky-top: var(--sky-top); }
