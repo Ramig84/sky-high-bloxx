@@ -309,11 +309,12 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
     if (bgRef.current) bgRef.current.style.transform = `translateY(${Math.max(0, g.camY - 3) * 4}%)`;
     if (skyRef.current) { skyRef.current.style.backgroundColor = `#${sky.getHexString()}`; skyRef.current.style.opacity = String(Math.min(1, Math.max(0, (ty - 6) / 22))); }
 
-    // crane pendulum
-    const level = n;
-    const amp = Math.min(0.45 + level * 0.015, 0.85);
-    const omega = Math.min(1.9 + level * 0.03, 3.2);
-    const theta = amp * Math.sin(g.t * omega);
+    // crane pendulum (difficulty scales with level)
+    const lvl = levelFor(n);
+    const amp = lvl.amp;
+    const omega = lvl.omega;
+    const wind = lvl.wind * Math.sin(g.t * 0.7) * Math.sin(g.t * 0.23 + 1.7);
+    const theta = amp * Math.sin(g.t * omega) + wind;
     const thetaV = amp * omega * Math.cos(g.t * omega);
     const pivotY = g.camY + 6.2;
     const hx = Math.sin(theta) * ROPE;
@@ -349,7 +350,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
           const off = f.x - towerTopX;
           if (Math.abs(off) < BW * 0.78) {
             const localX = f.x - swayAt(n - 1, n + 1) ;
-            const perfect = Math.abs(off) < PERFECT;
+            const perfect = Math.abs(off) < lvl.perfect;
             const finalX = perfect ? topLocalX() : localX;
             setLanded((L) => [...L, { x: finalX, color: f.color, awning: nextColor.current.awning, id: f.id }]);
             g.swayV += off * 2.2 + (n ? 0 : 0);
