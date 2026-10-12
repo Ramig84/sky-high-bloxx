@@ -1,50 +1,24 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer, useTexture } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Environment, Lightformer } from "@react-three/drei";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import blueImg from "@/assets/block-blue.png";
-import pinkImg from "@/assets/block-pink.png";
-import yellowImg from "@/assets/block-yellow.png";
-import tealImg from "@/assets/block-teal.png";
-import lobbyImg from "@/assets/block-lobby.png";
-import cloudImg from "@/assets/cloud.png";
-import hookImg from "@/assets/hook.png";
-import cityImg from "@/assets/city-bg.jpg";
-import jibImg from "@/assets/crane-jib.png";
-import sideBlue from "@/assets/side-blue.png";
-import sidePink from "@/assets/side-pink.png";
-import sideYellow from "@/assets/side-yellow.png";
-import sideTeal from "@/assets/side-teal.png";
-import roofImg from "@/assets/roof.png";
-import residentsImg from "@/assets/residents.png";
 
 // ---- Tunables ----
-const BW = 2.4; // block width
-const BH = 1.45; // block height
-const LOBBY_W = 3.4;
-const LOBBY_H = LOBBY_W * (607 / 978);
-const BASE_Y = LOBBY_H;
+const BW = 2.2; // block width
+const BH = 1.3; // block height
 const ROPE = 3.6;
 const GRAVITY = 26;
 const SPRING_K = 7;
 const SPRING_DAMP = 0.9;
-// ---- Difficulty levels (ramp every 100 floors) ----
-const LEVELS = [
-  { name: "Rookie",  omega: 1.9, amp: 0.45, perfect: 0.18, wind: 0    },
-  { name: "Builder", omega: 2.3, amp: 0.55, perfect: 0.15, wind: 0.05 },
-  { name: "Pro",     omega: 2.7, amp: 0.65, perfect: 0.12, wind: 0.10 },
-  { name: "Master",  omega: 3.1, amp: 0.75, perfect: 0.10, wind: 0.16 },
-  { name: "Legend",  omega: 3.5, amp: 0.85, perfect: 0.08, wind: 0.22 },
-] as const;
-const levelFor = (floors: number) => LEVELS[Math.min(Math.floor(floors / 100), LEVELS.length - 1)]!;
+const PERFECT = 0.18;
 const MAX_LIVES = 3;
-const PALETTE = ["#3f6fc4", "#ef8a78", "#f2b93b", "#2fa3ad"];
+const PALETTE = ["#4f7fd9", "#ef8f87", "#f4c04e", "#4cc2c4", "#9ad06b", "#c48bdc", "#f39a4f"];
 
 const pal = (i: number): string => PALETTE[((i % PALETTE.length) + PALETTE.length) % PALETTE.length]!;
 type Phase = "menu" | "play" | "over";
 type Landed = { x: number; color: string; awning: boolean; id: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; color: string; id: number };
-type Hud = { score: number; combo: number; lives: number; floors: number; pop: number; msg: string; msgKey: number; level: string };
+type Hud = { score: number; combo: number; lives: number; floors: number; pop: number; msg: string; msgKey: number };
 
 // ---- Audio ----
 let actx: AudioContext | null = null;
@@ -95,131 +69,112 @@ function cityTexture(seed: number) {
   return t;
 }
 
-// ---- Painted resident sprites (6 characters in one sheet) ----
-let residentsTex: THREE.Texture | null = null;
-function residentSprite(): THREE.Mesh | null {
-  if (!residentsTex) {
-    residentsTex = new THREE.TextureLoader().load(residentsImg);
-    residentsTex.colorSpace = THREE.SRGBColorSpace;
-  }
-  const N_CHARS = 6;
-  const idx = Math.floor(Math.random() * N_CHARS);
-  const t = residentsTex.clone();
-  t.repeat.set(1 / N_CHARS, 1);
-  t.offset.set(idx / N_CHARS, 0);
-  t.needsUpdate = true;
-  const h = 0.85;
-  const m = new THREE.Mesh(
-    new THREE.PlaneGeometry(h / 3, h),
-    new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.05, toneMapped: false, side: THREE.DoubleSide })
-  );
-  return m;
-}
-
-// ---- Apartment block (full illustrated wrap on every face) ----
-const FACADE_IMG: Record<string, string> = { "#3f6fc4": blueImg, "#ef8a78": pinkImg, "#f2b93b": yellowImg, "#2fa3ad": tealImg };
-const SIDE_IMG: Record<string, string> = { "#3f6fc4": sideBlue, "#ef8a78": sidePink, "#f2b93b": sideYellow, "#2fa3ad": sideTeal };
-function Apartment({ color }: { color: string; awning?: boolean; ground?: boolean }) {
-  const tex = useTexture(FACADE_IMG[color] ?? blueImg);
-  const sideTex = useTexture(SIDE_IMG[color] ?? sideBlue);
-  const roofTex = useTexture(roofImg);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  sideTex.colorSpace = THREE.SRGBColorSpace;
-  sideTex.anisotropy = 8;
-  roofTex.colorSpace = THREE.SRGBColorSpace;
-  const mats = useMemo(() => {
-    const side = () => new THREE.MeshBasicMaterial({ map: sideTex, toneMapped: false });
-    const roof = new THREE.MeshBasicMaterial({ map: roofTex, toneMapped: false });
-    const under = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.5), roughness: 0.9 });
-    // box faces: +x, -x, +y, -y, +z, -z
-    return [side(), side(), roof, under, side(), side()];
-  }, [sideTex, roofTex, color]);
+// ---- Apartment block ----
+function Apartment({ color, awning, ground }: { color: string; awning: boolean; ground?: boolean }) {
+  const tex = useMemo(() => windowTexture(color), [color]);
   return (
     <group>
-      <mesh castShadow receiveShadow position={[0, BH / 2, -0.02]} material={mats}>
-        <boxGeometry args={[BW * 0.96, BH * 0.9, BW * 0.9]} />
+      <mesh castShadow receiveShadow position={[0, BH / 2, 0]}>
+        <boxGeometry args={[BW, BH - 0.12, BW]} />
+        <meshStandardMaterial map={tex} roughness={0.7} />
       </mesh>
-      <mesh position={[0, BH / 2, BW * 0.45 + 0.01]}>
-        <planeGeometry args={[BW * 1.04, BH]} />
-        <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
+      <mesh position={[0, 0.06, 0]} castShadow>
+        <boxGeometry args={[BW + 0.14, 0.12, BW + 0.14]} />
+        <meshStandardMaterial color="#f4efe6" />
       </mesh>
+      {[-0.55, 0.55].map((wx) => (
+        <group key={wx} position={[wx, BH * 0.55, BW / 2 + 0.01]}>
+          <mesh>
+            <planeGeometry args={[0.6, 0.62]} />
+            <meshStandardMaterial color="#ffd77a" emissive="#ffb547" emissiveIntensity={0.8} />
+          </mesh>
+          <mesh position={[0, 0, 0.005]}>
+            <planeGeometry args={[0.04, 0.62]} />
+            <meshStandardMaterial color="#5a3b2a" />
+          </mesh>
+          <mesh position={[0, -0.33, 0.18]}>
+            <boxGeometry args={[0.8, 0.06, 0.36]} />
+            <meshStandardMaterial color="#e9e4dc" />
+          </mesh>
+          <mesh position={[0, -0.2, 0.35]}>
+            <boxGeometry args={[0.8, 0.22, 0.03]} />
+            <meshStandardMaterial color="#2c2f3a" transparent opacity={0.85} />
+          </mesh>
+          {awning && (
+            <mesh position={[0, 0.4, 0.15]} rotation-x={0.5}>
+              <boxGeometry args={[0.7, 0.04, 0.36]} />
+              <meshStandardMaterial color={wx < 0 ? "#e2483d" : "#ffffff"} />
+            </mesh>
+          )}
+        </group>
+      ))}
+      <mesh position={[BW / 2 - 0.25, BH - 0.02, BW / 2 - 0.3]} castShadow>
+        <boxGeometry args={[0.28, 0.28, 0.28]} />
+        <meshStandardMaterial color="#5fae4a" />
+      </mesh>
+      {ground && (
+        <mesh position={[0, BH * 0.35, BW / 2 + 0.02]}>
+          <planeGeometry args={[0.6, 0.6]} />
+          <meshStandardMaterial color="#3a6fbf" emissive="#1c3d7a" emissiveIntensity={0.5} />
+        </mesh>
+      )}
     </group>
   );
 }
-function Lobby() {
-  const tex = useTexture(lobbyImg);
-  const roofTex = useTexture(roofImg);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  roofTex.colorSpace = THREE.SRGBColorSpace;
-  const lobbyMats = useMemo(() => {
-    const wall = new THREE.MeshStandardMaterial({ color: "#8a5a45", roughness: 0.9 });
-    const roof = new THREE.MeshBasicMaterial({ map: roofTex, toneMapped: false });
-    return [wall, wall, roof, wall, wall, wall];
-  }, [roofTex]);
-  const shadowTex = useMemo(() => {
-    const c = document.createElement("canvas"); c.width = c.height = 128;
-    const x = c.getContext("2d")!;
-    const gr = x.createRadialGradient(64, 64, 4, 64, 64, 64);
-    gr.addColorStop(0, "rgba(40,25,15,0.55)"); gr.addColorStop(1, "rgba(40,25,15,0)");
-    x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
-    return new THREE.CanvasTexture(c);
-  }, []);
-  return (
-    <group>
-      <mesh position={[0, LOBBY_H / 2, BW * 0.2]}>
-        <planeGeometry args={[LOBBY_W, LOBBY_H]} />
-        <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
-      </mesh>
-      <mesh position={[0, LOBBY_H * 0.45, -0.6]} material={lobbyMats}>
-        <boxGeometry args={[LOBBY_W * 0.85, LOBBY_H * 0.9, 1.6]} />
-      </mesh>
-      {/* soft contact shadow grounding the building on the plaza */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, 0]}>
-        <planeGeometry args={[LOBBY_W * 1.5, 3]} />
-        <meshBasicMaterial map={shadowTex} transparent depthWrite={false} toneMapped={false} />
-      </mesh>
-    </group>
-  );
-}
-function Cloud({ position, scale }: { position: [number, number, number]; scale: number }) {
-  const tex = useTexture(cloudImg);
-  return (
-    <mesh position={position} scale={scale}>
-      <planeGeometry args={[3, 2]} />
-      <meshBasicMaterial map={tex} transparent depthWrite={false} toneMapped={false} />
-    </mesh>
-  );
-}
 
-function CraneJib() {
-  const tex = useTexture(jibImg);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  const W = 14, H = W * (169 / 1872);
-  return (
-    <mesh position={[0.03, H / 2 - 0.05, -0.1]}>
-      <planeGeometry args={[W, H]} />
-      <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
-    </mesh>
-  );
-}
-function HookSprite() {
-  const tex = useTexture(hookImg);
-  return (
-    <mesh position={[0, BH + 0.7, BW * 0.5]}>
-      <planeGeometry args={[BW * 0.95, BW * 0.95 * (482 / 753)]} />
-      <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
-    </mesh>
-  );
-}
 // ---- Static world ----
 function City() {
+  const items = useMemo(() => {
+    const arr: { x: number; z: number; w: number; h: number; c: string; t: THREE.Texture }[] = [];
+    for (let i = 0; i < 26; i++) {
+      const z = -10 - Math.random() * 25;
+      arr.push({ x: (Math.random() - 0.5) * 40, z, w: 2 + Math.random() * 3, h: 4 + Math.random() * 18, c: ["#cfd8e8", "#e8d7c6", "#bfd0dd", "#d9cfe6"][i % 4]!, t: cityTexture(i) });
+    }
+    return arr;
+  }, []);
+  const trees = useMemo(() => Array.from({ length: 14 }, () => ({ x: (Math.random() - 0.5) * 18, z: -2 - Math.random() * 7, s: 0.6 + Math.random() * 0.5 })).filter((t) => Math.abs(t.x) > 2.2), []);
   return (
     <group>
-      {Array.from({ length: 24 }).map((_, i) => (
-        <Cloud key={i} position={[Math.sin(i * 2.3) * 4.5, 14 + i * 4.2, -3 - (i % 3) * 2.5]} scale={0.8 + (i % 4) * 0.25} />
+      <mesh rotation-x={-Math.PI / 2} receiveShadow position={[0, -0.01, -10]}>
+        <planeGeometry args={[120, 60]} />
+        <meshStandardMaterial color="#8fbf6a" />
+      </mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 2.5]} receiveShadow>
+        <planeGeometry args={[120, 3]} />
+        <meshStandardMaterial color="#5b6170" />
+      </mesh>
+      <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
+        <boxGeometry args={[4, 0.3, 3.5]} />
+        <meshStandardMaterial color="#b9bcc4" />
+      </mesh>
+      {items.map((b, i) => (
+        <mesh key={i} position={[b.x, b.h / 2, b.z]}>
+          <boxGeometry args={[b.w, b.h, b.w]} />
+          <meshStandardMaterial color={b.c} map={b.t} />
+        </mesh>
       ))}
+      {trees.map((t, i) => (
+        <group key={i} position={[t.x, 0, t.z]} scale={t.s}>
+          <mesh position={[0, 0.5, 0]}><boxGeometry args={[0.25, 1, 0.25]} /><meshStandardMaterial color="#7a5233" /></mesh>
+          <mesh position={[0, 1.4, 0]} castShadow><boxGeometry args={[1.1, 1.1, 1.1]} /><meshStandardMaterial color="#57a545" /></mesh>
+        </group>
+      ))}
+      {/* clouds */}
+      {Array.from({ length: 22 }).map((_, i) => {
+        const y = 12 + i * 4.5;
+        const x = Math.sin(i * 2.3) * 9;
+        return (
+          <group key={i} position={[x, y, -6 - (i % 3) * 3]}>
+            {[0, 1, 2].map((k) => (
+              <mesh key={k} position={[k * 0.9 - 0.9, k === 1 ? 0.3 : 0, 0]}>
+                <sphereGeometry args={[k === 1 ? 1 : 0.75, 12, 10]} />
+                <meshStandardMaterial color="#ffffff" transparent opacity={0.9} />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+      {/* stars for stratosphere */}
       <points position={[0, 140, -20]}>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[new Float32Array(Array.from({ length: 900 }, (_, i) => (i % 3 === 1 ? (Math.random() - 0.3) * 120 : (Math.random() - 0.5) * 80))), 3]} />
@@ -256,8 +211,7 @@ type World = {
   dropReq: boolean;
 };
 
-function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgRef, skyRef }: {
-  bgRef: React.RefObject<HTMLDivElement | null>; skyRef: React.RefObject<HTMLDivElement | null>;
+function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   w: React.MutableRefObject<World>;
   landed: Landed[]; setLanded: React.Dispatch<React.SetStateAction<Landed[]>>;
   misses: Faller[]; setMisses: React.Dispatch<React.SetStateAction<Faller[]>>;
@@ -270,7 +224,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
   const rope = useRef<THREE.Mesh>(null);
   const crane = useRef<THREE.Group>(null);
   const nextColor = useRef({ color: pal(0), awning: true });
-  const fog = useMemo(() => new THREE.Fog("#8fd0ff", 40, 90), []);
+  const fog = useMemo(() => new THREE.Fog("#8fd0ff", 25, 70), []);
   const sky = useMemo(() => new THREE.Color(), []);
   const idRef = useRef(1);
 
@@ -288,10 +242,10 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
   const people = useRef<{ g: THREE.Group | null; from: THREE.Vector3; to: THREE.Vector3; t: number }[]>([]);
   const peopleGroup = useRef<THREE.Group>(null);
 
-  useEffect(() => { scene.fog = fog; scene.background = null; }, [scene, fog]);
+  useEffect(() => { scene.fog = fog; }, [scene, fog]);
 
   const topLocalX = () => (landed.length ? landed[landed.length - 1]!.x : 0);
-  const topY = () => BASE_Y + landed.length * BH;
+  const topY = () => 0.3 + landed.length * BH;
   const swayAt = (i: number, n: number) => w.current.sway * Math.pow((i + 1) / Math.max(n, 1), 1.6) * Math.min(n / 6, 1.5);
 
   function burst(x: number, y: number, count: number) {
@@ -337,16 +291,14 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
     camera.position.set(Math.sin(g.t * 0.2) * 0.6, g.camY + 1.5, 15);
     camera.lookAt(0, g.camY, 0);
     skyAt(ty, sky);
+    scene.background = sky;
     fog.color.copy(sky);
-    if (bgRef.current) bgRef.current.style.transform = `translateY(${5 + Math.max(0, g.camY - 4.6) * 4}%)`;
-    if (skyRef.current) { skyRef.current.style.backgroundColor = `#${sky.getHexString()}`; skyRef.current.style.opacity = String(Math.min(1, Math.max(0, (ty - 6) / 22))); }
 
-    // crane pendulum (difficulty scales with level)
-    const lvl = levelFor(n);
-    const amp = lvl.amp;
-    const omega = lvl.omega;
-    const wind = lvl.wind * Math.sin(g.t * 0.7) * Math.sin(g.t * 0.23 + 1.7);
-    const theta = amp * Math.sin(g.t * omega) + wind;
+    // crane pendulum
+    const level = n;
+    const amp = Math.min(0.45 + level * 0.015, 0.85);
+    const omega = Math.min(1.9 + level * 0.03, 3.2);
+    const theta = amp * Math.sin(g.t * omega);
     const thetaV = amp * omega * Math.cos(g.t * omega);
     const pivotY = g.camY + 6.2;
     const hx = Math.sin(theta) * ROPE;
@@ -361,7 +313,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
       if (g.respawn > 0) { g.respawn -= dt; if (g.respawn <= 0) g.hanging = true; }
       if (g.dropReq && g.hanging) {
         g.hanging = false;
-        g.faller = { x: hx, y: hy - BH - 1.4, vx: thetaV * ROPE * Math.cos(theta), vy: 0, rot: theta, vr: 0, color: nextColor.current.color, id: idRef.current++ };
+        g.faller = { x: hx, y: hy - BH - 0.15, vx: thetaV * ROPE * Math.cos(theta), vy: 0, rot: theta, vr: 0, color: nextColor.current.color, id: idRef.current++ };
       }
     }
     g.dropReq = false;
@@ -370,7 +322,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
     if (active.current) {
       if (g.hanging && g.phase !== "over") {
         active.current.visible = true;
-        active.current.position.set(hx, hy - BH - 1.4, 0);
+        active.current.position.set(hx, hy - BH - 0.15, 0);
         active.current.rotation.z = theta * 0.6;
       } else if (g.faller) {
         const f = g.faller;
@@ -382,7 +334,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
           const off = f.x - towerTopX;
           if (Math.abs(off) < BW * 0.78) {
             const localX = f.x - swayAt(n - 1, n + 1) ;
-            const perfect = Math.abs(off) < lvl.perfect;
+            const perfect = Math.abs(off) < PERFECT;
             const finalX = perfect ? topLocalX() : localX;
             setLanded((L) => [...L, { x: finalX, color: f.color, awning: nextColor.current.awning, id: f.id }]);
             g.swayV += off * 2.2 + (n ? 0 : 0);
@@ -459,9 +411,10 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
         pp.t += dt * 1.4;
         if (!pp.g) {
           const pg = new THREE.Group();
-          const sprite = residentSprite();
-          if (sprite) pg.add(sprite);
-          grp.add(pg); pp.g = pg;
+          const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.2, 4, 8), new THREE.MeshStandardMaterial({ color: pal(Math.floor(Math.random() * PALETTE.length)) }));
+          const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshStandardMaterial({ color: "#f5c9a0" }));
+          head.position.y = 0.3;
+          pg.add(body, head); grp.add(pg); pp.g = pg;
         }
         const k = Math.max(0, Math.min(pp.t, 1));
         pp.g.visible = pp.t > 0;
@@ -479,8 +432,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
     <>
       <City />
       {/* tower */}
-      <Lobby />
-      <group position={[0, BASE_Y, 0]}>
+      <group position={[0, 0.3, 0]}>
         {landed.map((b, i) => (
           <group key={b.id} ref={(r) => { blockRefs.current[i] = r; }} position={[b.x, i * BH, 0]}>
             <Apartment color={b.color} awning={b.awning} ground={i === 0} />
@@ -489,14 +441,24 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
       </group>
       {/* crane */}
       <group ref={crane}>
-        <CraneJib />
+        <mesh position={[0, 0.4, 0]}>
+          <boxGeometry args={[14, 0.5, 0.5]} />
+          <meshStandardMaterial color="#f2b41f" metalness={0.3} roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[0.6, 0.5, 0.6]} />
+          <meshStandardMaterial color="#333842" />
+        </mesh>
       </group>
       <mesh ref={rope}>
-        <cylinderGeometry args={[0.025, 0.025, ROPE, 8]} />
-        <meshStandardMaterial color="#5a606b" metalness={0.8} roughness={0.35} />
+        <cylinderGeometry args={[0.04, 0.04, ROPE, 6]} />
+        <meshStandardMaterial color="#2a2d33" />
       </mesh>
       <group ref={active}>
-        <HookSprite />
+        <mesh position={[0, BH + 0.08, 0]}>
+          <boxGeometry args={[1.2, 0.16, 0.5]} />
+          <meshStandardMaterial color="#f2b41f" />
+        </mesh>
         <ActiveSkin nextColor={nextColor} />
       </group>
       {misses.map((m) => (
@@ -531,7 +493,7 @@ export function TowerGame() {
   const [phase, setPhase] = useState<Phase>("menu");
   const [landed, setLanded] = useState<Landed[]>([]);
   const [misses, setMisses] = useState<Faller[]>([]);
-  const [hud, setHud] = useState<Hud>({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0, level: LEVELS[0]!.name });
+  const [hud, setHud] = useState<Hud>({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0 });
   const [best, setBest] = useState(0);
   const [round, setRound] = useState(0);
 
@@ -542,7 +504,7 @@ export function TowerGame() {
 
   const onHud = (msg?: string) => {
     const g = w.current;
-    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors: floorsRef.current, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey, level: levelFor(floorsRef.current).name }));
+    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors: floorsRef.current, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
   };
   const onOver = () => {
     setPhase("over");
@@ -555,12 +517,10 @@ export function TowerGame() {
     actx?.resume();
     w.current = { ...freshWorld(), phase: "play", camY: 3 };
     setLanded([]); setMisses([]); setRound((r) => r + 1);
-    setHud({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0, level: LEVELS[0]!.name });
+    setHud({ score: 0, combo: 0, lives: MAX_LIVES, floors: 0, pop: 0, msg: "", msgKey: 0 });
     setPhase("play");
   };
 
-  const bgRef = useRef<HTMLDivElement>(null);
-  const skyRef = useRef<HTMLDivElement>(null);
   const onTap = () => {
     if (phase === "play") w.current.dropReq = true;
   };
@@ -568,22 +528,14 @@ export function TowerGame() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-game-shell select-none touch-none">
       <div className="relative h-full w-full max-w-[calc(100dvh*9/16)] overflow-hidden" onPointerDown={onTap}>
-        <div className="absolute inset-0 bg-sky-top" />
-        <div ref={bgRef} className="absolute inset-x-0 bottom-0 h-full will-change-transform">
-          <img src={cityImg} alt="" className="h-full w-full object-cover object-bottom" draggable={false} />
-          <div className="absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-sky-top to-transparent" />
-        </div>
-        <div ref={skyRef} className="absolute inset-0 opacity-0" />
-        <Canvas shadows dpr={[1, 2]} gl={{ alpha: true }} camera={{ position: [0, 5, 15], fov: 55 }} key={round} className="!absolute inset-0">
-          <Suspense fallback={null}>
+        <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 5, 15], fov: 55 }} key={round}>
           <ambientLight intensity={0.55} />
           <directionalLight position={[8, 20, 10]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
           <Environment resolution={64}>
             <Lightformer intensity={2} position={[0, 5, 5]} scale={[10, 10, 1]} />
             <Lightformer intensity={1} color="#ffd9a8" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
           </Environment>
-          <GameScene bgRef={bgRef} skyRef={skyRef} w={w} landed={landed} setLanded={setLanded} misses={misses} setMisses={setMisses} onHud={onHud} onOver={onOver} />
-          </Suspense>
+          <GameScene w={w} landed={landed} setLanded={setLanded} misses={misses} setMisses={setMisses} onHud={onHud} onOver={onOver} />
         </Canvas>
 
         {/* HUD */}
@@ -598,7 +550,7 @@ export function TowerGame() {
                 <span key={i} className={`text-2xl transition-opacity ${i < hud.lives ? "opacity-100" : "opacity-20"}`}>🏠</span>
               ))}
             </div>
-            <div className="hud-pill items-end"><span className="hud-label">{hud.level.toUpperCase()} · FLOORS · POP</span><span className="hud-value text-lg">{hud.floors} · {hud.pop}</span></div>
+            <div className="hud-pill items-end"><span className="hud-label">FLOORS · POP</span><span className="hud-value text-lg">{hud.floors} · {hud.pop}</span></div>
           </div>
         </div>
 
