@@ -10,6 +10,7 @@ import lobbyImg from "@/assets/block-lobby.png";
 import cloudImg from "@/assets/cloud.png";
 import hookImg from "@/assets/hook.png";
 import cityImg from "@/assets/city-bg.jpg";
+import jibImg from "@/assets/crane-jib.png";
 import sideBlue from "@/assets/side-blue.png";
 import sidePink from "@/assets/side-pink.png";
 import sideYellow from "@/assets/side-yellow.png";
@@ -148,16 +149,35 @@ function Apartment({ color }: { color: string; awning?: boolean; ground?: boolea
 }
 function Lobby() {
   const tex = useTexture(lobbyImg);
+  const roofTex = useTexture(roofImg);
   tex.colorSpace = THREE.SRGBColorSpace;
+  roofTex.colorSpace = THREE.SRGBColorSpace;
+  const lobbyMats = useMemo(() => {
+    const wall = new THREE.MeshStandardMaterial({ color: "#8a5a45", roughness: 0.9 });
+    const roof = new THREE.MeshBasicMaterial({ map: roofTex, toneMapped: false });
+    return [wall, wall, roof, wall, wall, wall];
+  }, [roofTex]);
+  const shadowTex = useMemo(() => {
+    const c = document.createElement("canvas"); c.width = c.height = 128;
+    const x = c.getContext("2d")!;
+    const gr = x.createRadialGradient(64, 64, 4, 64, 64, 64);
+    gr.addColorStop(0, "rgba(40,25,15,0.55)"); gr.addColorStop(1, "rgba(40,25,15,0)");
+    x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }, []);
   return (
     <group>
       <mesh position={[0, LOBBY_H / 2, BW * 0.2]}>
         <planeGeometry args={[LOBBY_W, LOBBY_H]} />
         <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
       </mesh>
-      <mesh position={[0, LOBBY_H / 2, -0.6]}>
-        <boxGeometry args={[LOBBY_W * 0.85, LOBBY_H * 0.95, 1.4]} />
-        <meshStandardMaterial color="#5b4a44" />
+      <mesh position={[0, LOBBY_H * 0.45, -0.6]} material={lobbyMats}>
+        <boxGeometry args={[LOBBY_W * 0.85, LOBBY_H * 0.9, 1.6]} />
+      </mesh>
+      {/* soft contact shadow grounding the building on the plaza */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, 0]}>
+        <planeGeometry args={[LOBBY_W * 1.5, 3]} />
+        <meshBasicMaterial map={shadowTex} transparent depthWrite={false} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -172,6 +192,18 @@ function Cloud({ position, scale }: { position: [number, number, number]; scale:
   );
 }
 
+function CraneJib() {
+  const tex = useTexture(jibImg);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  const W = 14, H = W * (169 / 1872);
+  return (
+    <mesh position={[0.03, H / 2 - 0.05, -0.1]}>
+      <planeGeometry args={[W, H]} />
+      <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
+    </mesh>
+  );
+}
 function HookSprite() {
   const tex = useTexture(hookImg);
   return (
@@ -306,7 +338,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
     camera.lookAt(0, g.camY, 0);
     skyAt(ty, sky);
     fog.color.copy(sky);
-    if (bgRef.current) bgRef.current.style.transform = `translateY(${Math.max(0, g.camY - 3) * 4}%)`;
+    if (bgRef.current) bgRef.current.style.transform = `translateY(${5 + Math.max(0, g.camY - 4.6) * 4}%)`;
     if (skyRef.current) { skyRef.current.style.backgroundColor = `#${sky.getHexString()}`; skyRef.current.style.opacity = String(Math.min(1, Math.max(0, (ty - 6) / 22))); }
 
     // crane pendulum (difficulty scales with level)
@@ -457,14 +489,11 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
       </group>
       {/* crane */}
       <group ref={crane}>
-        <mesh position={[0, 0.4, 0]}>
-          <boxGeometry args={[14, 0.45, 0.45]} />
-          <meshStandardMaterial color="#f2b41f" metalness={0.3} roughness={0.5} />
-        </mesh>
+        <CraneJib />
       </group>
       <mesh ref={rope}>
-        <cylinderGeometry args={[0.04, 0.04, ROPE, 6]} />
-        <meshStandardMaterial color="#2a2d33" />
+        <cylinderGeometry args={[0.025, 0.025, ROPE, 8]} />
+        <meshStandardMaterial color="#5a606b" metalness={0.8} roughness={0.35} />
       </mesh>
       <group ref={active}>
         <HookSprite />
