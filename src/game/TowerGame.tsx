@@ -128,7 +128,7 @@ function City() {
     const arr: { x: number; z: number; w: number; h: number; c: string; t: THREE.Texture }[] = [];
     for (let i = 0; i < 26; i++) {
       const z = -10 - Math.random() * 25;
-      arr.push({ x: (Math.random() - 0.5) * 40, z, w: 2 + Math.random() * 3, h: 4 + Math.random() * 18, c: ["#cfd8e8", "#e8d7c6", "#bfd0dd", "#d9cfe6"][i % 4], t: cityTexture(i) });
+      arr.push({ x: (Math.random() - 0.5) * 40, z, w: 2 + Math.random() * 3, h: 4 + Math.random() * 18, c: ["#cfd8e8", "#e8d7c6", "#bfd0dd", "#d9cfe6"][i % 4]!, t: cityTexture(i) });
     }
     return arr;
   }, []);
@@ -244,7 +244,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
 
   useEffect(() => { scene.fog = fog; }, [scene, fog]);
 
-  const topLocalX = () => (landed.length ? landed[landed.length - 1].x : 0);
+  const topLocalX = () => (landed.length ? landed[landed.length - 1]!.x : 0);
   const topY = () => 0.3 + landed.length * BH;
   const swayAt = (i: number, n: number) => w.current.sway * Math.pow((i + 1) / Math.max(n, 1), 1.6) * Math.min(n / 6, 1.5);
 
