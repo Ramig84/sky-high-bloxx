@@ -43,7 +43,7 @@ const pal = (i: number): string => PALETTE[((i % PALETTE.length) + PALETTE.lengt
 type Phase = "menu" | "play" | "over";
 type Landed = { x: number; color: string; awning: boolean; id: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; color: string; id: number };
-type Hud = { score: number; combo: number; lives: number; floors: number; pop: number; msg: string; msgKey: number };
+type Hud = { score: number; combo: number; lives: number; floors: number; pop: number; msg: string; msgKey: number; level: string };
 
 // ---- Audio ----
 let actx: AudioContext | null = null;
