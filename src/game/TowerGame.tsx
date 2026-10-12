@@ -397,10 +397,9 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgR
         pp.t += dt * 1.4;
         if (!pp.g) {
           const pg = new THREE.Group();
-          const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.2, 4, 8), new THREE.MeshStandardMaterial({ color: pal(Math.floor(Math.random() * PALETTE.length)) }));
-          const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshStandardMaterial({ color: "#f5c9a0" }));
-          head.position.y = 0.3;
-          pg.add(body, head); grp.add(pg); pp.g = pg;
+          const sprite = residentSprite();
+          if (sprite) pg.add(sprite);
+          grp.add(pg); pp.g = pg;
         }
         const k = Math.max(0, Math.min(pp.t, 1));
         pp.g.visible = pp.t > 0;
