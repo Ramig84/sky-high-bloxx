@@ -130,59 +130,22 @@ function Cloud({ position, scale }: { position: [number, number, number]; scale:
   );
 }
 
+function HookSprite() {
+  const tex = useTexture(hookImg);
+  return (
+    <mesh position={[0, BH + 0.55, BW * 0.5]}>
+      <planeGeometry args={[BW * 0.95, BW * 0.95 * (482 / 753)]} />
+      <meshBasicMaterial map={tex} transparent alphaTest={0.05} toneMapped={false} />
+    </mesh>
+  );
+}
 // ---- Static world ----
 function City() {
-  const items = useMemo(() => {
-    const arr: { x: number; z: number; w: number; h: number; c: string; t: THREE.Texture }[] = [];
-    for (let i = 0; i < 26; i++) {
-      const z = -10 - Math.random() * 25;
-      arr.push({ x: (Math.random() - 0.5) * 40, z, w: 2 + Math.random() * 3, h: 4 + Math.random() * 18, c: ["#cfd8e8", "#e8d7c6", "#bfd0dd", "#d9cfe6"][i % 4]!, t: cityTexture(i) });
-    }
-    return arr;
-  }, []);
-  const trees = useMemo(() => Array.from({ length: 14 }, () => ({ x: (Math.random() - 0.5) * 18, z: -2 - Math.random() * 7, s: 0.6 + Math.random() * 0.5 })).filter((t) => Math.abs(t.x) > 2.2), []);
   return (
     <group>
-      <mesh rotation-x={-Math.PI / 2} receiveShadow position={[0, -0.01, -10]}>
-        <planeGeometry args={[120, 60]} />
-        <meshStandardMaterial color="#8fbf6a" />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 2.5]} receiveShadow>
-        <planeGeometry args={[120, 3]} />
-        <meshStandardMaterial color="#5b6170" />
-      </mesh>
-      <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
-        <boxGeometry args={[4, 0.3, 3.5]} />
-        <meshStandardMaterial color="#b9bcc4" />
-      </mesh>
-      {items.map((b, i) => (
-        <mesh key={i} position={[b.x, b.h / 2, b.z]}>
-          <boxGeometry args={[b.w, b.h, b.w]} />
-          <meshStandardMaterial color={b.c} map={b.t} />
-        </mesh>
+      {Array.from({ length: 24 }).map((_, i) => (
+        <Cloud key={i} position={[Math.sin(i * 2.3) * 4.5, 14 + i * 4.2, -3 - (i % 3) * 2.5]} scale={0.8 + (i % 4) * 0.25} />
       ))}
-      {trees.map((t, i) => (
-        <group key={i} position={[t.x, 0, t.z]} scale={t.s}>
-          <mesh position={[0, 0.5, 0]}><boxGeometry args={[0.25, 1, 0.25]} /><meshStandardMaterial color="#7a5233" /></mesh>
-          <mesh position={[0, 1.4, 0]} castShadow><boxGeometry args={[1.1, 1.1, 1.1]} /><meshStandardMaterial color="#57a545" /></mesh>
-        </group>
-      ))}
-      {/* clouds */}
-      {Array.from({ length: 22 }).map((_, i) => {
-        const y = 12 + i * 4.5;
-        const x = Math.sin(i * 2.3) * 9;
-        return (
-          <group key={i} position={[x, y, -6 - (i % 3) * 3]}>
-            {[0, 1, 2].map((k) => (
-              <mesh key={k} position={[k * 0.9 - 0.9, k === 1 ? 0.3 : 0, 0]}>
-                <sphereGeometry args={[k === 1 ? 1 : 0.75, 12, 10]} />
-                <meshStandardMaterial color="#ffffff" transparent opacity={0.9} />
-              </mesh>
-            ))}
-          </group>
-        );
-      })}
-      {/* stars for stratosphere */}
       <points position={[0, 140, -20]}>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[new Float32Array(Array.from({ length: 900 }, (_, i) => (i % 3 === 1 ? (Math.random() - 0.3) * 120 : (Math.random() - 0.5) * 80))), 3]} />
@@ -219,7 +182,8 @@ type World = {
   dropReq: boolean;
 };
 
-function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
+function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver, bgRef, skyRef }: {
+  bgRef: React.RefObject<HTMLDivElement | null>; skyRef: React.RefObject<HTMLDivElement | null>;
   w: React.MutableRefObject<World>;
   landed: Landed[]; setLanded: React.Dispatch<React.SetStateAction<Landed[]>>;
   misses: Faller[]; setMisses: React.Dispatch<React.SetStateAction<Faller[]>>;
@@ -232,7 +196,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   const rope = useRef<THREE.Mesh>(null);
   const crane = useRef<THREE.Group>(null);
   const nextColor = useRef({ color: pal(0), awning: true });
-  const fog = useMemo(() => new THREE.Fog("#8fd0ff", 25, 70), []);
+  const fog = useMemo(() => new THREE.Fog("#8fd0ff", 40, 90), []);
   const sky = useMemo(() => new THREE.Color(), []);
   const idRef = useRef(1);
 
@@ -250,10 +214,10 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   const people = useRef<{ g: THREE.Group | null; from: THREE.Vector3; to: THREE.Vector3; t: number }[]>([]);
   const peopleGroup = useRef<THREE.Group>(null);
 
-  useEffect(() => { scene.fog = fog; }, [scene, fog]);
+  useEffect(() => { scene.fog = fog; scene.background = null; }, [scene, fog]);
 
   const topLocalX = () => (landed.length ? landed[landed.length - 1]!.x : 0);
-  const topY = () => 0.3 + landed.length * BH;
+  const topY = () => BASE_Y + landed.length * BH;
   const swayAt = (i: number, n: number) => w.current.sway * Math.pow((i + 1) / Math.max(n, 1), 1.6) * Math.min(n / 6, 1.5);
 
   function burst(x: number, y: number, count: number) {
@@ -299,8 +263,9 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
     camera.position.set(Math.sin(g.t * 0.2) * 0.6, g.camY + 1.5, 15);
     camera.lookAt(0, g.camY, 0);
     skyAt(ty, sky);
-    scene.background = sky;
     fog.color.copy(sky);
+    if (bgRef.current) bgRef.current.style.transform = `translateY(${Math.max(0, g.camY - 3) * 4}%)`;
+    if (skyRef.current) { skyRef.current.style.backgroundColor = `#${sky.getHexString()}`; skyRef.current.style.opacity = String(Math.min(1, Math.max(0, (ty - 6) / 22))); }
 
     // crane pendulum
     const level = n;
@@ -440,7 +405,8 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
     <>
       <City />
       {/* tower */}
-      <group position={[0, 0.3, 0]}>
+      <Lobby />
+      <group position={[0, BASE_Y, 0]}>
         {landed.map((b, i) => (
           <group key={b.id} ref={(r) => { blockRefs.current[i] = r; }} position={[b.x, i * BH, 0]}>
             <Apartment color={b.color} awning={b.awning} ground={i === 0} />
@@ -450,12 +416,8 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
       {/* crane */}
       <group ref={crane}>
         <mesh position={[0, 0.4, 0]}>
-          <boxGeometry args={[14, 0.5, 0.5]} />
+          <boxGeometry args={[14, 0.45, 0.45]} />
           <meshStandardMaterial color="#f2b41f" metalness={0.3} roughness={0.5} />
-        </mesh>
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[0.6, 0.5, 0.6]} />
-          <meshStandardMaterial color="#333842" />
         </mesh>
       </group>
       <mesh ref={rope}>
@@ -467,6 +429,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
           <boxGeometry args={[1.2, 0.16, 0.5]} />
           <meshStandardMaterial color="#f2b41f" />
         </mesh>
+        <HookSprite />
         <ActiveSkin nextColor={nextColor} />
       </group>
       {misses.map((m) => (
@@ -529,6 +492,8 @@ export function TowerGame() {
     setPhase("play");
   };
 
+  const bgRef = useRef<HTMLDivElement>(null);
+  const skyRef = useRef<HTMLDivElement>(null);
   const onTap = () => {
     if (phase === "play") w.current.dropReq = true;
   };
@@ -536,14 +501,21 @@ export function TowerGame() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-game-shell select-none touch-none">
       <div className="relative h-full w-full max-w-[calc(100dvh*9/16)] overflow-hidden" onPointerDown={onTap}>
-        <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 5, 15], fov: 55 }} key={round}>
+        <div className="absolute inset-0 bg-sky-top" />
+        <div ref={bgRef} className="absolute inset-x-0 bottom-0 h-full will-change-transform">
+          <img src={cityImg} alt="" className="h-full w-full object-cover object-bottom" draggable={false} />
+        </div>
+        <div ref={skyRef} className="absolute inset-0 opacity-0" />
+        <Canvas shadows dpr={[1, 2]} gl={{ alpha: true }} camera={{ position: [0, 5, 15], fov: 55 }} key={round} className="!absolute inset-0">
+          <Suspense fallback={null}>
           <ambientLight intensity={0.55} />
           <directionalLight position={[8, 20, 10]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
           <Environment resolution={64}>
             <Lightformer intensity={2} position={[0, 5, 5]} scale={[10, 10, 1]} />
             <Lightformer intensity={1} color="#ffd9a8" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
           </Environment>
-          <GameScene w={w} landed={landed} setLanded={setLanded} misses={misses} setMisses={setMisses} onHud={onHud} onOver={onOver} />
+          <GameScene bgRef={bgRef} skyRef={skyRef} w={w} landed={landed} setLanded={setLanded} misses={misses} setMisses={setMisses} onHud={onHud} onOver={onOver} />
+          </Suspense>
         </Canvas>
 
         {/* HUD */}
