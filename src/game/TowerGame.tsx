@@ -1,12 +1,13 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { advanceSwing, suspendedBlock, integrateFall, floorSway, HOOK_HEIGHT, ROPE_LENGTH } from "./motion";
 import * as THREE from "three";
 
 // ---- Tunables ----
 const BW = 2.2; // block width
 const BH = 1.3; // block height
-const ROPE = 3.6;
+const ROPE = ROPE_LENGTH;
 const GRAVITY = 26;
 const SPRING_K = 7;
 const SPRING_DAMP = 0.9;
@@ -14,7 +15,7 @@ const PERFECT = 0.18;
 const MAX_LIVES = 3;
 const PALETTE = ["#4f7fd9", "#ef8f87", "#f4c04e", "#4cc2c4", "#9ad06b", "#c48bdc", "#f39a4f"];
 
-const pal = (i: number): string => PALETTE[((i % PALETTE.length) + PALETTE.length) % PALETTE.length]!;
+const pal = (i: number): string => (PALETTE[((i % PALETTE.length) + PALETTE.length) % PALETTE.length] ?? PALETTE[0] ?? "#4f7fd9");
 type Phase = "menu" | "play" | "over";
 type Landed = { x: number; color: string; awning: boolean; id: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; color: string; id: number };
@@ -44,20 +45,26 @@ const sfx = {
 function vibrate(ms: number) { try { navigator.vibrate?.(ms); } catch { /* noop */ } }
 
 // ---- Textures ----
+const textureCache = new Map<string, THREE.CanvasTexture>();
 function windowTexture(color: string) {
+  const cached = textureCache.get(color);
+  if (cached) return cached;
   const c = document.createElement("canvas");
   c.width = 128; c.height = 64;
-  const x = c.getContext("2d")!;
+  const x = c.getContext("2d");
+  if (!x) throw new Error("Canvas artwork is unavailable");
   x.fillStyle = color; x.fillRect(0, 0, 128, 64);
   for (let i = 0; i < 128; i += 8) { x.fillStyle = "rgba(0,0,0,0.04)"; x.fillRect(i, 0, 4, 64); }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  textureCache.set(color, t);
   return t;
 }
 function cityTexture(seed: number) {
   const c = document.createElement("canvas");
   c.width = 64; c.height = 128;
-  const x = c.getContext("2d")!;
+  const x = c.getContext("2d");
+  if (!x) throw new Error("Canvas artwork is unavailable");
   x.fillStyle = "#ffffff"; x.fillRect(0, 0, 64, 128);
   for (let r = 4; r < 128; r += 10) for (let col = 4; col < 64; col += 12) {
     x.fillStyle = (Math.sin(r * 13 + col * 7 + seed) > 0.3) ? "#ffe9a8" : "#9fb7d6";
@@ -123,16 +130,18 @@ function Apartment({ color, awning, ground }: { color: string; awning: boolean; 
 }
 
 // ---- Static world ----
-function City() {
+const City = memo(function City() {
   const items = useMemo(() => {
     const arr: { x: number; z: number; w: number; h: number; c: string; t: THREE.Texture }[] = [];
     for (let i = 0; i < 26; i++) {
       const z = -10 - Math.random() * 25;
-      arr.push({ x: (Math.random() - 0.5) * 40, z, w: 2 + Math.random() * 3, h: 4 + Math.random() * 18, c: ["#cfd8e8", "#e8d7c6", "#bfd0dd", "#d9cfe6"][i % 4]!, t: cityTexture(i) });
+      arr.push({ x: (Math.random() - 0.5) * 40, z, w: 2 + Math.random() * 3, h: 4 + Math.random() * 18, c: ["#cfd8e8", "#e8d7c6", "#bfd0dd", "#d9cfe6"][i % 4] ?? "#cfd8e8", t: cityTexture(i) });
     }
     return arr;
   }, []);
   const trees = useMemo(() => Array.from({ length: 14 }, () => ({ x: (Math.random() - 0.5) * 18, z: -2 - Math.random() * 7, s: 0.6 + Math.random() * 0.5 })).filter((t) => Math.abs(t.x) > 2.2), []);
+  useEffect(() => () => { items.forEach((item) => item.t.dispose()); }, [items]);
+  const stars = useMemo(() => new Float32Array(Array.from({ length: 900 }, (_, i) => (i % 3 === 1 ? (Math.random() - 0.3) * 120 : (Math.random() - 0.5) * 80))), []);
   return (
     <group>
       <mesh rotation-x={-Math.PI / 2} receiveShadow position={[0, -0.01, -10]}>
@@ -177,13 +186,13 @@ function City() {
       {/* stars for stratosphere */}
       <points position={[0, 140, -20]}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[new Float32Array(Array.from({ length: 900 }, (_, i) => (i % 3 === 1 ? (Math.random() - 0.3) * 120 : (Math.random() - 0.5) * 80))), 3]} />
+          <bufferAttribute attach="attributes-position" args={[stars, 3]} />
         </bufferGeometry>
         <pointsMaterial color="#ffffff" size={0.25} />
       </points>
     </group>
   );
-}
+});
 
 const SKY = [
   { h: 0, c: new THREE.Color("#8fd0ff") },
@@ -194,15 +203,17 @@ const SKY = [
 ];
 function skyAt(h: number, out: THREE.Color) {
   for (let i = 0; i < SKY.length - 1; i++) {
-    if (h <= SKY[i + 1]!.h) return out.copy(SKY[i]!.c).lerp(SKY[i + 1]!.c, (h - SKY[i]!.h) / (SKY[i + 1]!.h - SKY[i]!.h));
+    const from = SKY[i]; const to = SKY[i + 1];
+    if (from && to && h <= to.h) return out.copy(from.c).lerp(to.c, (h - from.h) / (to.h - from.h));
   }
-  return out.copy(SKY[SKY.length - 1]!.c);
+  const last = SKY.at(-1);
+  return last ? out.copy(last.c) : out;
 }
 
 // ---- Game world ----
 type World = {
   phase: Phase;
-  t: number;
+  t: number; swingPhase: number; swingAmp: number;
   sway: number; swayV: number; bias: number;
   hanging: boolean; respawn: number;
   faller: Faller | null;
@@ -215,12 +226,14 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   w: React.MutableRefObject<World>;
   landed: Landed[]; setLanded: React.Dispatch<React.SetStateAction<Landed[]>>;
   misses: Faller[]; setMisses: React.Dispatch<React.SetStateAction<Faller[]>>;
-  onHud: (msg?: string) => void; onOver: () => void;
+  onHud: (msg?: string, floors?: number) => void; onOver: () => void;
 }) {
   const { camera, scene } = useThree();
   const blockRefs = useRef<(THREE.Group | null)[]>([]);
   const missRefs = useRef<Map<number, THREE.Group>>(new Map());
   const active = useRef<THREE.Group>(null);
+  const activeSkins = useRef<Map<string, THREE.Group>>(new Map());
+  const liftingBracket = useRef<THREE.Mesh>(null);
   const rope = useRef<THREE.Mesh>(null);
   const crane = useRef<THREE.Group>(null);
   const nextColor = useRef({ color: pal(0), awning: true });
@@ -241,12 +254,36 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   // residents
   const people = useRef<{ g: THREE.Group | null; from: THREE.Vector3; to: THREE.Vector3; t: number }[]>([]);
   const peopleGroup = useRef<THREE.Group>(null);
+  const residents = useMemo(() => {
+    const bodyGeo = new THREE.CapsuleGeometry(0.12, 0.2, 4, 8);
+    const headGeo = new THREE.SphereGeometry(0.12, 10, 8);
+    const materials = PALETTE.map((color) => new THREE.MeshStandardMaterial({ color }));
+    const skin = new THREE.MeshStandardMaterial({ color: "#f5c9a0" });
+    const pool = Array.from({ length: 24 }, (_, i) => {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(bodyGeo, materials[i % materials.length]);
+      const head = new THREE.Mesh(headGeo, skin);
+      head.position.y = 0.3;
+      group.add(body, head); group.visible = false;
+      return group;
+    });
+    return { pool, dispose: () => { bodyGeo.dispose(); headGeo.dispose(); skin.dispose(); materials.forEach((m) => m.dispose()); } };
+  }, []);
+  useEffect(() => {
+    const group = peopleGroup.current;
+    if (group) residents.pool.forEach((person) => group.add(person));
+    return () => {
+      if (group) residents.pool.forEach((person) => group.remove(person));
+      residents.dispose();
+      textureCache.forEach((texture) => texture.dispose()); textureCache.clear();
+    };
+  }, [residents]);
 
   useEffect(() => { scene.fog = fog; }, [scene, fog]);
 
-  const topLocalX = () => (landed.length ? landed[landed.length - 1]!.x : 0);
+  const topLocalX = () => (landed.length ? (landed[landed.length - 1]?.x ?? 0) : 0);
   const topY = () => 0.3 + landed.length * BH;
-  const swayAt = (i: number, n: number) => w.current.sway * Math.pow((i + 1) / Math.max(n, 1), 1.6) * Math.min(n / 6, 1.5);
+  const swayAt = (i: number, _n: number) => floorSway(w.current.sway, i);
 
   function burst(x: number, y: number, count: number) {
     let k = 0;
@@ -260,8 +297,10 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   }
   function spawnPeople(x: number, y: number, n: number) {
     for (let i = 0; i < n; i++) {
+      const person = residents.pool.find((p) => !people.current.some((entry) => entry.g === p));
+      if (!person) break;
       const side = i % 2 ? 1 : -1;
-      people.current.push({ g: null, from: new THREE.Vector3(x + side * (3 + Math.random()), y - 3, 1.5), to: new THREE.Vector3(x + side * 0.55, y + BH * 0.5, BW / 2), t: -i * 0.15 });
+      people.current.push({ g: person, from: new THREE.Vector3(x + side * (3 + Math.random()), y - 3, 1.5), to: new THREE.Vector3(x + side * 0.55, y + BH * 0.5, BW / 2), t: -i * 0.15 });
     }
   }
 
@@ -274,12 +313,17 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
 
     // tower spring sway
     const target = g.bias;
-    g.swayV += (-SPRING_K * (g.sway - target)) * dt;
-    g.swayV *= Math.exp(-SPRING_DAMP * dt);
-    g.sway += g.swayV * dt;
+    const steps = Math.max(1, Math.ceil(dt * 120));
+    const step = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      g.swayV += (-SPRING_K * (g.sway - target)) * step;
+      g.swayV *= Math.exp(-SPRING_DAMP * step);
+      g.sway += g.swayV * step;
+    }
     blockRefs.current.forEach((b, i) => {
       if (!b) return;
       const s = swayAt(i, n);
+      b.visible = i * BH > g.camY - 14 && i < n;
       b.position.x = (landed[i]?.x ?? 0) + s;
       b.rotation.z = -w.current.swayV * 0.004 * (i / Math.max(n, 1)) - (s - swayAt(i - 1, n)) * 0.25;
     });
@@ -288,7 +332,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
     // camera
     const camTarget = ty + 2.5;
     g.camY += (camTarget - g.camY) * (1 - Math.exp(-2.5 * dt));
-    camera.position.set(Math.sin(g.t * 0.2) * 0.6, g.camY + 1.5, 15);
+    camera.position.set(0, g.camY + 1.5, 15);
     camera.lookAt(0, g.camY, 0);
     skyAt(ty, sky);
     scene.background = sky;
@@ -296,13 +340,15 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
 
     // crane pendulum
     const level = n;
-    const amp = Math.min(0.45 + level * 0.015, 0.85);
+    g.swingAmp += (Math.min(0.45 + level * 0.015, 0.85) - g.swingAmp) * (1 - Math.exp(-2 * dt));
     const omega = Math.min(1.9 + level * 0.03, 3.2);
-    const theta = amp * Math.sin(g.t * omega);
-    const thetaV = amp * omega * Math.cos(g.t * omega);
+    g.swingPhase = advanceSwing(g.swingPhase, level, dt);
+    const theta = g.swingAmp * Math.sin(g.swingPhase);
+    const thetaV = g.swingAmp * omega * Math.cos(g.swingPhase);
     const pivotY = g.camY + 6.2;
     const hx = Math.sin(theta) * ROPE;
     const hy = pivotY - Math.cos(theta) * ROPE;
+    const hangingPosition = suspendedBlock(theta, pivotY);
     if (crane.current) crane.current.position.y = pivotY;
     if (rope.current) {
       rope.current.position.set(hx / 2, pivotY - Math.cos(theta) * ROPE / 2, 0);
@@ -313,20 +359,22 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
       if (g.respawn > 0) { g.respawn -= dt; if (g.respawn <= 0) g.hanging = true; }
       if (g.dropReq && g.hanging) {
         g.hanging = false;
-        g.faller = { x: hx, y: hy - BH - 0.15, vx: thetaV * ROPE * Math.cos(theta), vy: 0, rot: theta, vr: 0, color: nextColor.current.color, id: idRef.current++ };
+        g.faller = { x: hangingPosition.x, y: hangingPosition.y, vx: thetaV * (ROPE + HOOK_HEIGHT) * Math.cos(theta), vy: thetaV * (ROPE + HOOK_HEIGHT) * Math.sin(theta), rot: theta, vr: 0, color: nextColor.current.color, id: idRef.current++ };
       }
     }
     g.dropReq = false;
 
     // active block
     if (active.current) {
+      activeSkins.current.forEach((skin, key) => { skin.visible = key === `${nextColor.current.color}:${nextColor.current.awning}`; });
+      if (liftingBracket.current) liftingBracket.current.visible = g.hanging;
       if (g.hanging && g.phase !== "over") {
         active.current.visible = true;
-        active.current.position.set(hx, hy - BH - 0.15, 0);
-        active.current.rotation.z = theta * 0.6;
+        active.current.position.set(hangingPosition.x, hangingPosition.y, 0);
+        active.current.rotation.z = theta;
       } else if (g.faller) {
         const f = g.faller;
-        f.vy -= GRAVITY * dt; f.x += f.vx * dt; f.y += f.vy * dt;
+        integrateFall(f, dt, GRAVITY);
         f.rot *= Math.exp(-6 * dt);
         active.current.position.set(f.x, f.y, 0);
         active.current.rotation.z = f.rot;
@@ -334,7 +382,7 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
           const off = f.x - towerTopX;
           const onPlot = n > 0 || Math.abs(f.x) < 0.9; // first floor must sit on the building plot
           if (Math.abs(off) < BW * 0.78 && onPlot) {
-            const localX = f.x - swayAt(n - 1, n + 1) ;
+            const localX = f.x - swayAt(n, n + 1);
             const perfect = Math.abs(off) < PERFECT;
             const finalX = perfect ? topLocalX() : localX;
             const newBlock = { x: finalX, color: f.color, awning: nextColor.current.awning, id: f.id };
@@ -343,14 +391,14 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
             let breakAt = -1;
             for (let k = 0; k < newL.length - 1 && breakAt < 0; k++) {
               let sum = 0;
-              for (let j = k + 1; j < newL.length; j++) sum += newL[j]!.x;
+              for (let j = k + 1; j < newL.length; j++) sum += (newL[j]?.x ?? 0);
               const com = sum / (newL.length - k - 1);
-              if (Math.abs(com - newL[k]!.x) > BW * 0.5) breakAt = k + 1;
+              if (Math.abs(com - (newL[k]?.x ?? 0)) > BW * 0.5) breakAt = k + 1;
             }
             g.swayV += off * 2.2;
             // lean of whole tower over its base drives the visible wobble
             const comAll = newL.reduce((a, b) => a + b.x, 0) / newL.length;
-            const lean = comAll - newL[0]!.x;
+            const lean = comAll - (newL[0]?.x ?? 0);
             g.bias = Math.max(-1.6, Math.min(1.6, lean * 1.2));
             g.swayV += lean * 1.5;
             if (breakAt >= 0) {
@@ -367,7 +415,8 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
               g.faller = null;
               if (g.lives <= 0) { g.phase = "over"; sfx.over(); onOver(); }
               else { g.respawn = 0.9; onHud("COLLAPSE!"); }
-              onHud();
+              active.current.visible = false;
+              onHud(undefined, breakAt);
               return;
             }
             setLanded(newL);
@@ -391,7 +440,9 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
             const ci = (n + 1) % PALETTE.length;
             nextColor.current = { color: pal(ci), awning: Math.random() < 0.5 };
             g.faller = null;
-            g.hanging = true;
+            g.hanging = false;
+            g.respawn = 0.12;
+            active.current.visible = false;
           } else {
             // miss
             setMisses((M) => [...M.slice(-4), { ...f, vr: Math.sign(off) * 3, vx: f.vx + Math.sign(off) * 2 }]);
@@ -402,7 +453,8 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
             if (g.lives <= 0) { g.phase = "over"; sfx.over(); onOver(); }
             else { g.respawn = 0.7; onHud("MISS!"); }
           }
-          onHud();
+          active.current.visible = false;
+          onHud(undefined, Math.abs(off) < BW * 0.78 && onPlot ? n + 1 : n);
         }
       } else {
         active.current.visible = false;
@@ -412,8 +464,10 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
     // missed blocks tumbling
     misses.forEach((m) => {
       const ref = missRefs.current.get(m.id);
-      if (!ref || m.y < -20) return;
-      m.vy -= GRAVITY * dt; m.x += m.vx * dt; m.y += m.vy * dt; m.rot += m.vr * dt;
+      if (!ref) return;
+      ref.visible = m.y > g.camY - 16;
+      if (!ref.visible) return;
+      integrateFall(m, dt, GRAVITY); m.rot += m.vr * dt;
       ref.position.set(m.x, m.y, 0); ref.rotation.z = m.rot;
     });
 
@@ -424,31 +478,24 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
           p.life -= dt;
           p.v.y -= 9 * dt; p.v.multiplyScalar(Math.exp(-1.2 * dt));
           p.p.addScaledVector(p.v, dt); p.r += dt * 8;
-          dummy.position.copy(p.p); dummy.rotation.set(p.r, p.r * 0.7, 0); dummy.scale.setScalar(Math.min(p.life, 1));
+          dummy.position.copy(p.p); dummy.rotation.set(p.r, p.r * 0.7, 0); dummy.scale.setScalar(Math.max(0, Math.min(p.life, 1)));
         } else { dummy.position.set(0, -999, 0); dummy.scale.setScalar(0); }
-        dummy.updateMatrix(); conf.current!.setMatrixAt(i, dummy.matrix);
+        dummy.updateMatrix(); conf.current?.setMatrixAt(i, dummy.matrix);
       });
       conf.current.instanceMatrix.needsUpdate = true;
     }
 
     // residents jumping in
     if (peopleGroup.current) {
-      const grp = peopleGroup.current;
       people.current = people.current.filter((pp) => {
         pp.t += dt * 1.4;
-        if (!pp.g) {
-          const pg = new THREE.Group();
-          const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.2, 4, 8), new THREE.MeshStandardMaterial({ color: pal(Math.floor(Math.random() * PALETTE.length)) }));
-          const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshStandardMaterial({ color: "#f5c9a0" }));
-          head.position.y = 0.3;
-          pg.add(body, head); grp.add(pg); pp.g = pg;
-        }
+        if (!pp.g) return false;
         const k = Math.max(0, Math.min(pp.t, 1));
         pp.g.visible = pp.t > 0;
         pp.g.position.lerpVectors(pp.from, pp.to, k);
         pp.g.position.y += Math.sin(k * Math.PI) * 3;
         pp.g.rotation.z = k * Math.PI * 2;
-        if (pp.t >= 1) { grp.remove(pp.g); return false; }
+        if (pp.t >= 1) { pp.g.visible = false; return false; }
         return true;
       });
     }
@@ -482,11 +529,15 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
         <meshStandardMaterial color="#2a2d33" />
       </mesh>
       <group ref={active}>
-        <mesh position={[0, BH + 0.08, 0]}>
+        <mesh ref={liftingBracket} position={[0, BH + 0.08, 0]}>
           <boxGeometry args={[1.2, 0.16, 0.5]} />
           <meshStandardMaterial color="#f2b41f" />
         </mesh>
-        <ActiveSkin nextColor={nextColor} />
+        {PALETTE.flatMap((color) => [false, true].map((awning) => (
+          <group key={`${color}:${awning}`} visible={false} ref={(r) => { const key = `${color}:${awning}`; if (r) activeSkins.current.set(key, r); else activeSkins.current.delete(key); }}>
+            <Apartment color={color} awning={awning} />
+          </group>
+        )))}
       </group>
       {misses.map((m) => (
         <group key={m.id} ref={(r) => { if (r) missRefs.current.set(m.id, r); else missRefs.current.delete(m.id); }}>
@@ -504,15 +555,9 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
   );
 }
 
-function ActiveSkin({ nextColor }: { nextColor: React.MutableRefObject<{ color: string; awning: boolean }> }) {
-  const [c, setC] = useState(nextColor.current);
-  useFrame(() => { if (nextColor.current !== c) setC(nextColor.current); });
-  return <Apartment color={c.color} awning={c.awning} />;
-}
-
 // ---- Root component ----
 function freshWorld(): World {
-  return { phase: "menu", t: 0, sway: 0, swayV: 0, bias: 0, hanging: true, respawn: 0, faller: null, combo: 0, score: 0, lives: MAX_LIVES, pop: 0, camY: 3, dropReq: false };
+  return { phase: "menu", t: 0, swingPhase: 0, swingAmp: 0.45, sway: 0, swayV: 0, bias: 0, hanging: true, respawn: 0, faller: null, combo: 0, score: 0, lives: MAX_LIVES, pop: 0, camY: 3, dropReq: false };
 }
 
 export function TowerGame() {
@@ -529,9 +574,9 @@ export function TowerGame() {
   const floorsRef = useRef(0);
   floorsRef.current = landed.length;
 
-  const onHud = (msg?: string) => {
+  const onHud = (msg?: string, floors = floorsRef.current) => {
     const g = w.current;
-    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors: floorsRef.current, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
+    setHud((h) => ({ score: g.score, combo: g.combo, lives: g.lives, floors, pop: g.pop, msg: msg ?? h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
   };
   const onOver = () => {
     setPhase("over");
@@ -555,7 +600,7 @@ export function TowerGame() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-game-shell select-none touch-none">
       <div className="relative h-full w-full max-w-[calc(100dvh*9/16)] overflow-hidden" onPointerDown={onTap}>
-        <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 5, 15], fov: 55 }} key={round}>
+        <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 5, 15], fov: 55 }} key={round}>
           <ambientLight intensity={0.55} />
           <directionalLight position={[8, 20, 10]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
           <Environment resolution={64}>
