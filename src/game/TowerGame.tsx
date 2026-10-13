@@ -332,19 +332,50 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
         active.current.rotation.z = f.rot;
         if (f.y <= ty) {
           const off = f.x - towerTopX;
-          if (Math.abs(off) < BW * 0.78) {
+          const onPlot = n > 0 || Math.abs(f.x) < 0.9; // first floor must sit on the building plot
+          if (Math.abs(off) < BW * 0.78 && onPlot) {
             const localX = f.x - swayAt(n - 1, n + 1) ;
             const perfect = Math.abs(off) < PERFECT;
             const finalX = perfect ? topLocalX() : localX;
-            setLanded((L) => [...L, { x: finalX, color: f.color, awning: nextColor.current.awning, id: f.id }]);
-            g.swayV += off * 2.2 + (n ? 0 : 0);
-            g.bias = Math.max(-1.6, Math.min(1.6, g.bias + off * 0.12));
+            const newBlock = { x: finalX, color: f.color, awning: nextColor.current.awning, id: f.id };
+            const newL = [...landed, newBlock];
+            // real balance check: centre of mass above every floor must rest on that floor
+            let breakAt = -1;
+            for (let k = 0; k < newL.length - 1 && breakAt < 0; k++) {
+              let sum = 0;
+              for (let j = k + 1; j < newL.length; j++) sum += newL[j]!.x;
+              const com = sum / (newL.length - k - 1);
+              if (Math.abs(com - newL[k]!.x) > BW * 0.5) breakAt = k + 1;
+            }
+            g.swayV += off * 2.2;
+            // lean of whole tower over its base drives the visible wobble
+            const comAll = newL.reduce((a, b) => a + b.x, 0) / newL.length;
+            const lean = comAll - newL[0]!.x;
+            g.bias = Math.max(-1.6, Math.min(1.6, lean * 1.2));
+            g.swayV += lean * 1.5;
+            if (breakAt >= 0) {
+              // collapse: floors from breakAt up topple off
+              const fallen = newL.slice(breakAt);
+              const dir = Math.sign(lean || off) || 1;
+              setMisses((M) => [...M.slice(-4), ...fallen.slice(-8).map((b, i) => ({
+                x: b.x + swayAt(breakAt + i, n + 1), y: 0.3 + (breakAt + i) * BH, vx: dir * (2 + i * 0.4), vy: 2, rot: 0, vr: dir * (1.5 + i * 0.3), color: b.color, id: idRef.current++,
+              }))]);
+              setLanded(newL.slice(0, breakAt));
+              g.combo = 0; g.sway = 0; g.swayV = dir * 3; g.bias = 0;
+              g.lives -= 1;
+              sfx.miss(); vibrate(150);
+              g.faller = null;
+              if (g.lives <= 0) { g.phase = "over"; sfx.over(); onOver(); }
+              else { g.respawn = 0.9; onHud("COLLAPSE!"); }
+              onHud();
+              return;
+            }
+            setLanded(newL);
             if (perfect) {
               g.combo += 1;
               const pts = 25 * Math.min(g.combo, 10);
               g.score += pts;
               g.pop += 8 + g.combo * 2;
-              g.bias *= 0.6;
               sfx.perfect(g.combo); vibrate(25);
               burst(towerTopX, ty + BH, 40 + g.combo * 6);
               spawnPeople(towerTopX, ty, 2 + Math.min(g.combo, 4));
@@ -355,16 +386,12 @@ function GameScene({ w, landed, setLanded, misses, setMisses, onHud, onOver }: {
               g.pop += 4;
               sfx.thud(); vibrate(12);
               spawnPeople(towerTopX, ty, 1);
-              onHud(Math.abs(off) < 0.6 ? "GOOD" : "WOBBLY!");
+              onHud(Math.abs(lean) > BW * 0.3 ? "LEANING!" : Math.abs(off) < 0.6 ? "GOOD" : "WOBBLY!");
             }
             const ci = (n + 1) % PALETTE.length;
             nextColor.current = { color: pal(ci), awning: Math.random() < 0.5 };
             g.faller = null;
             g.hanging = true;
-            // tower collapse if bias too extreme
-            if (Math.abs(g.bias) > 1.5) {
-              g.lives = 0; g.phase = "over"; sfx.over(); onOver();
-            }
           } else {
             // miss
             setMisses((M) => [...M.slice(-4), { ...f, vr: Math.sign(off) * 3, vx: f.vx + Math.sign(off) * 2 }]);
