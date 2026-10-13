@@ -1,0 +1,3 @@
+- [ ] Correct crane, block and landing synchronization without changing balance rules.
+- [ ] Reduce movement-time allocations and unnecessary rendering while preserving the artwork.
+- [ ] Verify stacking, missed drops and replay in portrait gameplay; run motion regression checks.

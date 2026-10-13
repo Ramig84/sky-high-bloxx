@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep motion calculations in the browser-safe game motion module with regression tests, so crane attachment and falling remain consistent across frame rates.
+- Animate game transforms through refs and publish HUD changes only on gameplay events, so React commits cannot reset moving objects.
