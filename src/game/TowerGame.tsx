@@ -136,7 +136,8 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
       const floor = s.floors[i];
       return floor ? floorPosition(floor.x, floor.swayAtLanding, s.sway, i, bw) : 0;
     };
-    const level = () => s.floors.length + spec.speed;
+    // The crane speeds up with every floor inside a level and with every level across the city.
+    const level = () => s.floors.length * 0.5 + spec.speed;
     const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(s.floors.length * 3, 70) + (spec.slide ? Math.sin(s.t * 0.9) * spec.slide : 0), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN });
     const hung = () => {
       // Rope, hook and block swing as one rigid pendulum so the block never detaches from the hook.
@@ -151,7 +152,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
       void sfx("release", 0.5);
       setHud(h => ({ ...h, msg: "" }));
       const h = hung();
-      const dth = SWING * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
+      const dth = SWING * Math.cos(s.phase) * swingRate(level());
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
       windDir = Math.random() < 0.5 ? -1 : 1;
