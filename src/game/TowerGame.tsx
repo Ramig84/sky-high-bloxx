@@ -13,6 +13,7 @@ import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
+import { getImage } from "./preload";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -27,7 +28,7 @@ type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: n
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; chip: number; rot: number };
 type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; won: boolean; stars: number; msg: string; msgKey: number };
 
-function load(src: string) { const i = new Image(); i.src = src; return i; }
+const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
 export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
