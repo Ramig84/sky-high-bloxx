@@ -35,6 +35,13 @@ function Terms() {
       <p>Some features, like an extra life, may require watching a short ad. Ad breaks may appear between levels.</p>
       <h2>Disclaimer</h2>
       <p>The game is provided "as is" without warranties. To the extent permitted by law, we are not liable for lost progress or service interruptions.</p>
+      <h2>Contact</h2>
+      <p>
+        Questions about these terms: email{" "}
+        <a className="underline" href="mailto:support@moonbeacon.com">support@moonbeacon.com</a>{" "}
+        or visit our studio site{" "}
+        <a className="underline" href="https://moon-beacon-showcase.lovable.app" target="_blank" rel="noopener noreferrer">Moon Beacon</a>.
+      </p>
       <h2>Changes</h2>
       <p>We may update these terms; continued play means you accept the updated version.</p>
     </LegalPage>

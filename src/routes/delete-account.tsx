@@ -25,7 +25,11 @@ function DeleteAccount() {
         <li>Tap <strong>Settings</strong> on the home screen.</li>
         <li>Tap <strong>Delete account</strong>, type DELETE and confirm.</li>
       </ol>
-      <p>You can also request deletion by contacting the developer through the Google Play store listing — include the email address you sign in with, and we will delete the account for you.</p>
+      <p>
+        You can also request deletion from our{" "}
+        <a className="underline" href="https://moon-beacon-showcase.lovable.app/account-deletion" target="_blank" rel="noopener noreferrer">Moon Beacon account deletion page</a>{" "}
+        or email <a className="underline" href="mailto:support@moonbeacon.com?subject=Account%20deletion%20request%20%E2%80%94%20Sky%20Bloxx">support@moonbeacon.com</a> with "Account deletion request — Sky Bloxx" as the subject. Include the email address you sign in with, and we will delete the account for you.
+      </p>
       <h2>What is deleted</h2>
       <ul>
         <li>Your player name and profile.</li>
