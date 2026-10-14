@@ -19,7 +19,7 @@ function useCountUp(target: number, from = 0, duration = 1100) {
 }
 
 /** Wallet total that counts up when it grows (e.g. after a streak reward). */
-export function CoinTotal({ value, from }: { value: number; from?: number }) {
+export function CoinTotal({ value, from }: { value: number; from?: number | undefined }) {
   const shown = useCountUp(value, from ?? value);
   return <>{shown.toLocaleString()}</>;
 }
