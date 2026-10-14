@@ -66,4 +66,4 @@
 - [x] Resume button after extra-life ad (test ad now grants 1 life, campaign/daily only)
 - [x] Privacy policy, terms, delete account
 - [x] Districts locked for release; district-complete celebration added
-- [ ] Run signed Android build
+- [x] Run signed Android build (signed sky-bloxx-release-aab produced using saved GitHub keys)
