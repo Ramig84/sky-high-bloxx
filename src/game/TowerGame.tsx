@@ -24,8 +24,8 @@ import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 import { canBankRun } from "./runPolicy";
 
-const VH = 640; // logical height
-const GROUND_SCREEN = 488; // screen y of plot at camera 0
+const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
+const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
 const PIVOT_SCREEN = 96;
 const ROPE = 120;
 const GRAVITY = 1500;
