@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import b1 from "@/assets/floor-1.jpg";
 import b2 from "@/assets/floor-2.jpg";
 import b3 from "@/assets/floor-3.jpg";
@@ -9,12 +10,13 @@ import cloudsSrc from "@/assets/bg-clouds.jpg";
 import sunsetSrc from "@/assets/bg-sunset.jpg";
 import spaceSrc from "@/assets/bg-space.jpg";
 import hookSrc from "@/assets/hook.png";
-import residentSrc from "@/assets/resident.png";
+import residentSrc from "@/assets/resident-jump.png";
 import craneSrc from "@/assets/crane.png";
 import foundationSrc from "@/assets/foundation.png";
 import cloudSrc from "@/assets/cloud.png";
 import crowdSrc from "@/assets/crowd.png";
-import birdSrc from "@/assets/bird.png";
+import birdSrc from "@/assets/bird-flight.png";
+import cheerSrc from "@/assets/crowd-cheer.png";
 import logoSrc from "@/assets/logo.png";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
 
@@ -43,12 +45,22 @@ export function TowerGame() {
   const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
-    const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
     const crane = load(craneSrc), foundation = load(foundationSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
+    const cheer = load(cheerSrc);
+    const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
+      if (!ok(img)) return;
+      const cell = img.naturalWidth / count;
+      ctx.save(); ctx.translate(x, y); if (mirror) ctx.scale(-1, 1);
+      ctx.drawImage(img, Math.min(count - 1, Math.max(0, pose)) * cell, 0, cell, img.naturalHeight, -w / 2, -h, w, h);
+      ctx.restore();
+    };
     let isStarted = false, isMuted = localStorage.getItem("bloxx-muted") === "1";
     setMuted(isMuted);
     api.current.mute = (m) => { isMuted = m; localStorage.setItem("bloxx-muted", m ? "1" : "0"); };
@@ -63,7 +75,8 @@ export function TowerGame() {
     const buildFade = () => {
       faded = true;
       streetFaded.width = street.naturalWidth; streetFaded.height = street.naturalHeight;
-      const c = streetFaded.getContext("2d")!;
+      const c = streetFaded.getContext("2d");
+      if (!c) return;
       c.drawImage(street, 0, 0);
       const g = c.createLinearGradient(0, 0, 0, street.naturalHeight * 0.3);
       g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
@@ -137,7 +150,7 @@ export function TowerGame() {
         s.fallers.push({ x: d.x, y: topY() + BH / 2, vx: d.vx + Math.sign(off) * 80, vy: 0, rot: 0, vr: Math.sign(off) * 4, skin });
         loseLife("MISS!");
       } else {
-        const base = n === 0 ? 0 : s.floors[n - 1]!.x;
+        const base = s.floors[n - 1]?.x ?? 0;
         const x = kind === "perfect" ? base : base + off;
         s.floors.push({ x, skin });
         if (kind === "perfect") {
@@ -145,7 +158,7 @@ export function TowerGame() {
           chime(523 * Math.pow(1.122, Math.min(s.combo, 8))); chime(784, 0.35);
           navigator.vibrate?.(30);
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, hue: Math.random() * 360 });
-          for (let i = 0; i < 2; i++) s.res.push({ sx: (i ? 1 : -1) * (vw / 2 + 20), sy: s.camY, tx: x + (i ? 22 : -22), ty: topY() - BH * 0.55, t: 0 });
+          for (let i = 0; i < 2; i++) s.res.push({ sx: x + (i ? 70 : -70), sy: topY() - BH - 12, tx: x + (i ? 22 : -22), ty: topY() - BH * 0.55, t: 0 });
         } else { s.combo = 0; s.score += 10; chime(330, 0.15); }
         s.shake = 3;
         const xs = s.floors.map(f => f.x);
@@ -153,7 +166,7 @@ export function TowerGame() {
         if (ci >= 0) {
           const gone = s.floors.splice(ci + 1);
           gone.forEach((f, k) => {
-            const dir = Math.sign(f.x - xs[ci]!) || 1;
+            const dir = Math.sign(f.x - (xs[ci] ?? 0)) || 1;
             s.fallers.push({ x: f.x, y: (ci + 1 + k) * BH + BH / 2, vx: dir * (60 + k * 20), vy: 0, rot: 0, vr: dir * (1.5 + k * 0.3), skin: f.skin });
           });
           loseLife("COLLAPSE!");
@@ -174,7 +187,8 @@ export function TowerGame() {
       ctx.globalAlpha = alpha; ctx.drawImage(img, (vw - w) / 2, (VH - h) / 2 + yOff, w, h); ctx.globalAlpha = 1;
     };
     const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0, shadow = false) => {
-      const img = skins[skin]!;
+      const img = skins[skin];
+      if (!img) return;
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
       if (ok(img)) {
         if (shadow) { ctx.fillStyle = "rgba(40,20,10,0.18)"; ctx.fillRect(-BW / 2 + 3, -BH / 2 + 4, BW, BH); }
@@ -209,7 +223,7 @@ export function TowerGame() {
       s.fallers = s.fallers.filter(f => f.y > s.camY - 800);
       for (const p of s.parts) { integrateFall(p, dt, 700); p.life -= dt; }
       s.parts = s.parts.filter(p => p.life > 0);
-      for (const r of s.res) r.t += dt * 1.4;
+      for (const r of s.res) r.t += dt / 1.2;
       s.res = s.res.filter(r => r.t < 1);
       s.cheer = Math.max(0, s.cheer - dt);
 
@@ -237,9 +251,10 @@ export function TowerGame() {
       }
       if (ok(bird)) for (const b of birds) {
         b.x += b.sp * dt; if (b.x > vw / 2 + 80) { b.x = -vw / 2 - 80 - Math.random() * 300; b.y = 120 + Math.random() * 160; }
-        const flap = 0.8 + Math.abs(Math.sin(s.t * 7 + b.ph)) * 0.3;
+        const wingCycle = [0, 1, 2, 3, 2, 1];
+        const pose = wingCycle[Math.floor((s.t + b.ph) * 10) % wingCycle.length] ?? 0;
         ctx.globalAlpha = 1 - a(1500, 2200);
-        ctx.drawImage(bird, vw / 2 + b.x - 14, b.y + Math.sin(s.t * 2 + b.ph) * 6, 28, 19 * flap); ctx.globalAlpha = 1;
+        drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 2 + b.ph) * 2, 34, 43.52); ctx.globalAlpha = 1;
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
@@ -256,14 +271,22 @@ export function TowerGame() {
         ctx.drawImage(foundation, vw / 2 - fw / 2, gy - fh * 0.42, fw, fh);
       }
 
-      for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true);
+      for (let i = 0; i < n; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
       // cheering crowd on the sidewalk
       const cy = toScreenY(-92);
       if (cy < VH + 100 && ok(crowd)) {
-        const cw = 200, ch = cw * 640 / 1536, hop = s.cheer > 0 ? Math.abs(Math.sin(s.t * 14)) * 5 : Math.abs(Math.sin(s.t * 2)) * 1;
-        ctx.drawImage(crowd, vw / 2 - cw / 2, cy - ch - hop, cw, ch);
+        const cw = 170, ch = cw * 640 / 1536;
+        ctx.drawImage(crowd, vw / 2 - cw / 2 + 12, cy - ch, cw, ch);
+        // Use the same spectator in every pose; generated group panels change cast between frames.
+        if (ok(cheer)) {
+          const elapsed = 1.2 - s.cheer;
+          const pose = s.cheer <= 0 ? 0 : elapsed < 0.18 ? 1 : elapsed < 0.85 ? 2 : 1;
+          const crops: [number, number][] = [[25, 190], [535, 175], [1020, 225]];
+          const crop = crops[pose];
+          if (crop) ctx.drawImage(cheer, crop[0], 50, crop[1], 450, vw / 2 - 110, cy - 49, 25, 49);
+        }
       }
 
       // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
@@ -287,10 +310,13 @@ export function TowerGame() {
       if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot);
 
       // residents
-      if (resident.complete) for (const r of s.res) {
-        const x = r.sx + (r.tx - r.sx) * r.t, y = r.sy + (r.ty - r.sy) * r.t + Math.sin(r.t * Math.PI) * 140;
-        ctx.globalAlpha = r.t > 0.85 ? (1 - r.t) / 0.15 : 1;
-        ctx.drawImage(resident, vw / 2 + x - 9, toScreenY(y) - 26, 18, 27); ctx.globalAlpha = 1;
+      if (ok(resident)) for (const r of s.res) {
+        const flight = Math.max(0, Math.min(1, (r.t - 0.16) / 0.58));
+        const x = r.sx + (r.tx - r.sx) * flight;
+        const y = r.sy + (r.ty - r.sy) * flight + 4 * 45 * flight * (1 - flight);
+        const pose = r.t < 0.12 ? 0 : r.t < 0.24 ? 1 : r.t < 0.5 ? 2 : r.t < 0.74 ? 3 : r.t < 0.86 ? 4 : 5;
+        ctx.globalAlpha = r.t > 0.94 ? (1 - r.t) / 0.06 : 1;
+        drawPose(resident, 6, pose, vw / 2 + x, toScreenY(y), 24, 34.13, r.sx > r.tx); ctx.globalAlpha = 1;
       }
       for (const p of s.parts) { ctx.fillStyle = `hsla(${p.hue},90%,60%,${Math.min(1, p.life)})`; ctx.fillRect(vw / 2 + p.x, toScreenY(p.y), 4, 7); }
 
@@ -310,10 +336,10 @@ export function TowerGame() {
           <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
           <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
           <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
-          <button aria-label={muted ? "Turn sound on" : "Turn sound off"} className="hud-pill pointer-events-auto h-12 w-12 items-center justify-center !p-0"
+          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="hud-pill pointer-events-auto h-12 w-12 items-center justify-center !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </button>
+          </Button>
         </div>
       )}
       {started && hud.combo > 1 && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
@@ -336,7 +362,7 @@ export function TowerGame() {
             <span className="text-3xl font-extrabold">Game Over</span>
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
-            <button className="paper-btn mt-2 rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => api.current.restart()}>Play again</button>
+            <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => api.current.restart()}>Play again</Button>
           </div>
         </div>
       )}
