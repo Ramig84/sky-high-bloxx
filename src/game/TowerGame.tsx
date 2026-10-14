@@ -20,6 +20,8 @@ import { blockSource, craneSource, coin } from "./shopArtwork";
 import { coins, loadLoadout, runReward } from "./wallet";
 import { finishRun, startRun } from "./account";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
+import { AdPlaceholder } from "./AdPlaceholder";
+import { fiveLevelOffer, type AdPlacement } from "./adPlacements";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -55,8 +57,18 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const balanceLabel = useRef<HTMLSpanElement>(null);
   const balancePanel = useRef<HTMLDivElement>(null);
   const [credited, setCredited] = useState(0);
+  const [adPlacement, setAdPlacement] = useState<AdPlacement | null>(null);
+  const adPaused = useRef(false);
+  const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
+  const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
   const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
+  useEffect(() => {
+    if (fiveLevelOffer(levelIndex, hud.won, endless, daily)) {
+      adPaused.current = true;
+      setAdPlacement("five-levels");
+    }
+  }, [hud.won, levelIndex, endless, daily]);
   const started = true;
   const [muted, setMuted] = useState(false);
   useEffect(() => {
@@ -173,7 +185,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
     api.current.tap = () => {
       unlockAudio();
-      if (s.over || !s.held || !isStarted) return;
+      if (adPaused.current || s.over || !s.held || !isStarted) return;
       void sfx("release", 0.5);
       setHud(h => ({ ...h, msg: "" }));
       const h = hung();
@@ -294,6 +306,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     let last = performance.now(), raf = 0;
     const frame = (now: number) => {
       const dt = Math.min((now - last) / 1000, 1 / 20); last = now;
+      if (adPaused.current) { raf = requestAnimationFrame(frame); return; }
       s.t += dt;
       if (!s.over) s.phase = advanceSwing(s.phase, level(), dt);
 
@@ -496,6 +509,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
+      {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} />}
+      {!hud.over && hud.lives < baseSpec.lives && <Button variant="ghost" className="plaque absolute bottom-6 left-3 h-12 rounded-none px-3 text-xs font-semibold" onPointerDown={e => e.stopPropagation()} onClick={() => openAd("extra-life")}>+1 life · Test ad</Button>}
       <div ref={balancePanel} className="tower-balance hud-pill" data-state="stable">
         <span className="hud-label">BALANCE</span>
         <meter ref={balanceMeter} aria-label="Tower instability" min={0} max={1} low={0.6} high={0.85} optimum={0} defaultValue={0} />
@@ -515,7 +530,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
       {hud.over && (
         <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
-          <div className="hud-pill items-center gap-3 px-8 py-6">
+          <div className="hud-pill max-h-[90dvh] max-w-[calc(100%-1.5rem)] items-center gap-3 overflow-y-auto px-6 py-5">
             <picture>
               <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
               <img src={phoneArtwork.logoSrc} alt="" width={1280} height={640} className="w-48" />
@@ -528,6 +543,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()} coins</span></span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
+            {!hud.won && <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => openAd("continue")}>Continue · Test ad</Button>}
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
             {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
             <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={onMap}><MapIcon className="h-4 w-4" /> {endless ? "Home" : "City map"}</Button>
