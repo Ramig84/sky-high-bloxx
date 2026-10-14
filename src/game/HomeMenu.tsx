@@ -7,6 +7,7 @@ import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
 import { coin } from "./shopArtwork";
 import { claimDailyStreak, coins } from "./wallet";
+import { CoinTotal } from "./CoinReward";
 import { ACCOUNT_EVENT, claimStreak, isSignedIn, signIn, signOut } from "./account";
 
 type Panel = "home" | "leaderboard" | "settings";

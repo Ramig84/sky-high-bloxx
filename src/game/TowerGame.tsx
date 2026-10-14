@@ -17,6 +17,7 @@ import { getImage } from "./preload";
 import { blockSource, craneSource } from "./shopArtwork";
 import { loadLoadout, runReward } from "./wallet";
 import { finishRun, startRun } from "./account";
+import { CoinReward } from "./CoinReward";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
