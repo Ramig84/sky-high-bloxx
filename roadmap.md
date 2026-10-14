@@ -62,3 +62,7 @@
 - [ ] Verify signed-in unfinished-level payout end-to-end (blocked: requesting player has no account session; sign in in preview)
 - [x] Push the tower back ~9% (VH 640→700, ground 488→534) so it sits smaller with more room for crane, wind and falls; landing rules untouched
 - [x] Android: GitHub build creates signing-info.txt (passwords, alias, base64) for user to save
+
+- [ ] Resume button after continue/extra-life ad completes
+- [ ] Privacy policy, terms, delete account (copied from older games)
+- [ ] Run signed Android build
