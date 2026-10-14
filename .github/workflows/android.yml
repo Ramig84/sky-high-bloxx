@@ -2,33 +2,42 @@ name: Android build
 
 # Builds the Sky Bloxx Android APK (testing) and AAB (Play Store upload).
 # Runs on every push to main, or manually from the Actions tab.
-# Signed AAB requires these repository secrets (Settings → Secrets → Actions):
-#   ANDROID_KEYSTORE_BASE64   – base64 of your upload keystore (.jks/.keystore)
-#   ANDROID_KEYSTORE_PASSWORD – keystore password
-#   ANDROID_KEY_ALIAS         – key alias inside the keystore
-#   ANDROID_KEY_PASSWORD      – key password
-# Without those secrets the workflow still produces a debug APK for testing.
+# Signing secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Without them the workflow still produces a debug APK for testing.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+env:
+  GRADLE_VERSION: "8.14.3"
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile || bun install
+        run: bun install
 
       - name: Add Android platform
         run: npx cap add android
@@ -36,26 +45,37 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Update Gradle wrapper
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew wrapper --gradle-version "$GRADLE_VERSION" --distribution-type bin
+          ./gradlew --version
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Set version code from run number
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
 
-      - name: Build release AAB (unsigned)
+      - name: Build release AAB
         working-directory: android
         run: ./gradlew bundleRelease
 
-      - name: Decode keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > $RUNNER_TEMP/keystore.jks
-
       - name: Sign AAB
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.KEYSTORE_B64 != '' }}
         run: |
-          AAB=$(ls android/app/build/outputs/bundle/release/app-release.aab)
-          jarsigner -keystore $RUNNER_TEMP/keystore.jks \
-            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.ANDROID_KEY_PASSWORD }}" \
-            "$AAB" "${{ secrets.ANDROID_KEY_ALIAS }}"
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/keystore.jks"
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore "$RUNNER_TEMP/keystore.jks" \
+            -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+            android/app/build/outputs/bundle/release/app-release.aab "$KEY_ALIAS"
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload APK (testing)
         uses: actions/upload-artifact@v4
