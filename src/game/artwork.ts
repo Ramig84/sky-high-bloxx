@@ -44,3 +44,10 @@ export function districtFloors(id: DistrictId, tablet: boolean): Four {
   if (id === "oldtown") return tablet ? [b1Tablet, b2Tablet, b3Tablet, bg0Tablet] : [b1, b2, b3, bg0];
   return tablet ? pick(tabletFloors, id, "-tablet") : pick(phoneFloors, id, "");
 }
+
+// Painted street plate per district, sharing the same ground line as the Old Town plate.
+const phoneStreets = import.meta.glob<string>("../assets/street-*.webp", { eager: true, import: "default", query: "?url" });
+export function districtStreet(id: DistrictId, tablet: boolean): string {
+  if (id === "oldtown") return tablet ? streetSrcTablet : streetSrc;
+  return phoneStreets[`../assets/street-${id}${tablet ? "-tablet" : ""}.webp`] ?? streetSrc;
+}
