@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      endless_scores: {
+        Row: {
+          created_at: string
+          floors: number
+          id: string
+          name: string
+          player_id: string
+          score: number
+        }
+        Insert: {
+          created_at?: string
+          floors: number
+          id?: string
+          name: string
+          player_id: string
+          score: number
+        }
+        Update: {
+          created_at?: string
+          floors?: number
+          id?: string
+          name?: string
+          player_id?: string
+          score?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
