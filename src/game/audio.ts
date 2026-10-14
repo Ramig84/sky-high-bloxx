@@ -14,10 +14,28 @@ import city from "@/assets/audio/amb-city.mp3.asset.json";
 import night from "@/assets/audio/amb-night.mp3.asset.json";
 import rain from "@/assets/audio/amb-rain.mp3.asset.json";
 import music from "@/assets/audio/music-theme.mp3.asset.json";
+import mOldtown from "@/assets/audio/music-oldtown.mp3.asset.json";
+import mHarbour from "@/assets/audio/music-harbour.mp3.asset.json";
+import mMarket from "@/assets/audio/music-market.mp3.asset.json";
+import mRiverside from "@/assets/audio/music-riverside.mp3.asset.json";
+import mGardens from "@/assets/audio/music-gardens.mp3.asset.json";
+import mUniversity from "@/assets/audio/music-university.mp3.asset.json";
+import mRailyard from "@/assets/audio/music-railyard.mp3.asset.json";
+import mDowntown from "@/assets/audio/music-downtown.mp3.asset.json";
+import mSkyline from "@/assets/audio/music-skyline.mp3.asset.json";
+import mCloudpeak from "@/assets/audio/music-cloudpeak.mp3.asset.json";
 import { loadSettings } from "./settings";
 import type { DistrictId, LevelSpec } from "./levels";
 
-const SRC = { drop, perfect, miss, release, collapse, clear, tap, wind, waves, birds, train, city, night, rain, music } as const;
+const SRC = { drop, perfect, miss, release, collapse, clear, tap, wind, waves, birds, train, city, night, rain, music,
+  mOldtown, mHarbour, mMarket, mRiverside, mGardens, mUniversity, mRailyard, mDowntown, mSkyline, mCloudpeak } as const;
+export type Track = "music" | "mOldtown" | "mHarbour" | "mMarket" | "mRiverside" | "mGardens" | "mUniversity" | "mRailyard" | "mDowntown" | "mSkyline" | "mCloudpeak";
+
+/** Every district has its own music; menus use the main theme. */
+export const DISTRICT_MUSIC: Record<DistrictId, Track> = {
+  oldtown: "mOldtown", harbour: "mHarbour", market: "mMarket", riverside: "mRiverside", gardens: "mGardens",
+  university: "mUniversity", railyard: "mRailyard", downtown: "mDowntown", skyline: "mSkyline", cloudpeak: "mCloudpeak",
+};
 export type Sound = keyof typeof SRC;
 export type Ambient = "wind" | "waves" | "birds" | "train" | "city" | "night" | "rain";
 
@@ -57,6 +75,12 @@ function buffer(name: Sound) {
 
 export function unlockAudio() { context(); }
 
+// Browsers (especially iOS Safari) only allow sound after a real tap; resume on every kind of first gesture.
+if (typeof window !== "undefined") {
+  const unlock = () => { const c = context(); if (c && c.state === "running") for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.removeEventListener(ev, unlock, true); };
+  for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.addEventListener(ev, unlock, true);
+}
+
 export async function sfx(name: Sound, volume = 0.8, rate = 1) {
   if (!loadSettings().sound) return;
   const c = context(), b = await buffer(name);
@@ -92,10 +116,12 @@ export function setAmbience(list: Ambient[]) {
   if (s.sound) for (const a of list) void startLoop(`amb:${a}`, a, a === "wind" || a === "rain" ? 0.35 : 0.45);
 }
 
-export function setMusic(on: boolean, volume = 0.3) {
+let currentTrack: Track = "music";
+export function setMusic(on: boolean, volume = 0.3, track: Track = "music") {
+  if (track !== currentTrack) { stopLoop("music"); currentTrack = track; }
   if (on && loadSettings().music) {
     const l = loops.get("music");
     if (l && ctx) l.gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.6);
-    else void startLoop("music", "music", volume);
+    else void startLoop("music", track, volume);
   } else stopLoop("music");
 }

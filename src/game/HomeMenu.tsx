@@ -12,12 +12,28 @@ export function HomeMenu({ onCampaign, onEndless, onReset }: { onCampaign: () =>
   const [panel, setPanel] = useState<Panel>("home");
   const [tablet, setTablet] = useState(false);
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
+  const [woke, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none">
-      <div className="game-viewport relative h-full overflow-hidden bg-cover bg-bottom" style={{ backgroundImage: `url(${districtStreet("oldtown", tablet)})` }}>
+    <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none" onPointerUp={() => setWoke(true)}>
+      <div className="game-viewport relative h-full overflow-hidden">
+        <div className="map-pan absolute inset-0 bg-cover bg-bottom" style={{ backgroundImage: `url(${districtStreet("oldtown", tablet)})` }} aria-hidden />
+        {[0, 1, 2].map(i => <img key={`c${i}`} src={art.cloudSrc} alt="" aria-hidden className="map-cloud" style={{ top: `${4 + i * 14}%`, animationDelay: `${-i * 15}s`, animationDuration: `${34 + i * 10}s` }} />)}
+        {[0, 1].map(i => (
+          <div key={`b${i}`} className="map-bird-path" style={{ top: `${22 + i * 12}%`, animationDelay: `${-i * 9}s` }} aria-hidden>
+            <div className="map-bird" style={{ backgroundImage: `url(${art.birdSrc})` }} />
+          </div>
+        ))}
+        <div className="home-crane" aria-hidden>
+          <div className="home-swing">
+            <span className="home-rope" />
+            <img src={art.hookSrc} alt="" className="home-hook" />
+            <img src={art.b1} alt="" className="home-block" />
+          </div>
+        </div>
         <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
-          <img src={art.logoSrc} alt="Sky Bloxx" className="w-64 drop-shadow-md" />
+          <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
+          {!woke && panel === "home" && <span className="home-hint">Tap anywhere to start</span>}
           {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} setPanel={setPanel} />}
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
@@ -32,7 +48,7 @@ const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none t
 function MainButtons({ onCampaign, onEndless, setPanel }: { onCampaign: () => void; onEndless: () => void; setPanel: (p: Panel) => void }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
   return (
-    <div className="mt-auto flex w-full max-w-xs flex-col gap-3">
+    <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-3">
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
       <Button variant="ghost" className={big} onClick={() => setPanel("leaderboard")}><Trophy className="h-6 w-6" /> Leaderboard</Button>

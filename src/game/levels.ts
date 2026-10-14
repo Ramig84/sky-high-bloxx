@@ -33,17 +33,23 @@ export type LevelSpec = {
   width: number;       // floor width multiplier
 };
 
+/** Floors to clear: each district climbs from 15 + 5d to 50 + 10d (Old Town 15→50 … Cloud Peak 60→140). */
+export function districtGoal(d: number, l: number) {
+  const start = 15 + 5 * d, end = 50 + 10 * d;
+  return Math.round(start + ((end - start) * l) / (LEVELS_PER_DISTRICT - 1));
+}
+
 export function levelSpec(index: number): LevelSpec {
   const n = Math.max(0, Math.min(TOTAL_LEVELS - 1, Math.floor(index)));
   const d = Math.floor(n / LEVELS_PER_DISTRICT), l = n % LEVELS_PER_DISTRICT;
   return {
     index: n, district: d, level: l,
-    goal: 10 + Math.round(n * 0.25),
-    perfectGoal: 3 + Math.floor(n / 12),
+    goal: districtGoal(d, l),
+    perfectGoal: Math.round(districtGoal(d, l) * 0.25),
     lives: l === LEVELS_PER_DISTRICT - 1 && d > 0 ? 2 : 3,
-    speed: n * 0.45, // crane swings faster every level: Old Town 1 → Cloud Peak 10
-    wind: d >= 2 ? Math.round(60 + (n - 20) * 1.5) : 0,
-    slide: d >= 4 ? Math.round(20 + (n - 40) * 0.6) : 0,
+    speed: n * 0.9, // crane swings faster every level; floors stacked inside a level add more
+    wind: d >= 2 ? Math.round(100 + (n - 20) * 2.5) : 0,
+    slide: d >= 4 ? Math.round(30 + (n - 40) * 0.9) : 0,
     slip: d >= 6 ? 3 + (n - 60) * 0.1 : 0,
     fog: d >= 7 ? Math.min(0.6, 0.3 + (n - 70) * 0.012) : 0,
     night: d >= 8,

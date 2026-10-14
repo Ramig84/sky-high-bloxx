@@ -6,12 +6,19 @@ describe("campaign levels", () => {
     expect(DISTRICTS).toHaveLength(10);
     expect(TOTAL_LEVELS).toBe(100);
   });
-  it("first level needs 10 floors and no level asks for fewer", () => {
-    expect(levelSpec(0).goal).toBe(10);
-    for (let i = 0; i < TOTAL_LEVELS; i++) expect(levelSpec(i).goal).toBeGreaterThanOrEqual(10);
+  it("Old Town climbs from 15 to 50 floors", () => {
+    expect(levelSpec(0).goal).toBe(15);
+    expect(levelSpec(9).goal).toBe(50);
   });
-  it("goals never get easier", () => {
-    for (let i = 1; i < TOTAL_LEVELS; i++) expect(levelSpec(i).goal).toBeGreaterThanOrEqual(levelSpec(i - 1).goal);
+  it("Cloud Peak finale needs 140 floors", () => expect(levelSpec(99).goal).toBe(140));
+  it("goals rise inside every district and each district ends higher", () => {
+    for (let d = 0; d < 10; d++) {
+      for (let l = 1; l < 10; l++) expect(levelSpec(d * 10 + l).goal).toBeGreaterThan(levelSpec(d * 10 + l - 1).goal);
+      if (d) expect(levelSpec(d * 10 + 9).goal).toBeGreaterThan(levelSpec(d * 10 - 1).goal);
+    }
+  });
+  it("crane gets faster every level", () => {
+    for (let i = 1; i < TOTAL_LEVELS; i++) expect(levelSpec(i).speed).toBeGreaterThan(levelSpec(i - 1).speed);
   });
   it("introduces obstacles district by district", () => {
     expect(levelSpec(9).wind + levelSpec(9).slide + levelSpec(9).slip).toBe(0);
@@ -32,10 +39,10 @@ describe("campaign levels", () => {
   });
   it("awards 1-3 stars", () => {
     const s = levelSpec(0);
-    expect(starsFor(s, 9, 10, 0)).toBe(0);
-    expect(starsFor(s, 10, 0, 1)).toBe(1);
-    expect(starsFor(s, 10, s.perfectGoal, 1)).toBe(2);
-    expect(starsFor(s, 10, s.perfectGoal, 0)).toBe(3);
+    expect(starsFor(s, 14, 10, 0)).toBe(0);
+    expect(starsFor(s, 15, 0, 1)).toBe(1);
+    expect(starsFor(s, 15, s.perfectGoal, 1)).toBe(2);
+    expect(starsFor(s, 15, s.perfectGoal, 0)).toBe(3);
   });
   it("unlocks the next level only after clearing the previous", () => {
     expect(isLevelUnlocked([], 0)).toBe(true);

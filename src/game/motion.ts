@@ -2,8 +2,11 @@ export const BLOCK_HEIGHT = 1.3;
 export const ROPE_LENGTH = 3.6;
 export const HOOK_HEIGHT = BLOCK_HEIGHT + 0.15;
 
+/** Crane swing rate (rad/s) for a difficulty level; capped so late game stays humanly playable. */
+export const swingRate = (level: number) => Math.min(1.9 + level * 0.03, 5);
+
 export function advanceSwing(phase: number, level: number, dt: number) {
-  return phase + Math.min(1.9 + level * 0.03, 3.2) * dt;
+  return phase + swingRate(level) * dt;
 }
 
 export function suspendedBlock(theta: number, pivotY: number) {
