@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
@@ -7,8 +7,7 @@ import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
 import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
-import { CoinTotal } from "./CoinReward";
-import { sfx } from "./audio";
+import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { ACCOUNT_EVENT, claimGift, isSignedIn, signIn, signOut } from "./account";
 
 type Panel = "home" | "leaderboard" | "settings";
@@ -19,19 +18,31 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
   const [, refresh] = useState(0);
   const [gift, setGift] = useState({ available: false, day: 1, reward: 0, crane: false });
   const [showMap, setShowMap] = useState(false);
+  const collector = useRef<CoinCollectorHandle>(null);
+  const rewardTarget = useRef<HTMLImageElement>(null);
+  const rewardCounter = useRef<HTMLElement>(null);
+  const collecting = useRef(false);
+  const [balance, setBalance] = useState(coins);
   const claimGiftNow = () => {
-    if (!giftAvailable()) return;
+    if (!giftAvailable() || collecting.current) return;
+    collecting.current = true;
+    const before = coins();
+    const bounds = document.querySelector(".reward-tile.is-today img")?.getBoundingClientRect();
+    const source = { x: bounds ? bounds.left + bounds.width / 2 : window.innerWidth / 2, y: bounds ? bounds.top + bounds.height / 2 : window.innerHeight / 2 };
     const done = (r: { day: number; reward: number; crane: boolean; claimed: boolean } | null) => {
-      if (!r || r.claimed) { setGift(g => ({ ...g, available: false })); return; }
-      void sfx("coins", 0.7);
+      if (!r || r.claimed) { collecting.current = false; setGift(g => ({ ...g, available: false })); return; }
       localStorage.setItem(GIFT_KEY, JSON.stringify({ day: new Date().toISOString().slice(0, 10), count: r.day }));
       setGift({ available: false, day: r.day, reward: r.reward, crane: r.crane });
+      const finish = () => { collecting.current = false; setBalance(coins()); };
+      const target = rewardTarget.current, counter = rewardCounter.current;
+      if (r.reward > 0 && target && counter && collector.current) collector.current.collect({ source, target, counter, from: before, to: coins(), onComplete: finish });
+      else finish();
     };
-    if (isSignedIn()) void claimGift().then(done);
+    if (isSignedIn()) void claimGift().then(done).catch(() => { collecting.current = false; });
     else done(claimDailyReward());
   };
   useEffect(() => {
-    const on = () => refresh(n => n + 1);
+    const on = () => { refresh(n => n + 1); if (!collecting.current) setBalance(coins()); };
     window.addEventListener(ACCOUNT_EVENT, on);
     return () => window.removeEventListener(ACCOUNT_EVENT, on);
   }, []);
@@ -59,8 +70,9 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
         <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
           <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
           {!woke && panel === "home" && <span className="home-hint">Tap anywhere to start</span>}
-          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} onGift={() => setShowMap(true)} />}
-          {showMap && <RewardMap gift={gift} onClaim={claimGiftNow} onClose={() => setShowMap(false)} />}
+          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} balance={balance} onGift={() => setShowMap(true)} />}
+          {showMap && <RewardMap gift={gift} balance={balance} targetRef={rewardTarget} counterRef={rewardCounter} onClaim={claimGiftNow} onClose={() => { collector.current?.clear(); collecting.current = false; setBalance(coins()); setShowMap(false); }} />}
+          <CoinCollector ref={collector} />
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
         </div>
@@ -73,13 +85,13 @@ const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none t
 
 const small = "plaque h-14 rounded-none text-sm font-extrabold";
 
-function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, onGift }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; gift: { available: boolean; day: number; reward: number; crane: boolean }; onGift: () => void }) {
+function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, balance, onGift }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; gift: { available: boolean; day: number; reward: number; crane: boolean }; balance: number; onGift: () => void }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
   const label = gift.day === 7 ? "crane!" : `+${DAILY_REWARDS[gift.day - 1] ?? 100}`;
   return (
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
       <div className="home-topline">
-        <div className="home-wallet"><img src={coin} alt="" /><strong><CoinTotal value={coins()} from={gift.reward ? coins() - gift.reward : undefined} /></strong></div>
+        <div className="home-wallet"><img src={coin} alt="" /><strong>{balance.toLocaleString()}</strong></div>
         <button type="button" className={`home-gift ${gift.available ? "is-ready" : ""}`} onClick={onGift} aria-label={`Daily reward, day ${gift.day} of 7`}>
           <Gift className="h-4 w-4" /> Day {gift.day}/7 · {gift.crane ? "crane won!" : gift.available ? label : "claimed"}
         </button>
@@ -156,11 +168,12 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
   );
 }
 
-function RewardMap({ gift, onClaim, onClose }: { gift: { available: boolean; day: number; reward: number; crane: boolean }; onClaim: () => void; onClose: () => void }) {
+function RewardMap({ gift, balance, targetRef, counterRef, onClaim, onClose }: { gift: { available: boolean; day: number; reward: number; crane: boolean }; balance: number; targetRef: RefObject<HTMLImageElement | null>; counterRef: RefObject<HTMLElement | null>; onClaim: () => void; onClose: () => void }) {
   return (
     <div className="reward-backdrop" role="dialog" aria-label="Daily rewards" onClick={onClose}>
       <div className="reward-map hud-pill" onClick={e => e.stopPropagation()}>
         <strong className="text-lg">Daily rewards</strong>
+        <div className="reward-wallet" aria-label="Coin balance"><img ref={targetRef} src={coin} alt="" /><strong ref={counterRef}>{balance.toLocaleString()}</strong></div>
         <p className="text-xs opacity-75">Come back every day. Miss a day and it starts again at day 1.</p>
         <div className="reward-grid">
           {[1, 2, 3, 4, 5, 6, 7].map(n => {

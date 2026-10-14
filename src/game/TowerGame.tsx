@@ -14,10 +14,10 @@ import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import { getImage } from "./preload";
-import { blockSource, craneSource } from "./shopArtwork";
-import { loadLoadout, runReward } from "./wallet";
+import { blockSource, craneSource, coin } from "./shopArtwork";
+import { coins, loadLoadout, runReward } from "./wallet";
 import { finishRun, startRun } from "./account";
-import { CoinReward } from "./CoinReward";
+import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -43,6 +43,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const district = DISTRICTS[baseSpec.district] ?? DISTRICTS[0]!;
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const collector = useRef<CoinCollectorHandle>(null);
+  const coinTarget = useRef<HTMLImageElement>(null);
+  const coinCounter = useRef<HTMLElement>(null);
+  const rewardSource = useRef<HTMLSpanElement>(null);
+  const coinLabel = useRef<HTMLSpanElement>(null);
+  const [credited, setCredited] = useState(0);
+  const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
   const started = true;
   const [muted, setMuted] = useState(false);
@@ -122,6 +129,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     observer.observe(canvas);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
+    let previewCoins = 0;
+    const collectCoins = (source: { x: number; y: number }, from: number, to: number) => {
+      const target = coinTarget.current, counter = coinCounter.current;
+      if (target && counter) collector.current?.collect({ source, target, counter, from, to });
+    };
     let s = fresh();
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[],
@@ -131,7 +143,12 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, won: s.won, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, coins: h.coins, msg, msgKey: h.msgKey + 1 }));
     const awardRun = () => { const earned = runReward({ stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, perfects: s.perfects, floors: s.floors.length, endless, daily }); const stats = { floors: s.floors.length, perfects: s.perfects, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0 };
       const t = ticket; ticket = Promise.resolve(null);
-      void finishRun(t, stats, earned).then(got => setHud(h => ({ ...h, coins: got }))); };
+      const generation = runGeneration.current;
+      void finishRun(t, stats, earned).then(got => {
+        if (generation !== runGeneration.current) return;
+        setHud(h => ({ ...h, coins: got }));
+        setCredited(got);
+      }); };
     let ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex);
 
     const chime = (freq: number, dur = 0.25) => {
@@ -168,7 +185,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.held = false;
       windDir = Math.random() < 0.5 ? -1 : 1;
     };
-    api.current.restart = () => { ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
+    api.current.restart = () => { runGeneration.current++; collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
 
     const loseLife = (msg: string) => {
       s.lives--; s.combo = 0; s.shake = 10; void sfx(msg === "COLLAPSE!" ? "collapse" : "miss", 0.75);
@@ -217,6 +234,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         s.floors.push({ x, skin, swayAtLanding: s.sway });
         if (checkCollapse()) return;
         if (kind === "perfect") s.perfects++;
+        const nextCoins = runReward({ perfects: s.perfects, floors: s.floors.length, endless, daily });
+        const bounds = canvas.getBoundingClientRect();
+        collectCoins({ x: bounds.left + (0.5 + x / vw) * bounds.width, y: bounds.top + toScreenY(topY()) / VH * bounds.height }, previewCoins, nextCoins);
+        previewCoins = nextCoins;
         let stageMsg = "";
         if (endless) {
           const before = endlessStage(s.floors.length - 1), after = endlessStage(s.floors.length);
@@ -434,13 +455,24 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); setAmbience([]); };
+    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); setAmbience([]); };
   }, [levelIndex]);
+
+  useEffect(() => {
+    if (credited <= 0) return;
+    const target = coinTarget.current, counter = coinCounter.current, source = rewardSource.current;
+    if (!target || !counter || !source) return;
+    if (coinLabel.current) coinLabel.current.textContent = "WALLET";
+    const bounds = source.getBoundingClientRect();
+    collector.current?.collect({ source: { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }, target, counter, from: Math.max(0, coins() - credited), to: coins() });
+  }, [credited]);
 
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
     <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
+      <CoinCollector ref={collector} />
       {started && (
         <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="hud-pill"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
@@ -466,7 +498,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             {endless && !daily && <span className="hud-label">SCORE SENT TO LEADERBOARD</span>}
             {daily && <span className="hud-label">TODAY'S SHARED TOWER · TRIPLE REWARD</span>}
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
-            <CoinReward amount={hud.coins} />
+            <span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()} coins</span></span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
             {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
