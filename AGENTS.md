@@ -16,3 +16,4 @@
 - Keep spectator mood selection in a tested browser-safe module and clip six grounded poses from one consistent two-person sheet, so landing reactions preserve the cast.
 - Select phone or higher-resolution tablet WebP artwork at mount while retaining source paintings, so phones avoid tablet downloads.
 - Size the canvas from its portrait-constrained container and observe container resizing; keep HUD controls larger on tablets without changing logical motion or landing rules.
+- Project street spectators through the tested browser-safe scene module and use painted contact artwork, so camera ascent leaves ground residents behind and scene joins avoid synthetic frames.

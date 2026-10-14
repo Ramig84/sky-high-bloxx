@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { phoneArtwork, tabletArtwork } from "./artwork";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
 import { spectatorPose, type SpectatorMood } from "./reactions";
+import { streetSpectators } from "./scene";
+import paintedContactSrc from "@/assets/painted-contact.webp";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -44,6 +46,7 @@ export function TowerGame() {
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
     const crane = load(craneSrc), foundation = load(foundationSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
+    const paintedContact = load(paintedContactSrc);
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
       const cell = img.naturalWidth / count;
@@ -191,11 +194,15 @@ export function TowerGame() {
       if (!img) return;
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
       if (ok(img)) {
-        if (shadow) { ctx.fillStyle = "rgba(40,20,10,0.18)"; ctx.fillRect(-BW / 2 + 3, -BH / 2 + 4, BW, BH); }
+        // Painted pigment at the join grounds the facade without a picture-frame outline.
+        if (shadow && ok(paintedContact)) {
+          ctx.globalAlpha = 0.36;
+          ctx.drawImage(paintedContact, -BW * 0.56 - 2, BH / 2 - 6, BW * 1.12, 14);
+          ctx.globalAlpha = 1;
+        }
         // Crop source sides so the painted facade keeps its proportions at the block's aspect.
         const iw = img.naturalWidth, ih = img.naturalHeight, sw = Math.min(iw, ih * (BW / BH));
         ctx.drawImage(img, (iw - sw) / 2, 0, sw, ih, -BW / 2, -BH / 2, BW, BH);
-        ctx.strokeStyle = "rgba(60,30,15,0.45)"; ctx.lineWidth = 1; ctx.strokeRect(-BW / 2 + 0.5, -BH / 2 + 0.5, BW - 1, BH - 1);
       }
       ctx.restore();
     };
@@ -261,6 +268,11 @@ export function TowerGame() {
       const gy = toScreenY(0);
       if (gy < VH + 200 && ok(foundation)) {
         const fw = BW * 1.9, fh = fw * 0.5;
+        if (ok(paintedContact)) {
+          ctx.globalAlpha = 0.45;
+          ctx.drawImage(paintedContact, vw / 2 - fw * 0.65 - 5, gy + fh * 0.2, fw * 1.3, 30);
+          ctx.globalAlpha = 1;
+        }
         if (n === 0 && !s.drop) {
           const pulse = 0.35 + Math.sin(s.t * 4) * 0.2;
           const g = ctx.createRadialGradient(vw / 2, gy, 4, vw / 2, gy, BW);
@@ -273,10 +285,28 @@ export function TowerGame() {
       for (let i = 0; i < n; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
-      // Two persistent spectators stay in the foreground, even as the tower climbs.
+      // Spectators live on the sidewalk beside the site, and scroll away with the street.
       if (s.t >= s.reactionUntil && !s.over) s.mood = "idle";
       const pose = spectatorPose(s.mood, s.mood === "idle" ? s.t : s.t - s.reactionAt);
-      drawPose(crowd, 6, pose, vw / 2, VH - 10, 104, 104);
+      const spectators = streetSpectators(GROUND_SCREEN, s.camY, VH);
+      if (spectators.visible) {
+        const sx = vw / 2 + BW * 0.95;
+        if (ok(paintedContact)) {
+          ctx.globalAlpha = 0.42;
+          ctx.drawImage(paintedContact, sx - 35, spectators.feetY - 9, 66, 16);
+          ctx.globalAlpha = 1;
+        }
+        // Align the sheet's common shoe baseline (363/384) to the street.
+        const spriteBottom = spectators.feetY + spectators.height * (21 / 384);
+        drawPose(crowd, 6, pose, sx, spriteBottom, spectators.height, spectators.height);
+        // Reuse actual street paint over the lowest shoe pixels, not synthetic grass.
+        if (ok(street)) {
+          ctx.save();
+          ctx.beginPath(); ctx.rect(sx - 27, spectators.feetY - 1, 54, 2); ctx.clip();
+          drawCover(street, 1 - a(400, 900), alt);
+          ctx.restore();
+        }
+      }
 
       // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
       const h = hung();
