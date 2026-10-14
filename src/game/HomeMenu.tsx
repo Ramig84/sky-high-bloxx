@@ -11,6 +11,7 @@ import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { ACCOUNT_EVENT, claimGift, isSignedIn, signIn, signOut } from "./account";
+import { AdPlacementTests } from "./AdPlaceholder";
 
 type Panel = "home" | "leaderboard" | "settings";
 
@@ -161,6 +162,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
         <Slider aria-label="Sound effects volume" min={0} max={100} step={1} value={[s.sound ? Math.round(s.soundVolume * 100) : 0]} onValueChange={([v]) => update({ sound: true, soundVolume: (v ?? 0) / 100 })} onValueCommit={() => void sfx("drop", 0.55)} />
       </label>
       <Toggle label="Vibration" on={s.vibrate} set={v => update({ vibrate: v })} />
+      <AdPlacementTests />
       {!confirm ? <Button variant="ghost" className="paper-btn rounded-full" onClick={() => setConfirm(true)}>Reset progress</Button> : (
         <div className="flex flex-col gap-2"><span>Erase all stars and best scores?</span>
           <div className="flex gap-2">
