@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Remove all animated people and verify gameplay without people downloads
+- [x] Inspect the building blocks in live portrait gameplay and explain the remaining visual problems
 - [x] Paint one cohesive scene and derive matching background, floors, footing and spectators
 - [x] Correct human scale, repeated floor frames and oversized score display
 - [x] Visually review real phone/tablet gameplay and amend flaws
