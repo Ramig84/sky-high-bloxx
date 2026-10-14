@@ -14,6 +14,8 @@ import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import { getImage } from "./preload";
+import { blockSource, craneSource } from "./shopArtwork";
+import { addCoins, loadLoadout, runReward } from "./wallet";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -26,12 +28,12 @@ const HOOK_GAP = 22;
 type Floor = { x: number; skin: number; swayAtLanding: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; chip: number; rot: number };
-type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; won: boolean; stars: number; msg: string; msgKey: number };
+type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; won: boolean; stars: number; coins: number; msg: string; msgKey: number };
 
 const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
-export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
+export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
   const goal = baseSpec.goal;
   const endCb = useRef(onEndlessOver); endCb.current = onEndlessOver;
@@ -39,7 +41,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
   const district = DISTRICTS[baseSpec.district] ?? DISTRICTS[0]!;
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, msg: "", msgKey: 0 });
+  const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
   const started = true;
   const [muted, setMuted] = useState(false);
   useEffect(() => {
@@ -59,13 +61,15 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
     let spec = baseSpec;
     let bw = BW * spec.width;
     const rain = load((tablet ? tabletArtwork : phoneArtwork).rainSrc);
+    const loadout = loadLoadout();
+    const premiumBlock = blockSource(loadout.block);
     let windDir = 1;
     const streetSrc = districtStreet(district.id, tablet);
-    const { cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
-    const skins = [load(b1), load(b2), load(b3), load(bg0)];
+    const { cloudsSrc, sunsetSrc, spaceSrc, hookSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
+    const skins = premiumBlock ? [load(premiumBlock), load(premiumBlock), load(premiumBlock), load(bg0)] : [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc);
-    const crane = load(craneSrc), foundation = load(footingSrc), cloud = load(cloudSrc), bird = load(birdSrc);
+    const crane = load(craneSource(loadout.crane)), foundation = load(footingSrc), cloud = load(cloudSrc), bird = load(birdSrc);
     const paintedContact = load(paintedContactSrc);
     const confetti = load(confettiSrc);
     const roof = load(roofSrc);
@@ -122,7 +126,8 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
         nextSkin: 3, score: 0, lives: spec.lives, perfects: 0, won: false, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
     }
-    const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, won: s.won, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, msg, msgKey: h.msgKey + 1 }));
+    const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, won: s.won, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, coins: h.coins, msg, msgKey: h.msgKey + 1 }));
+    const awardRun = () => { const earned = runReward({ stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, perfects: s.perfects, floors: s.floors.length, endless, daily }); addCoins(earned); setHud(h => ({ ...h, coins: earned })); };
 
     const chime = (freq: number, dur = 0.25) => {
       if (!audio || isMuted) return;
@@ -166,7 +171,8 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
       if (s.lives <= 0) {
         s.over = true;
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem(bestKey, String(s.best)); }
-        if (endless) endCb.current?.(s.score, s.floors.length);
+        awardRun();
+        if (endless && !daily) endCb.current?.(s.score, s.floors.length);
       }
       publish(msg);
     };
@@ -226,6 +232,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
         if (zoneClear) {
           s.won = true; s.over = true;
           doneCb.current(starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives));
+          awardRun();
           void sfx("clear", 0.8);
         }
         publish(zoneClear ? "LEVEL CLEAR!" : stageMsg ? stageMsg : kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
@@ -432,7 +439,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
       {started && (
         <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="hud-pill"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
-          <div className="hud-pill items-center"><span className="hud-label">{endless ? "ENDLESS" : `${district.name.toUpperCase()} ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
+          <div className="hud-pill items-center"><span className="hud-label">{daily ? "DAILY · 3× COINS" : endless ? "ENDLESS" : `${district.name.toUpperCase()} ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
           <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
           <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-11 w-11 items-center justify-center !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
@@ -451,8 +458,10 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
             <span className="text-3xl font-extrabold">{hud.won ? "Level clear!" : endless ? "Tower down!" : "Game Over"}</span>
             {hud.won && <span className="flex gap-1" aria-label={`${hud.stars} stars`}>{[0, 1, 2].map(k => <Star key={k} className={`h-8 w-8 ${k < hud.stars ? "fill-current" : "opacity-30"}`} />)}</span>}
             {!endless && <span className="hud-label">★ goal · ★ {baseSpec.perfectGoal} perfects · ★ no lives lost</span>}
-            {endless && <span className="hud-label">SCORE SENT TO LEADERBOARD</span>}
+            {endless && !daily && <span className="hud-label">SCORE SENT TO LEADERBOARD</span>}
+            {daily && <span className="hud-label">TODAY'S SHARED TOWER · TRIPLE REWARD</span>}
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
+            <span className="coin-earned">+{hud.coins.toLocaleString()} coins</span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
             {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}

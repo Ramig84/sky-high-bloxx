@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
-import { Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog } from "lucide-react";
+import { CalendarDays, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
 import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
+import { coin } from "./shopArtwork";
+import { claimDailyStreak, coins } from "./wallet";
 
 type Panel = "home" | "leaderboard" | "settings";
 
-export function HomeMenu({ onCampaign, onEndless, onReset }: { onCampaign: () => void; onEndless: () => void; onReset: () => void }) {
+export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; onReset: () => void }) {
   const [panel, setPanel] = useState<Panel>("home");
   const [tablet, setTablet] = useState(false);
+  const [streak] = useState(() => claimDailyStreak());
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
   const [woke, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
@@ -34,7 +37,7 @@ export function HomeMenu({ onCampaign, onEndless, onReset }: { onCampaign: () =>
         <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
           <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
           {!woke && panel === "home" && <span className="home-hint">Tap anywhere to start</span>}
-          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} setPanel={setPanel} />}
+          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} streak={streak} />}
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
         </div>
@@ -45,14 +48,16 @@ export function HomeMenu({ onCampaign, onEndless, onReset }: { onCampaign: () =>
 
 const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none text-xl font-extrabold";
 
-function MainButtons({ onCampaign, onEndless, setPanel }: { onCampaign: () => void; onEndless: () => void; setPanel: (p: Panel) => void }) {
+function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, streak }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; streak: { count: number; reward: number } }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
   return (
-    <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-3">
+    <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
+      <div className="home-wallet"><img src={coin} alt="" /><strong>{coins().toLocaleString()}</strong><span>coins · {streak.count} day streak{streak.reward ? ` · +${streak.reward}` : ""}</span></div>
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
+      <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /> Daily challenge<span className="ml-auto text-sm font-semibold">3× coins</span></Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
-      <Button variant="ghost" className={big} onClick={() => setPanel("leaderboard")}><Trophy className="h-6 w-6" /> Leaderboard</Button>
-      <Button variant="ghost" className={big} onClick={() => setPanel("settings")}><Cog className="h-6 w-6" /> Settings</Button>
+      <Button variant="ghost" className={big} onClick={onShop}><Store className="h-6 w-6" /> Market</Button>
+      <div className="grid grid-cols-2 gap-2"><Button variant="ghost" className="plaque h-14 rounded-none text-sm font-extrabold" onClick={() => setPanel("leaderboard")}><Trophy /> Scores</Button><Button variant="ghost" className="plaque h-14 rounded-none text-sm font-extrabold" onClick={() => setPanel("settings")}><Cog /> Settings</Button></div>
     </div>
   );
 }
