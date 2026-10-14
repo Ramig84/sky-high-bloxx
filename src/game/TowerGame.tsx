@@ -304,14 +304,14 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
         const gs = toScreenY(0), fadeHi = 1 - a(500, 1100);
         for (const p of life) {
           stepAmbient(p, dt, vw, spec.wind ? windDir * spec.wind : 0);
-          const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0;
-          if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 2 + p.ph) * 1.2; }
+          const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0, flipX = 1;
+          if (L.kind === "fall") { y = p.y; rot = p.age * 1.8 * p.sp + p.ph; flipX = Math.cos(p.age * 3.1 + p.ph); }
           else if (L.kind === "mist") { y = p.y; al *= 0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph); }
-          else if (L.kind === "flutter") { y = gs - p.y - 40; cell = Math.floor(p.age * 9) % 2 ? 3 : 2; al *= fadeHi; }
-          else if (L.kind === "boat") { y = gs - 66 + p.y; al *= fadeHi; }
+          else if (L.kind === "flutter") { y = gs - p.y - 40; cell = Math.floor(p.age * 9) % 2 ? 3 : 2; flipX = Math.cos(p.age * 0.7 + p.ph) >= 0 ? 1 : -1; al *= fadeHi; }
+          else if (L.kind === "boat") { y = gs - 66 + p.y; rot = Math.sin(p.age * 1.6 + p.ph) * 0.08; al *= fadeHi; }
           else { const k = p.age / 4; x += Math.sin(p.age + p.ph) * 6 + k * 14; y = gs - 150 - k * 70; sz *= 0.5 + k; al *= (1 - k) * fadeHi; }
           if (al <= 0.01 || y < -150 || y > VH + 60) continue;
-          ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot);
+          ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot); ctx.scale(Math.abs(flipX) < 0.15 ? 0.15 * Math.sign(flipX || 1) : flipX, 1);
           ctx.drawImage(amb, cell * 160, 0, 160, 160, -sz / 2, -sz / 2, sz, sz); ctx.restore();
         }
       }
