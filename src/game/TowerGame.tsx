@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { phoneArtwork, tabletArtwork } from "./artwork";
-import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
+import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 
@@ -14,7 +14,7 @@ const GRAVITY = 1500;
 const SWING = 0.42; // max swing angle (rad)
 const HOOK_GAP = 22;
 
-type Floor = { x: number; skin: number };
+type Floor = { x: number; skin: number; swayAtLanding: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; hue: number };
 type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; msg: string; msgKey: number };
@@ -87,7 +87,7 @@ export function TowerGame() {
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
 
-    const best0 = Number(localStorage.getItem("bloxx-best") || 0);
+    let best0 = Number(localStorage.getItem("bloxx-best") || 0);
     let s = fresh();
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[],
@@ -105,7 +105,10 @@ export function TowerGame() {
     };
 
     const topY = () => s.floors.length * BH;
-    const displayX = (i: number) => (s.floors[i]?.x ?? 0) + floorSway(s.sway, i) * BW * 0.5;
+    const displayX = (i: number) => {
+      const floor = s.floors[i];
+      return floor ? floorPosition(floor.x, floor.swayAtLanding, s.sway, i, BW) : 0;
+    };
     const level = () => s.floors.length;
     const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(level() * 3, 70), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN });
     const hung = () => {
@@ -123,16 +126,35 @@ export function TowerGame() {
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { s = fresh(); publish(); };
+    api.current.restart = () => { best0 = s.best; s = fresh(); publish(); };
 
     const loseLife = (msg: string) => {
       s.lives--; s.combo = 0; s.shake = 10; chime(160, 0.4);
       navigator.vibrate?.(120);
       if (s.lives <= 0) {
         s.over = true;
-        if (s.score > s.best) { s.best = s.score; localStorage.setItem("bloxx-best", String(s.best)); }
+        if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem("bloxx-best", String(s.best)); }
       }
       publish(msg);
+    };
+
+    const checkCollapse = () => {
+      const xs = s.floors.map((_, i) => displayX(i));
+      const ci = collapseIndex(xs, BW);
+      if (ci === -1) return false;
+      const first = ci === -2 ? 0 : ci + 1;
+      const anchor = ci === -2 ? 0 : (xs[ci] ?? 0);
+      const gone = s.floors.splice(first);
+      const com = gone.reduce((sum, _, k) => sum + (xs[first + k] ?? 0), 0) / gone.length;
+      const dir = Math.sign(com - anchor) || 1;
+      gone.forEach((f, k) => {
+        s.fallers.push({ x: xs[first + k] ?? f.x, y: (first + k) * BH + BH / 2, vx: dir * (60 + k * 20), vy: 0, rot: 0, vr: dir * (1.5 + k * 0.3), skin: f.skin });
+      });
+      loseLife("COLLAPSE!");
+      // Discard a pending release rather than judging it against a vanished surface.
+      s.drop = null; s.held = true;
+      s.nextSkin = s.floors.length ? s.nextSkin % 3 : 3;
+      return true;
     };
 
     const land = (d: { x: number; vx: number }) => {
@@ -145,28 +167,20 @@ export function TowerGame() {
         s.fallers.push({ x: d.x, y: topY() + BH / 2, vx: d.vx + Math.sign(off) * 80, vy: 0, rot: 0, vr: Math.sign(off) * 4, skin });
         loseLife("MISS!");
       } else {
-        // Store the new floor in rest coordinates so it stays where contact was drawn.
-        const x = (kind === "perfect" ? support : d.x) - floorSway(s.sway, n) * BW * 0.5;
-        s.floors.push({ x, skin });
+        // Capture the visible contact and the current bend; cosmetic sway cannot inject drift.
+        const x = kind === "perfect" ? support : d.x;
+        s.floors.push({ x, skin, swayAtLanding: s.sway });
+        if (checkCollapse()) return;
+        const reward = landingReward(kind, s.combo);
+        s.combo = reward.combo; s.score += reward.points;
+        if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem("bloxx-best", String(s.best)); }
         if (kind === "perfect") {
-          s.combo++; s.score += 25 * Math.min(s.combo, 10);
           chime(523 * Math.pow(1.122, Math.min(s.combo, 8))); chime(784, 0.35);
           navigator.vibrate?.(30);
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, hue: Math.random() * 360 });
-        } else { s.combo = 0; s.score += 10; chime(330, 0.15); }
+        } else { chime(330, 0.15); }
         s.shake = 3;
-        const xs = s.floors.map(f => f.x);
-        const ci = collapseIndex(xs, BW);
-        if (ci >= 0) {
-          const gone = s.floors.splice(ci + 1);
-          gone.forEach((f, k) => {
-            const dir = Math.sign(f.x - (xs[ci] ?? 0)) || 1;
-            s.fallers.push({ x: f.x, y: (ci + 1 + k) * BH + BH / 2, vx: dir * (60 + k * 20), vy: 0, rot: 0, vr: dir * (1.5 + k * 0.3), skin: f.skin });
-          });
-          loseLife("COLLAPSE!");
-        } else {
-          publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
-        }
+        publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
       }
       s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
       s.held = true;
@@ -193,9 +207,8 @@ export function TowerGame() {
           ctx.drawImage(paintedContact, -BW * 0.56 - 2, BH / 2 - 6, BW * 1.12, 14);
           ctx.globalAlpha = 1;
         }
-        // Crop source sides so the painted facade keeps its proportions at the block's aspect.
-        const iw = img.naturalWidth, ih = img.naturalHeight, sw = Math.min(iw, ih * (BW / BH));
-        ctx.drawImage(img, (iw - sw) / 2, 0, sw, ih, -BW / 2, -BH / 2, BW, BH);
+        // The sprite is authored for this exact rectangle, including its painted side return.
+        ctx.drawImage(img, -BW / 2, -BH / 2, BW, BH);
       }
       ctx.restore();
     };
@@ -208,9 +221,13 @@ export function TowerGame() {
 
       // lean & sway
       const n = s.floors.length;
-      const com = n ? s.floors.reduce((a, f) => a + f.x, 0) / n : 0;
-      const lean = Math.max(-1.6, Math.min(1.6, (com - (s.floors[0]?.x ?? 0)) / (BW * 0.5)));
-      s.sway = lean * 0.6 + Math.sin(s.t * 1.5) * (0.1 + Math.min(n, 30) * 0.012 + Math.abs(lean) * 0.5);
+      const com = n ? s.floors.reduce((a, _, i) => a + displayX(i), 0) / n : 0;
+      const lean = Math.max(-1.6, Math.min(1.6, com / (BW * 0.5)));
+      const targetSway = lean * 0.6 + Math.sin(s.t * 1.5) * (0.1 + Math.min(n, 30) * 0.012 + Math.abs(lean) * 0.5);
+      if (!s.over && isStarted) {
+        s.sway += (targetSway - s.sway) * (1 - Math.exp(-dt * 3));
+        checkCollapse();
+      }
 
       // drop
       if (s.drop) {
@@ -225,7 +242,7 @@ export function TowerGame() {
 
       const target = Math.max(0, topY() - BH * 1.2);
       s.camY += (target - s.camY) * Math.min(1, dt * 3);
-      s.shake *= 0.88;
+      s.shake *= Math.exp(-dt * 7.67);
 
       // render
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -266,7 +283,7 @@ export function TowerGame() {
         ctx.drawImage(foundation, vw / 2 - fw / 2, gy, fw, fh);
       }
 
-      for (let i = 0; i < n; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
+      for (let i = 0; i < s.floors.length; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
       // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
