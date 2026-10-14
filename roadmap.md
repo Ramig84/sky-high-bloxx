@@ -46,3 +46,4 @@
 - [x] Painted market with 10 cranes, 10 tower styles, expensive prices, coins, daily challenge and 7-day streak
 - [x] Daily gift coins: once-a-day claimable gift on home screen (user request)
 - [x] Daily reward map popup (7 days + mystery), missed day resets
+- [ ] Animate daily and gameplay coins flying into counters; verify touch collection and replay

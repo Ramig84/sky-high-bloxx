@@ -12,6 +12,7 @@
 - Keep motion calculations in the browser-safe game motion module with regression tests, so crane attachment and falling remain consistent across frame rates.
 - Judge equal-mass balance against rendered contact-overlap intervals and the fixed footing on every gameplay frame; capture each floor's landing bend so artwork and physics share coordinates without contact jumps.
 - Animate game transforms through refs and publish HUD changes only on gameplay events, so React commits cannot reset moving objects.
+- Animate painted coin collection with CoinCollector and update counter refs only on sprite arrivals; live run coins are previews and only validated finish rewards enter the wallet.
 - The game renders on a single 2D canvas using generated illustrated sprites and painted backdrops (no 3D, no vector/CSS art), so stacking stays readable and matches the art direction.
 - Keep unused character artwork out of the active artwork manifests and canvas loop, so removed characters incur no downloads or animation work.
 - Select phone or higher-resolution tablet WebP artwork at mount while retaining source paintings, so phones avoid tablet downloads.
