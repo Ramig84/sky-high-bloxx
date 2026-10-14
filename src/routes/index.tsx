@@ -12,6 +12,8 @@ import { Preloader } from "@/game/Preloader";
 import { homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
 import { blockSource, craneSource } from "@/game/shopArtwork";
 import { dailyLevel, loadLoadout } from "@/game/wallet";
+import { pushProgress, syncAccount } from "@/game/account";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -37,6 +39,14 @@ function Home() {
   const home = () => setScreen({ kind: "home" });
   const menu = screen.kind === "home" || screen.kind === "map";
   useEffect(() => { if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } }, [menu]);
+  useEffect(() => {
+    void syncAccount().then(() => setStars(loadStars()));
+    const { data } = supabase.auth.onAuthStateChange(event => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      void syncAccount().then(() => setStars(loadStars()));
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
   // Quietly warm the map in the background so opening it is instant.
   useEffect(() => { const t = window.setTimeout(() => void preload(mapAssets()), 2500); return () => window.clearTimeout(t); }, []);
   useEffect(() => {
@@ -52,16 +62,16 @@ function Home() {
   if (screen.kind === "endless") return (
     <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id, loadoutAssets())}>
       <TowerGame level={0} endless onMap={home} onComplete={() => {}}
-        onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); }} />
+        onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); void pushProgress(); }} />
     </Preloader>
   );
   const level = screen.level;
   return (
     <Preloader key={`${level}-${screen.daily ? "daily" : "city"}`} assets={() => levelAssets(DISTRICTS[levelSpec(level).district]!.id, loadoutAssets())}>
-      <TowerGame level={level} daily={screen.daily}
+      <TowerGame level={level} daily={screen.daily === true}
         onMap={() => { if (screen.daily) home(); else { setLastDistrict(Math.floor(level / LEVELS_PER_DISTRICT)); setScreen({ kind: "map" }); } }}
         onNext={!screen.daily && level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
-        onComplete={n => { if (!screen.daily) setStars(p => { const next = recordStars(p, level, n); if (next !== p) saveStars(next); return next; }); }} />
+        onComplete={n => { if (!screen.daily) setStars(p => { const next = recordStars(p, level, n); if (next !== p) { saveStars(next); void pushProgress(next); } return next; }); }} />
     </Preloader>
   );
 }

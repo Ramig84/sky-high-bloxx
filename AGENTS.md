@@ -22,4 +22,4 @@
 - Endless-mode rules live in the browser-safe src/game/endless.ts with tests; leaderboard scores go to the endless_scores table (public read/insert, score capped per floor) so no sign-in is needed.
 - Game audio is pre-generated recordings stored as CDN asset pointers in src/assets/audio and mixed through src/game/audio.ts (one Web Audio context), so playback needs no runtime API calls.
 - Every screen is wrapped in Preloader with an asset list from src/game/preload.ts and the canvas reuses its decoded images, so screens never appear half-loaded.
-- Coin wallet, cosmetic ownership, daily challenge selection and streak rules live in browser-safe src/game/wallet.ts with tests; shop artwork stays in src/game/shopArtwork.ts so game and market share one catalogue.
+- Signed-in coins and Market items live in player_profiles and change only through security-definer functions (prices duplicated in SQL and src/game/wallet.ts); the device keeps a cache via src/game/account.ts so play stays instant. Guests keep a phone-only wallet imported once on first sign-in.

@@ -7,13 +7,22 @@ import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
 import { coin } from "./shopArtwork";
 import { claimDailyStreak, coins } from "./wallet";
+import { ACCOUNT_EVENT, claimStreak, isSignedIn, signIn, signOut } from "./account";
 
 type Panel = "home" | "leaderboard" | "settings";
 
 export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; onReset: () => void }) {
   const [panel, setPanel] = useState<Panel>("home");
   const [tablet, setTablet] = useState(false);
-  const [streak] = useState(() => claimDailyStreak());
+  const [streak, setStreak] = useState({ count: 0, reward: 0 });
+  const [, refresh] = useState(0);
+  useEffect(() => {
+    const on = () => refresh(n => n + 1);
+    window.addEventListener(ACCOUNT_EVENT, on);
+    // Signed-in streaks are counted by the server; guests keep a phone streak.
+    const t = window.setTimeout(() => { void claimStreak().then(r => setStreak(r ?? claimDailyStreak())); }, 600);
+    return () => { window.removeEventListener(ACCOUNT_EVENT, on); window.clearTimeout(t); };
+  }, []);
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
   const [woke, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
@@ -53,6 +62,9 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, streak 
   return (
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
       <div className="home-wallet"><img src={coin} alt="" /><strong>{coins().toLocaleString()}</strong><span>coins · {streak.count} day streak{streak.reward ? ` · +${streak.reward}` : ""}</span></div>
+      {isSignedIn()
+        ? <button type="button" className="home-account" onClick={() => void signOut()}>Signed in as {loadSettings().name} · Sign out</button>
+        : <button type="button" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins on every phone</button>}
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /> Daily challenge<span className="ml-auto text-sm font-semibold">3× coins</span></Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
