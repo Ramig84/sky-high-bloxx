@@ -35,8 +35,8 @@ const art = () => (isTablet() ? tabletArtwork : phoneArtwork);
 
 export type ScreenAssets = { images: string[]; sounds: Sound[] };
 
-const UI_SOUNDS: Sound[] = ["tap", "birds", "music"];
-const PLAY_SOUNDS: Sound[] = ["drop", "perfect", "miss", "release", "collapse", "clear", "wind", "rain", "night", "waves", "train", "city"];
+const UI_SOUNDS: Sound[] = ["tap", "birds", "music", "coins", "coinDing"];
+const PLAY_SOUNDS: Sound[] = ["drop", "perfect", "miss", "release", "collapse", "clear", "wind", "rain", "night", "waves", "train", "city", "coins", "coinDing"];
 
 export function homeAssets(): ScreenAssets {
   const a = art();
