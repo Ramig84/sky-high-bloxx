@@ -13,6 +13,11 @@ export function LegalPage({ title, updated, children }: { title: string; updated
         <div className="mt-5 space-y-3 text-sm leading-relaxed [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-extrabold [&_li]:ml-5 [&_li]:list-disc [&_ol>li]:list-decimal">
           {children}
         </div>
+        <p className="mt-6 border-t border-border/60 pt-4 text-center text-xs">
+          Sky Bloxx is a game by{" "}
+          <a className="underline" href="https://moon-beacon-showcase.lovable.app" target="_blank" rel="noopener noreferrer">Moon Beacon</a>{" "}
+          · <a className="underline" href="mailto:support@moonbeacon.com">support@moonbeacon.com</a>
+        </p>
       </div>
     </main>
   );
