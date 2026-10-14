@@ -189,3 +189,25 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
   .game-viewport .paper-btn { min-height: 3.5rem; }
   .msg-pop { top: max(5.75rem, 9dvh, calc(env(safe-area-inset-top) + 4.75rem)); font-size: 1.2rem; }
 }
+
+/* City map: living painted districts */
+.map-pan { animation: map-pan 40s ease-in-out infinite alternate; transform-origin: 50% 60%; }
+@keyframes map-pan { from { transform: scale(1.04) translateY(0); } to { transform: scale(1.08) translateY(-1%); } }
+.map-cloud { position: absolute; left: -40%; width: 45%; opacity: 0.8; pointer-events: none; animation: map-cloud linear infinite; }
+@keyframes map-cloud { to { transform: translateX(330%); } }
+.map-bird-path { position: absolute; left: -10%; pointer-events: none; animation: map-bird-fly 22s linear infinite; }
+@keyframes map-bird-fly { 0% { transform: translate(0, 0); } 50% { transform: translate(60vmin, -4vmin); } 100% { transform: translate(130vmin, 2vmin); } }
+.map-bird { width: 28px; height: 36px; background-size: 600% 100%; animation: map-flap 0.6s steps(6) infinite; }
+@keyframes map-flap { to { background-position: 120% 0; } }
+.map-pin { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; color: var(--hud-fg); }
+.map-pin-name { display: inline-flex; align-items: center; gap: 4px; background: var(--hud-bg); border: 1px solid var(--hud-edge); box-shadow: 0 2px 8px var(--hud-shadow); border-radius: 6px; padding: 0.3rem 0.6rem; font-weight: 600; font-size: 0.9rem; }
+.map-pin .hud-label { background: var(--hud-bg); border-radius: 4px; padding: 0 0.35rem; }
+.map-pin-live .map-pin-name { animation: map-bob 1.6s ease-in-out infinite; }
+@keyframes map-bob { 50% { transform: translateY(-4px); } }
+.map-pin-locked { opacity: 0.75; filter: saturate(0.5); }
+.map-tower { display: flex; flex-direction: column; align-items: center; margin-bottom: 2px; filter: drop-shadow(0 3px 2px var(--hud-shadow)); }
+.map-tower-floor { width: 34px; height: 20px; object-fit: cover; animation: map-rise 0.5s ease-out both; }
+@keyframes map-rise { from { transform: translateY(10px); opacity: 0; } }
+.map-card { pointer-events: auto; }
+@media (min-width: 600px) { .map-tower-floor { width: 48px; height: 28px; } .map-pin-name { font-size: 1.1rem; } }
+@media (prefers-reduced-motion: reduce) { .map-pan, .map-cloud, .map-bird-path, .map-bird, .map-pin-live .map-pin-name { animation: none; } }

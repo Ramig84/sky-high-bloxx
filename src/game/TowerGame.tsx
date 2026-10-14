@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Map as MapIcon, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { phoneArtwork, tabletArtwork } from "./artwork";
+import { phoneArtwork, tabletArtwork, zoneFloors } from "./artwork";
+import { ZONES, type ZoneId } from "./zones";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
@@ -23,10 +24,12 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 function load(src: string) { const i = new Image(); i.src = src; return i; }
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
-export function TowerGame() {
+export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () => void; onFloors: (floors: number) => void }) {
+  const goal = ZONES.find(z => z.id === zone)?.goal ?? 10;
+  const floorsCb = useRef(onFloors); floorsCb.current = onFloors;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, msg: "", msgKey: 0 });
-  const [started, setStarted] = useState(false);
+  const started = true;
   const [muted, setMuted] = useState(false);
   useEffect(() => {
     if (!hud.msg) return;
@@ -40,7 +43,9 @@ export function TowerGame() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, cloudSrc, birdSrc } = window.matchMedia("(min-width: 600px)").matches ? tabletArtwork : phoneArtwork;
+    const tablet = window.matchMedia("(min-width: 600px)").matches;
+    const [b1, b2, b3, bg0] = zoneFloors[zone][tablet ? "tablet" : "phone"];
+    const { streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc);
@@ -54,7 +59,7 @@ export function TowerGame() {
       ctx.drawImage(img, Math.min(count - 1, Math.max(0, pose)) * cell, 0, cell, img.naturalHeight, -w / 2, -h, w, h);
       ctx.restore();
     };
-    let isStarted = false, isMuted = localStorage.getItem("bloxx-muted") === "1";
+    let isStarted = true, isMuted = localStorage.getItem("bloxx-muted") === "1";
     setMuted(isMuted);
     api.current.mute = (m) => { isMuted = m; localStorage.setItem("bloxx-muted", m ? "1" : "0"); };
     api.current.start = () => { if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } } isStarted = true; };
@@ -173,6 +178,8 @@ export function TowerGame() {
         const x = kind === "perfect" ? support : d.x;
         s.floors.push({ x, skin, swayAtLanding: s.sway });
         if (checkCollapse()) return;
+        floorsCb.current(s.floors.length);
+        const zoneClear = s.floors.length === goal;
         const reward = landingReward(kind, s.combo);
         s.combo = reward.combo; s.score += reward.points;
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem("bloxx-best", String(s.best)); }
@@ -182,7 +189,7 @@ export function TowerGame() {
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, chip: i % 6, rot: Math.random() * Math.PI * 2 });
         } else { chime(330, 0.15); }
         s.shake = 3;
-        publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
+        publish(zoneClear ? "DISTRICT CLEARED!" : kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
       }
       s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
       s.held = true;
@@ -324,7 +331,7 @@ export function TowerGame() {
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
     return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); };
-  }, []);
+  }, [zone, goal]);
 
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
@@ -333,7 +340,7 @@ export function TowerGame() {
       {started && (
         <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="hud-pill"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
-          <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
+          <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}<span className="hud-label"> / {goal}</span></span></div>
           <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
           <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-11 w-11 items-center justify-center !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
@@ -342,19 +349,6 @@ export function TowerGame() {
         </div>
       )}
       {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
-      {!started && (
-        <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(16rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
-          onPointerDown={e => { e.stopPropagation(); api.current.start(); setStarted(true); }}>
-          <picture className="w-full max-w-sm">
-            <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
-            <img src={phoneArtwork.logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full animate-in fade-in zoom-in duration-700" />
-          </picture>
-          <div className="flex flex-col items-center gap-3">
-            {hud.best > 0 && <div className="hud-pill items-center"><span className="hud-label">BEST</span><span className="hud-value">{hud.best}</span></div>}
-            <Button variant="ghost" className="paper-btn h-auto rounded-md px-10 py-4 text-xl font-medium" onClick={() => { api.current.start(); setStarted(true); }}>Tap to play</Button>
-          </div>
-        </div>
-      )}
       {hud.over && (
         <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
           <div className="hud-pill items-center gap-3 px-8 py-6">
@@ -366,6 +360,7 @@ export function TowerGame() {
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => api.current.restart()}>Play again</Button>
+            <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={onMap}><MapIcon className="h-4 w-4" /> City map</Button>
           </div>
         </div>
       )}
