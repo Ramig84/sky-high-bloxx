@@ -41,6 +41,45 @@ export type Database = {
         }
         Relationships: []
       }
+      game_runs: {
+        Row: {
+          finished_at: string | null
+          floors: number | null
+          id: string
+          level: number
+          mode: string
+          perfects: number | null
+          reward: number | null
+          stars: number | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          finished_at?: string | null
+          floors?: number | null
+          id?: string
+          level: number
+          mode: string
+          perfects?: number | null
+          reward?: number | null
+          stars?: number | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          finished_at?: string | null
+          floors?: number | null
+          id?: string
+          level?: number
+          mode?: string
+          perfects?: number | null
+          reward?: number | null
+          stars?: number | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_profiles: {
         Row: {
           block: string
@@ -148,6 +187,7 @@ export type Database = {
         }
       }
       claim_daily_streak: { Args: never; Returns: Json }
+      daily_level_for: { Args: { _day: string }; Returns: number }
       ensure_player_profile: {
         Args: never
         Returns: {
@@ -173,6 +213,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      finish_game_run: {
+        Args: {
+          _floors: number
+          _perfects: number
+          _run: string
+          _stars: number
+        }
+        Returns: Json
+      }
       import_guest_progress: {
         Args: { _best: number; _coins: number; _name: string; _stars: number[] }
         Returns: {
@@ -197,6 +246,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      start_game_run: {
+        Args: { _level: number; _mode: string }
+        Returns: string
       }
     }
     Enums: {
