@@ -41,3 +41,5 @@
 - [x] Settings: sound, vibration, reset progress, player name
 - [x] Endless mode: crane speed + obstacles stack up and combine, scores go to leaderboard
 - [ ] Re-lock districts after owner review
+- [x] Repaint home and map buttons to match the painted art
+- [x] Top-tier recorded SFX, district ambience (birds, waves, wind, rain, train) and original music

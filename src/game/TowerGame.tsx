@@ -7,7 +7,8 @@ import { spawnAmbient, stepAmbient } from "./ambient";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
-import { vibrate } from "./settings";
+import { loadSettings, saveSettings, vibrate } from "./settings";
+import { ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
@@ -79,7 +80,8 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
     };
     let isStarted = true, isMuted = localStorage.getItem("bloxx-muted") === "1";
     setMuted(isMuted);
-    api.current.mute = (m) => { isMuted = m; localStorage.setItem("bloxx-muted", m ? "1" : "0"); };
+    api.current.mute = (m) => { isMuted = m; saveSettings({ ...loadSettings(), sound: !m }); setAmbience(m ? [] : ambienceFor(district.id, spec)); setMusic(!m, 0.18); };
+    setAmbience(ambienceFor(district.id, spec)); setMusic(true, 0.18);
     api.current.start = () => { if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } } isStarted = true; };
     // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
     const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
@@ -144,7 +146,9 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
 
     api.current.tap = () => {
       if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } }
+      unlockAudio();
       if (s.over || !s.held || !isStarted) return;
+      void sfx("release", 0.5);
       setHud(h => ({ ...h, msg: "" }));
       const h = hung();
       const dth = SWING * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
@@ -155,7 +159,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
     api.current.restart = () => { best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
 
     const loseLife = (msg: string) => {
-      s.lives--; s.combo = 0; s.shake = 10; chime(160, 0.4);
+      s.lives--; s.combo = 0; s.shake = 10; void sfx(msg === "COLLAPSE!" ? "collapse" : "miss", 0.75);
       vibrate(120);
       if (s.lives <= 0) {
         s.over = true;
@@ -204,6 +208,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
         if (endless) {
           const before = endlessStage(s.floors.length - 1), after = endlessStage(s.floors.length);
           spec = endlessSpec(s.floors.length); bw = BW * spec.width;
+          if (after > before) setAmbience(ambienceFor(district.id, spec));
           if (after > before) stageMsg = `${ENDLESS_STAGES[after]?.toUpperCase()} INCOMING!`;
         }
         const zoneClear = s.floors.length >= goal;
@@ -211,15 +216,15 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
         s.combo = reward.combo; s.score += reward.points;
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem(bestKey, String(s.best)); }
         if (kind === "perfect") {
-          chime(523 * Math.pow(1.122, Math.min(s.combo, 8))); chime(784, 0.35);
+          void sfx("drop", 0.55); void sfx("perfect", 0.7, 1 + Math.min(s.combo, 8) * 0.04);
           vibrate(30);
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, chip: i % 6, rot: Math.random() * Math.PI * 2 });
-        } else { chime(330, 0.15); }
+        } else { void sfx("drop", 0.8); }
         s.shake = 3;
         if (zoneClear) {
           s.won = true; s.over = true;
           doneCb.current(starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives));
-          chime(659, 0.3); chime(880, 0.5);
+          void sfx("clear", 0.8);
         }
         publish(zoneClear ? "LEVEL CLEAR!" : stageMsg ? stageMsg : kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
       }
@@ -415,7 +420,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); };
+    return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); setAmbience([]); };
   }, [levelIndex]);
 
   return (

@@ -1,5 +1,5 @@
 // Player settings kept on the device.
-export type Settings = { name: string; sound: boolean; vibrate: boolean; playerId: string };
+export type Settings = { name: string; sound: boolean; music: boolean; vibrate: boolean; playerId: string };
 const KEY = "bloxx-settings";
 
 export function loadSettings(): Settings {
@@ -8,6 +8,7 @@ export function loadSettings(): Settings {
   const s: Settings = {
     name: typeof v.name === "string" && v.name.trim() ? v.name.slice(0, 16) : "Builder",
     sound: v.sound ?? localStorage.getItem("bloxx-muted") !== "1",
+    music: v.music ?? true,
     vibrate: v.vibrate ?? true,
     playerId: typeof v.playerId === "string" ? v.playerId : crypto.randomUUID(),
   };

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { setAmbience, setMusic, sfx, unlockAudio } from "@/game/audio";
 import { TowerGame } from "@/game/TowerGame";
 import { CityMap } from "@/game/CityMap";
 import { HomeMenu } from "@/game/HomeMenu";
@@ -29,6 +30,13 @@ function Home() {
   const [lastDistrict, setLastDistrict] = useState(-1);
   const [stars, setStars] = useState(loadStars);
   const home = () => setScreen({ kind: "home" });
+  const menu = screen.kind === "home" || screen.kind === "map";
+  useEffect(() => { if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } }, [menu]);
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => { unlockAudio(); if ((e.target as HTMLElement).closest("button")) void sfx("tap", 0.6); if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } };
+    window.addEventListener("pointerdown", onDown);
+    return () => window.removeEventListener("pointerdown", onDown);
+  }, [menu]);
 
   if (screen.kind === "home") return <HomeMenu onCampaign={() => setScreen({ kind: "map" })} onEndless={() => setScreen({ kind: "endless", run: Date.now() })} onReset={() => setStars([])} />;
   if (screen.kind === "map") return <CityMap stars={stars} focus={lastDistrict} onHome={home} onPlay={level => setScreen({ kind: "level", level })} />;

@@ -217,3 +217,13 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .map-pin-stars { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--hud-bg); border: 1px solid var(--hud-edge); }
 .level-tile { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; border-radius: 8px; background: var(--hud-bg); box-shadow: inset 0 0 0 1px var(--hud-edge); color: inherit; }
 .level-tile:disabled { opacity: 0.45; }
+
+/* Painted wooden signboard used for menu buttons and map district signs */
+:root { --plaque-ink: #4a2e1a; --plaque-glow: rgba(255, 214, 140, 0.55); }
+.plaque { background: url("./assets/ui-plaque.webp") center / 100% 100% no-repeat !important; color: var(--plaque-ink) !important; border: 0 !important; box-shadow: none !important; filter: drop-shadow(0 4px 5px rgba(60, 36, 18, 0.35)); text-shadow: 0 1px 0 rgba(255, 248, 230, 0.7); font-family: "Fredoka", system-ui, sans-serif; transition: transform 0.12s ease, filter 0.12s ease; }
+.plaque:hover { background-color: transparent !important; }
+.plaque:active { transform: translateY(2px) scale(0.98); filter: drop-shadow(0 2px 3px rgba(60, 36, 18, 0.35)); }
+.menu-plaque { min-height: 4.4rem; padding: 0 2.2rem !important; }
+.map-pin-name.plaque { padding: 0.55rem 1.4rem 0.6rem; border-radius: 0; font-size: 1rem; font-weight: 700; }
+.map-pin-live .map-pin-name.plaque { filter: drop-shadow(0 0 10px var(--plaque-glow)) drop-shadow(0 4px 5px rgba(60, 36, 18, 0.35)); }
+.map-pin .map-pin-stars { background: rgba(255, 246, 225, 0.92); color: var(--plaque-ink); border: 0; font-weight: 700; box-shadow: 0 2px 4px rgba(60, 36, 18, 0.3); }

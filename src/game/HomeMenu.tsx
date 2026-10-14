@@ -27,7 +27,7 @@ export function HomeMenu({ onCampaign, onEndless, onReset }: { onCampaign: () =>
   );
 }
 
-const big = "paper-btn h-auto w-full justify-start gap-3 rounded-full px-6 py-4 text-xl font-extrabold";
+const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none text-xl font-extrabold";
 
 function MainButtons({ onCampaign, onEndless, setPanel }: { onCampaign: () => void; onEndless: () => void; setPanel: (p: Panel) => void }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
@@ -61,7 +61,7 @@ function Leaderboard({ onBack }: { onBack: () => void }) {
           </li>
         ))}
       </ol>
-      <Button variant="ghost" className="paper-btn mt-2 rounded-full" onClick={onBack}>Back</Button>
+      <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
     </div>
   );
 }
@@ -83,6 +83,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
           onChange={e => update({ name: e.target.value })} onBlur={e => { if (!e.target.value.trim()) update({ name: "Builder" }); }} />
       </label>
       <Toggle label="Sound" on={s.sound} set={v => update({ sound: v })} />
+      <Toggle label="Music" on={s.music} set={v => update({ music: v })} />
       <Toggle label="Vibration" on={s.vibrate} set={v => update({ vibrate: v })} />
       {!confirm ? <Button variant="ghost" className="paper-btn rounded-full" onClick={() => setConfirm(true)}>Reset progress</Button> : (
         <div className="flex flex-col gap-2"><span>Erase all stars and best scores?</span>
@@ -92,7 +93,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
           </div>
         </div>
       )}
-      <Button variant="ghost" className="paper-btn mt-2 rounded-full" onClick={onBack}>Back</Button>
+      <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
     </div>
   );
 }
