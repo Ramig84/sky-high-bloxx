@@ -16,7 +16,7 @@ import confettiSrc from "@/assets/painted-confetti.webp";
 import { getImage } from "./preload";
 import { blockSource, craneSource } from "./shopArtwork";
 import { loadLoadout, runReward } from "./wallet";
-import { awardCoins } from "./account";
+import { finishRun, startRun } from "./account";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -128,7 +128,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         nextSkin: 3, score: 0, lives: spec.lives, perfects: 0, won: false, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
     }
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, won: s.won, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, coins: h.coins, msg, msgKey: h.msgKey + 1 }));
-    const awardRun = () => { const earned = runReward({ stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, perfects: s.perfects, floors: s.floors.length, endless, daily }); void awardCoins(earned); setHud(h => ({ ...h, coins: earned })); };
+    const awardRun = () => { const earned = runReward({ stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, perfects: s.perfects, floors: s.floors.length, endless, daily }); const stats = { floors: s.floors.length, perfects: s.perfects, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0 };
+      const t = ticket; ticket = Promise.resolve(null);
+      void finishRun(t, stats, earned).then(got => setHud(h => ({ ...h, coins: got }))); };
+    let ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex);
 
     const chime = (freq: number, dur = 0.25) => {
       if (!audio || isMuted) return;
@@ -164,7 +167,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.held = false;
       windDir = Math.random() < 0.5 ? -1 : 1;
     };
-    api.current.restart = () => { best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
+    api.current.restart = () => { ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
 
     const loseLife = (msg: string) => {
       s.lives--; s.combo = 0; s.shake = 10; void sfx(msg === "COLLAPSE!" ? "collapse" : "miss", 0.75);

@@ -44,10 +44,23 @@ export async function signOut() {
   signedIn = false; notify();
 }
 
-export async function awardCoins(amount: number) {
-  if (!signedIn) { addCoins(amount); return; }
-  const { data } = await supabase.rpc("award_run_coins", { _amount: amount });
-  if (data) cache(data as Profile);
+export type RunMode = "city" | "daily" | "endless";
+/** Signed-in runs get a server ticket at start; the server later judges the result against it. */
+export async function startRun(mode: RunMode, level: number): Promise<string | null> {
+  // Check the session directly so a game started before account sync still gets a ticket.
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) return null;
+  const { data, error } = await supabase.rpc("start_game_run", { _mode: mode, _level: level });
+  return error ? null : (data as string);
+}
+/** Returns the coins actually granted; the server recomputes and caps the reward itself. */
+export async function finishRun(ticket: Promise<string | null>, stats: { floors: number; perfects: number; stars: number }, guestReward: number): Promise<number> {
+  const id = await ticket;
+  if (!id && !signedIn) { addCoins(guestReward); return guestReward; }
+  if (!id) return 0;
+  const { data } = await supabase.rpc("finish_game_run", { _run: id, _floors: stats.floors, _perfects: stats.perfects, _stars: stats.stars });
+  await syncAccount();
+  return Number((data as { reward?: number } | null)?.reward ?? 0);
 }
 
 export async function claimStreak(): Promise<{ count: number; reward: number } | null> {

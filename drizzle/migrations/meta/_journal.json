@@ -15,6 +15,20 @@
       "when": 1791977930366,
       "tag": "0001_player_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791978082220,
+      "tag": "0002_validated_game_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791978095827,
+      "tag": "0003_fix_finish_game_run_names",
+      "breakpoints": true
     }
   ]
 }
