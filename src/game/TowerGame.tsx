@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import b1 from "@/assets/floor-1.jpg";
 import b2 from "@/assets/floor-2.jpg";
 import b3 from "@/assets/floor-3.jpg";
@@ -9,15 +10,21 @@ import sunsetSrc from "@/assets/bg-sunset.jpg";
 import spaceSrc from "@/assets/bg-space.jpg";
 import hookSrc from "@/assets/hook.png";
 import residentSrc from "@/assets/resident.png";
+import craneSrc from "@/assets/crane.png";
+import foundationSrc from "@/assets/foundation.png";
+import cloudSrc from "@/assets/cloud.png";
+import crowdSrc from "@/assets/crowd.png";
+import birdSrc from "@/assets/bird.png";
+import logoSrc from "@/assets/logo.png";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
-const PIVOT_SCREEN = 36;
-const ROPE = 150;
+const PIVOT_SCREEN = 96;
+const ROPE = 120;
 const GRAVITY = 1500;
 const SWING = 0.42; // max swing angle (rad)
-const HOOK_GAP = 16;
+const HOOK_GAP = 22;
 
 type Floor = { x: number; skin: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
@@ -26,11 +33,14 @@ type Resident = { sx: number; sy: number; tx: number; ty: number; t: number };
 type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; msg: string; msgKey: number };
 
 function load(src: string) { const i = new Image(); i.src = src; return i; }
+const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
 export function TowerGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, msg: "", msgKey: 0 });
-  const api = useRef<{ tap: () => void; restart: () => void }>({ tap: () => {}, restart: () => {} });
+  const [started, setStarted] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -38,6 +48,14 @@ export function TowerGame() {
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
+    const crane = load(craneSrc), foundation = load(foundationSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
+    let isStarted = false, isMuted = localStorage.getItem("bloxx-muted") === "1";
+    setMuted(isMuted);
+    api.current.mute = (m) => { isMuted = m; localStorage.setItem("bloxx-muted", m ? "1" : "0"); };
+    api.current.start = () => { if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } } isStarted = true; };
+    // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
+    const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
+    const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
     let audio: AudioContext | null = null;
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
@@ -67,12 +85,12 @@ export function TowerGame() {
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[], res: [] as Resident[],
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
-        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
+        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0, cheer: 0 };
     }
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg: msg || h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
 
     const chime = (freq: number, dur = 0.25) => {
-      if (!audio) return;
+      if (!audio || isMuted) return;
       const o = audio.createOscillator(), g = audio.createGain();
       o.type = "triangle"; o.frequency.value = freq;
       g.gain.setValueAtTime(0.18, audio.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
@@ -91,7 +109,7 @@ export function TowerGame() {
 
     api.current.tap = () => {
       if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } }
-      if (s.over || !s.held) return;
+      if (s.over || !s.held || !isStarted) return;
       const h = hung();
       const dth = SWING * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
@@ -123,7 +141,7 @@ export function TowerGame() {
         const x = kind === "perfect" ? base : base + off;
         s.floors.push({ x, skin });
         if (kind === "perfect") {
-          s.combo++; s.score += 25 * Math.min(s.combo, 10);
+          s.cheer = 1.2; s.combo++; s.score += 25 * Math.min(s.combo, 10);
           chime(523 * Math.pow(1.122, Math.min(s.combo, 8))); chime(784, 0.35);
           navigator.vibrate?.(30);
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, hue: Math.random() * 360 });
@@ -158,10 +176,12 @@ export function TowerGame() {
     const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0, shadow = false) => {
       const img = skins[skin]!;
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
-      if (shadow) { ctx.fillStyle = "rgba(20,10,30,0.25)"; ctx.fillRect(-BW / 2, BH / 2 - 2, BW, 4); }
-      if (img.complete && img.naturalWidth) {
-        ctx.drawImage(img, -BW / 2, -BH / 2, BW, BH);
-        ctx.strokeStyle = "rgba(40,20,10,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(-BW / 2 + 0.5, -BH / 2 + 0.5, BW - 1, BH - 1);
+      if (ok(img)) {
+        if (shadow) { ctx.fillStyle = "rgba(40,20,10,0.18)"; ctx.fillRect(-BW / 2 + 3, -BH / 2 + 4, BW, BH); }
+        // Crop source sides so the painted facade keeps its proportions at the block's aspect.
+        const iw = img.naturalWidth, ih = img.naturalHeight, sw = Math.min(iw, ih * (BW / BH));
+        ctx.drawImage(img, (iw - sw) / 2, 0, sw, ih, -BW / 2, -BH / 2, BW, BH);
+        ctx.strokeStyle = "rgba(60,30,15,0.45)"; ctx.lineWidth = 1; ctx.strokeRect(-BW / 2 + 0.5, -BH / 2 + 0.5, BW - 1, BH - 1);
       }
       ctx.restore();
     };
@@ -191,6 +211,7 @@ export function TowerGame() {
       s.parts = s.parts.filter(p => p.life > 0);
       for (const r of s.res) r.t += dt * 1.4;
       s.res = s.res.filter(r => r.t < 1);
+      s.cheer = Math.max(0, s.cheer - dt);
 
       const target = Math.max(0, topY() - BH * 1.2);
       s.camY += (target - s.camY) * Math.min(1, dt * 3);
@@ -203,20 +224,64 @@ export function TowerGame() {
       drawCover(clouds, 1, 0);
       drawCover(sunset, a(1200, 2000), 0);
       drawCover(space, a(3000, 3800), 0);
-      if (!faded && street.complete && street.naturalWidth) buildFade();
+      if (!faded && ok(street)) buildFade();
       drawCover(faded ? streetFaded : street, 1 - a(400, 900), alt);
+
+      // drifting clouds (slower parallax than the tower) and birds
+      if (ok(cloud)) for (const c of puffs) {
+        c.x += c.sp * dt; if (c.x > vw / 2 + 140) c.x = -vw / 2 - 140;
+        const sy = GROUND_SCREEN - (c.y - alt * 0.6);
+        if (sy < -120 || sy > VH + 60) continue;
+        const w = 150 * c.sc;
+        ctx.globalAlpha = 0.85 * (1 - a(3200, 3800)); ctx.drawImage(cloud, vw / 2 + c.x - w / 2, sy, w, w * 0.56); ctx.globalAlpha = 1;
+      }
+      if (ok(bird)) for (const b of birds) {
+        b.x += b.sp * dt; if (b.x > vw / 2 + 80) { b.x = -vw / 2 - 80 - Math.random() * 300; b.y = 120 + Math.random() * 160; }
+        const flap = 0.8 + Math.abs(Math.sin(s.t * 7 + b.ph)) * 0.3;
+        ctx.globalAlpha = 1 - a(1500, 2200);
+        ctx.drawImage(bird, vw / 2 + b.x - 14, b.y + Math.sin(s.t * 2 + b.ph) * 6, 28, 19 * flap); ctx.globalAlpha = 1;
+      }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
+
+      // building site foundation with a pulsing "build here" glow before the first floor
+      const gy = toScreenY(0);
+      if (gy < VH + 200 && ok(foundation)) {
+        const fw = BW * 1.9, fh = fw * 0.5;
+        if (n === 0 && !s.drop) {
+          const pulse = 0.35 + Math.sin(s.t * 4) * 0.2;
+          const g = ctx.createRadialGradient(vw / 2, gy, 4, vw / 2, gy, BW);
+          g.addColorStop(0, `rgba(255,220,120,${pulse})`); g.addColorStop(1, "rgba(255,220,120,0)");
+          ctx.fillStyle = g; ctx.fillRect(vw / 2 - BW, gy - BW, BW * 2, BW * 2);
+        }
+        ctx.drawImage(foundation, vw / 2 - fw / 2, gy - fh * 0.42, fw, fh);
+      }
 
       for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true);
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
-      // crane
+      // cheering crowd on the sidewalk
+      const cy = toScreenY(-92);
+      if (cy < VH + 100 && ok(crowd)) {
+        const cw = 200, ch = cw * 640 / 1536, hop = s.cheer > 0 ? Math.abs(Math.sin(s.t * 14)) * 5 : Math.abs(Math.sin(s.t * 2)) * 1;
+        ctx.drawImage(crowd, vw / 2 - cw / 2, cy - ch - hop, cw, ch);
+      }
+
+      // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
       const h = hung();
+      const py = toScreenY(h.p.y), px = vw / 2 + h.p.x;
+      if (ok(crane)) { const cw = 420, ch = cw / 3; ctx.drawImage(crane, px - cw * 0.48, py - ch * 0.46, cw, ch); }
       ctx.save();
-      ctx.translate(vw / 2 + h.p.x, toScreenY(h.p.y)); ctx.rotate(-h.th);
-      ctx.strokeStyle = "rgba(40,40,50,0.9)"; ctx.lineWidth = 2.2;
-      ctx.beginPath(); ctx.moveTo(0, -80); ctx.lineTo(0, ROPE - 20); ctx.stroke();
-      if (hook.complete) ctx.drawImage(hook, -12, ROPE - 26, 24, 35);
+      ctx.translate(px, py); ctx.rotate(-h.th);
+      ctx.strokeStyle = "rgba(55,40,30,0.95)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, ROPE - 24); ctx.stroke();
+      if (ok(hook)) ctx.drawImage(hook, -11, ROPE - 28, 22, 29);
+      if (s.held && !s.over) {
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(0, ROPE - 2); ctx.lineTo(-BW * 0.38, ROPE + HOOK_GAP);
+        ctx.moveTo(0, ROPE - 2); ctx.lineTo(BW * 0.38, ROPE + HOOK_GAP);
+        ctx.stroke();
+      }
       ctx.restore();
       if (s.held && !s.over) drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th);
       if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot);
@@ -240,20 +305,38 @@ export function TowerGame() {
   return (
     <div className="fixed inset-0 overflow-hidden bg-game-shell select-none touch-none" onPointerDown={() => api.current.tap()}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
-        <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
-        <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
-      </div>
-      {hud.combo > 1 && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
-      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="pointer-events-none absolute inset-x-0 top-1/3 text-center text-4xl font-extrabold text-hud-accent drop-shadow-lg animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
+      {started && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
+          <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
+          <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
+          <button aria-label={muted ? "Turn sound on" : "Turn sound off"} className="hud-pill pointer-events-auto h-12 w-12 items-center justify-center !p-0"
+            onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
+            {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+        </div>
+      )}
+      {started && hud.combo > 1 && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
+      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 top-1/3 text-center text-4xl animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
+      {!started && (
+        <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(16rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
+          onPointerDown={e => { e.stopPropagation(); api.current.start(); setStarted(true); }}>
+          <img src={logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full max-w-sm drop-shadow-xl animate-in fade-in zoom-in duration-700" />
+          <div className="flex flex-col items-center gap-3">
+            {hud.best > 0 && <div className="hud-pill items-center"><span className="hud-label">BEST</span><span className="hud-value">{hud.best}</span></div>}
+            <div className="paper-btn animate-pulse rounded-full px-10 py-4 text-2xl font-black">Tap to play</div>
+            <span className="msg-pop text-base">Tap anywhere to drop the floor</span>
+          </div>
+        </div>
+      )}
       {hud.over && (
-        <div className="absolute inset-0 flex items-center justify-center bg-game-shell/60 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
+        <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
           <div className="hud-pill items-center gap-3 px-8 py-6">
+            <img src={logoSrc} alt="" width={1280} height={640} className="w-48" />
             <span className="text-3xl font-extrabold">Game Over</span>
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
-            <button className="mt-2 rounded-full bg-hud-accent px-8 py-3 text-xl font-extrabold text-game-shell" onClick={() => api.current.restart()}>Play again</button>
+            <button className="paper-btn mt-2 rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => api.current.restart()}>Play again</button>
           </div>
         </div>
       )}
