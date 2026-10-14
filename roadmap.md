@@ -44,4 +44,4 @@
 - [x] Repaint home and map buttons to match the painted art
 - [x] Top-tier recorded SFX, district ambience (birds, waves, wind, rain, train) and original music
 - [x] Painted market with 10 cranes, 10 tower styles, expensive prices, coins, daily challenge and 7-day streak
-- [ ] Daily gift coins: once-a-day claimable gift on home screen (user request)
+- [x] Daily gift coins: once-a-day claimable gift on home screen (user request)
