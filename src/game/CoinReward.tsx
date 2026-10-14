@@ -28,6 +28,9 @@ export function CoinTotal({ value, from }: { value: number; from?: number | unde
 /** Animated "+N coins" reward: painted coins burst outward while the total counts up. */
 export function CoinReward({ amount }: { amount: number }) {
   const shown = useCountUp(amount);
+  // Jingle as the coins burst, a bright ding when the total lands.
+  useEffect(() => { if (amount > 0) void sfx("coins", 0.7); }, [amount]);
+  useEffect(() => { if (amount > 0 && shown >= amount) void sfx("coinDing", 0.6); }, [shown, amount]);
   const burst = useMemo(
     () =>
       Array.from({ length: 12 }, (_, i) => {

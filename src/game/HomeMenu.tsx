@@ -22,6 +22,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
     if (!giftAvailable()) return;
     const done = (reward: number) => {
       if (reward <= 0) return;
+      void sfx("coins", 0.7);
       localStorage.setItem(GIFT_KEY, new Date().toISOString().slice(0, 10));
       setGift({ available: false, reward });
     };
