@@ -29,9 +29,6 @@
 - [x] City map & tower goals: zones map, each zone with its own building styles and block designs
 - [x] Living map: towers rise in cleared districts, drifting clouds, flying birds
 - [x] District details card with its painted buildings, goal and best
-- [ ] Wind at high altitude (late-game challenge)
-- [ ] Unlockable tower looks (night-time, autumn, seaside palettes)
-- [ ] Optional rewarded extra life (never forced)
 - [x] 10 districts x 10 levels, stars, obstacles (wind, sliding crane, rain, fog, night, narrower floors)
 - [x] Per-district backdrops (sea for Harbour, towers for Downtown) and a painted roof cap
 - [x] Check every district's floors match its backdrop and nature; repaint any that look out of place
@@ -40,13 +37,12 @@
 - [x] Home screen (Play, Endless, Leaderboard, Settings)
 - [x] Settings: sound, vibration, reset progress, player name
 - [x] Endless mode: crane speed + obstacles stack up and combine, scores go to leaderboard
-- [ ] Re-lock districts after owner review
 - [x] Repaint home and map buttons to match the painted art
 - [x] Top-tier recorded SFX, district ambience (birds, waves, wind, rain, train) and original music
 - [x] Painted market with 10 cranes, 10 tower styles, expensive prices, coins, daily challenge and 7-day streak
 - [x] Daily gift coins: once-a-day claimable gift on home screen (user request)
 - [x] Daily reward map popup (7 days + mystery), missed day resets
 - [x] Animate daily and gameplay coins flying into counters; verify touch collection and replay
-- [ ] Review and test rendered leaning/contact collapse; correct excessive reactions without weakening support rules
-- [ ] Review rain and district add-on effects; replace cheap-looking repeats with cohesive painted effects
-- [ ] Gently reduce the moving-speed ramp; play-test and provide recommendations
+- [x] Review and test rendered leaning/contact collapse; correct excessive reactions without weakening support rules
+- [x] Review rain and district add-on effects; replace cheap-looking repeats with cohesive painted effects
+- [x] Gently reduce the moving-speed ramp; play-test and provide recommendations
