@@ -25,3 +25,8 @@
 - [x] Sharper tablet artwork without heavier phone downloads
 - [x] Larger tablet controls and portrait play area
 - [x] Verify phone and tablet touch gameplay
+- [x] Publish the current game
+- [ ] City map & tower goals: zones map, each zone with its own building styles and block designs
+- [ ] Wind at high altitude (late-game challenge)
+- [ ] Unlockable tower looks (night-time, autumn, seaside palettes)
+- [ ] Optional rewarded extra life (never forced)
