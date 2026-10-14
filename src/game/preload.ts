@@ -64,3 +64,8 @@ export async function preload(list: ScreenAssets, onProgress?: (p: number) => vo
   onProgress?.(0);
   await Promise.all(jobs.map(j => j.then(() => onProgress?.(++done / jobs.length))));
 }
+export { roofSrc, confettiSrc };
+export function celebrateAssets(from: DistrictId, to: DistrictId | null): ScreenAssets {
+  const a = art(), t = isTablet();
+  return { images: [a.mapSrc, a.cloudSrc, a.birdSrc, plaqueSrc, roofSrc, confettiSrc, ...districtFloors(from, t), ...(to ? districtFloors(to, t) : [])], sounds: [...UI_SOUNDS, "clear", "perfect"] };
+}

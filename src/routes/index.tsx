@@ -9,7 +9,8 @@ import { submitScore } from "@/game/leaderboard";
 import { loadSettings } from "@/game/settings";
 import { DISTRICTS, LEVELS_PER_DISTRICT, TOTAL_LEVELS, levelSpec, loadStars, recordStars, saveStars } from "@/game/levels";
 import { Preloader } from "@/game/Preloader";
-import { homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
+import { DistrictCelebration } from "@/game/DistrictCelebration";
+import { celebrateAssets, homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
 import { blockSource, craneSource } from "@/game/shopArtwork";
 import { dailyLevel, loadLoadout } from "@/game/wallet";
 import { pushProgress, syncAccount } from "@/game/account";
@@ -30,14 +31,14 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-type Screen = { kind: "home" } | { kind: "map" } | { kind: "shop" } | { kind: "level"; level: number; daily?: boolean } | { kind: "endless"; run: number };
+type Screen = { kind: "home" } | { kind: "map" } | { kind: "shop" } | { kind: "level"; level: number; daily?: boolean } | { kind: "endless"; run: number } | { kind: "celebrate"; district: number };
 
 function Home() {
   const [screen, setScreen] = useState<Screen>({ kind: "home" });
   const [lastDistrict, setLastDistrict] = useState(-1);
   const [stars, setStars] = useState(loadStars);
   const home = () => setScreen({ kind: "home" });
-  const menu = screen.kind === "home" || screen.kind === "map";
+  const menu = screen.kind === "home" || screen.kind === "map" || screen.kind === "celebrate";
   useEffect(() => { if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } }, [menu]);
   useEffect(() => {
     void syncAccount().then(() => setStars(loadStars()));
@@ -65,12 +66,22 @@ function Home() {
         onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); void pushProgress(); }} />
     </Preloader>
   );
+  if (screen.kind === "celebrate") {
+    const d = screen.district, nxt = DISTRICTS[d + 1];
+    return (
+      <Preloader key={`c${d}`} assets={() => celebrateAssets(DISTRICTS[d]!.id, nxt?.id ?? null)}>
+        <DistrictCelebration district={d} stars={stars} onNext={nxt ? () => setScreen({ kind: "level", level: (d + 1) * LEVELS_PER_DISTRICT }) : undefined}
+          onMap={() => { setLastDistrict(Math.min(d + 1, DISTRICTS.length - 1)); setScreen({ kind: "map" }); }} />
+      </Preloader>
+    );
+  }
   const level = screen.level;
+  const districtEnd = !screen.daily && level % LEVELS_PER_DISTRICT === LEVELS_PER_DISTRICT - 1;
   return (
     <Preloader key={`${level}-${screen.daily ? "daily" : "city"}`} assets={() => levelAssets(DISTRICTS[levelSpec(level).district]!.id, loadoutAssets())}>
       <TowerGame level={level} daily={screen.daily === true}
         onMap={() => { if (screen.daily) home(); else { setLastDistrict(Math.floor(level / LEVELS_PER_DISTRICT)); setScreen({ kind: "map" }); } }}
-        onNext={!screen.daily && level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
+        onNext={districtEnd ? () => setScreen({ kind: "celebrate", district: Math.floor(level / LEVELS_PER_DISTRICT) }) : !screen.daily && level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
         onComplete={n => { if (!screen.daily) setStars(p => { const next = recordStars(p, level, n); if (next !== p) { saveStars(next); void pushProgress(next); } return next; }); }} />
     </Preloader>
   );
