@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { createPortal } from "react-dom";
 import { coin } from "./shopArtwork";
 import { sfx } from "./audio";
+import { coinFlightAmounts } from "./coinFlight";
 
 export type CoinCollection = {
   source: { x: number; y: number };
@@ -34,8 +35,10 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
     const dx = bounds.left + bounds.width / 2 - source.x;
     const dy = bounds.top + bounds.height / 2 - source.y;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const count = reduced ? 1 : 12;
+    const amounts = coinFlightAmounts(to - from, reduced);
+    const count = amounts.length;
     let landed = 0;
+    let received = 0;
     counter.textContent = from.toLocaleString();
     void sfx("coins", 0.55);
     for (let i = 0; i < count; i++) {
@@ -45,11 +48,21 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
       image.className = "collecting-coin";
       image.style.left = `${source.x}px`;
       image.style.top = `${source.y}px`;
-      root.appendChild(image);
+      const sprite = document.createElement("span");
+      sprite.className = "coin-flight-sprite";
+      sprite.style.left = `${source.x}px`; sprite.style.top = `${source.y}px`;
+      image.style.left = "0"; image.style.top = "0";
+      sprite.appendChild(image);
+      const amount = amounts[i] ?? 1;
+      if (amount > 1) {
+        const label = document.createElement("strong"); label.textContent = `+${amount}`;
+        sprite.appendChild(label);
+      }
+      root.appendChild(sprite);
       const angle = i * Math.PI * 2 / count;
       const spreadX = Math.cos(angle) * 35;
       const spreadY = Math.sin(angle) * 24 - 25;
-      const animation = image.animate([
+      const animation = sprite.animate([
         { transform: "translate(-50%, -50%) scale(0.4)", opacity: 0 },
         { transform: `translate(calc(-50% + ${spreadX}px), calc(-50% + ${spreadY}px)) scale(1)`, opacity: 1, offset: 0.25 },
         { transform: `translate(calc(-50% + ${dx * 0.4 + spreadX}px), calc(-50% + ${dy * 0.4 - 65}px)) scale(0.95)`, opacity: 1, offset: 0.58 },
@@ -58,10 +71,11 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
       active.current.add(animation);
       animation.onfinish = () => {
         active.current.delete(animation);
-        image.remove();
+        sprite.remove();
         if (token !== generation.current) return;
         landed++;
-        counter.textContent = Math.round(from + (to - from) * landed / count).toLocaleString();
+        received += amount;
+        counter.textContent = (from + received).toLocaleString();
         if (landed === count) {
           const pulse = target.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: reduced ? 0 : 230 });
           active.current.add(pulse);

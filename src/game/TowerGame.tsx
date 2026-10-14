@@ -3,14 +3,15 @@ import { Star, Map as MapIcon, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
-import { spawnAmbient, stepAmbient } from "./ambient";
+import windSrc from "@/assets/wind-poses.png";
+import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
-import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty } from "./motion";
+import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
@@ -50,6 +51,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const coinCounter = useRef<HTMLElement>(null);
   const rewardSource = useRef<HTMLSpanElement>(null);
   const coinLabel = useRef<HTMLSpanElement>(null);
+  const balanceMeter = useRef<HTMLMeterElement>(null);
+  const balanceLabel = useRef<HTMLSpanElement>(null);
+  const balancePanel = useRef<HTMLDivElement>(null);
   const [credited, setCredited] = useState(0);
   const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
@@ -84,7 +88,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const paintedContact = load(paintedContactSrc);
     const confetti = load(confettiSrc);
     const roof = load(roofSrc);
-    const amb = load(ambientSrc);
+    const amb = load(ambientSrc), windArt = load(windSrc);
     const life = spawnAmbient(district.id, 360);
     let flash = 0;
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
@@ -98,11 +102,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     setMuted(isMuted);
     api.current.mute = (m) => { isMuted = m; saveSettings({ ...loadSettings(), sound: !m }); setAmbience(m ? [] : ambienceFor(district.id, spec)); setMusic(!m, 0.22, DISTRICT_MUSIC[district.id]); };
     setAmbience(ambienceFor(district.id, spec)); setMusic(true, 0.22, DISTRICT_MUSIC[district.id]);
-    api.current.start = () => { if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } } isStarted = true; };
+    api.current.start = () => { unlockAudio(); isStarted = true; };
     // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
     const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
     const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
-    let audio: AudioContext | null = null;
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
     let faded = false;
@@ -154,14 +157,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }); };
     let ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex);
 
-    const chime = (freq: number, dur = 0.25) => {
-      if (!audio || isMuted) return;
-      const o = audio.createOscillator(), g = audio.createGain();
-      o.type = "triangle"; o.frequency.value = freq;
-      g.gain.setValueAtTime(0.18, audio.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
-      o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime + dur);
-    };
-
     const topY = () => s.floors.length * BH;
     const displayX = (i: number) => {
       const floor = s.floors[i];
@@ -177,7 +172,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     };
 
     api.current.tap = () => {
-      if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } }
       unlockAudio();
       if (s.over || !s.held || !isStarted) return;
       void sfx("release", 0.5);
@@ -186,7 +180,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const dth = SWING * Math.cos(s.phase) * swingRate(level());
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
-      windDir = Math.random() < 0.5 ? -1 : 1;
     };
     api.current.restart = () => { runGeneration.current++; collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
 
@@ -267,6 +260,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         publish(zoneClear ? "LEVEL CLEAR!" : stageMsg ? stageMsg : kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
       }
       s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
+      windDir = Math.random() < 0.5 ? -1 : 1;
       s.held = true;
     };
 
@@ -308,6 +302,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const com = n ? s.floors.reduce((a, _, i) => a + displayX(i), 0) / n : 0;
       const lean = Math.max(-1.6, Math.min(1.6, com / (bw * 0.5)));
       const targetSway = targetTowerSway(lean, n, s.t);
+      const balance = towerBalance(s.floors.map((_, i) => displayX(i)), bw);
+      if (balanceMeter.current) balanceMeter.current.value = balance.risk;
+      if (balanceLabel.current) balanceLabel.current.textContent = balance.state === "stable" ? "Stable" : `${balance.direction < 0 ? "←" : "→"} ${balance.state === "danger" ? "Collapse risk" : "Leaning"}`;
+      if (balancePanel.current) balancePanel.current.dataset['state'] = balance.state;
       if (!s.over && isStarted) {
         s.sway += (targetSway - s.sway) * (1 - Math.exp(-dt * 3));
         checkCollapse();
@@ -363,7 +361,12 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           if (L.kind === "fall") { y = p.y; rot = p.age * 1.8 * p.sp + p.ph; flipX = Math.cos(p.age * 3.1 + p.ph); }
           else if (L.kind === "mist") { y = p.y; al *= 0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph); }
           else if (L.kind === "flutter") { y = gs - p.y - 40; cell = Math.floor(p.age * 9) % 2 ? 3 : 2; flipX = Math.cos(p.age * 0.7 + p.ph) >= 0 ? 1 : -1; al *= fadeHi; }
-          else if (L.kind === "boat") { y = gs - 44 + p.y; rot = Math.sin(p.age * 1.6 + p.ph) * 0.08; al *= fadeHi; }
+          else if (L.kind === "boat") {
+            // Only the harbour has an unobstructed water lane. Reuse the backdrop cover transform.
+            const point = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH, 0.5 + Math.sin(p.age * 0.12 + p.ph) * 0.1, 0.704, alt);
+            x = point.x; y = point.y + p.y; sz = 16;
+            rot = Math.sin(p.age * 1.6 + p.ph) * 0.05; al *= 1 - a(400, 900);
+          }
           else { const k = p.age / 4; x += Math.sin(p.age + p.ph) * 6 + k * 14; y = gs - 150 - k * 70; sz *= 0.5 + k; al *= (1 - k) * fadeHi; }
           if (al <= 0.01 || y < -150 || y > VH + 60) continue;
           ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot); ctx.scale(Math.abs(flipX) < 0.15 ? 0.15 * Math.sign(flipX || 1) : flipX, 1);
@@ -456,8 +459,18 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.globalAlpha = 1;
       }
       if (spec.wind && s.held && !s.over) {
-        ctx.fillStyle = "rgba(60,44,32,0.55)"; ctx.font = "600 13px system-ui"; ctx.textAlign = "center";
-        ctx.fillText(windDir > 0 ? "wind ›››" : "‹‹‹ wind", vw / 2, 176);
+        // The brush strokes curl and dissipate through six separately painted poses, not a sliding tile.
+        if (ok(windArt)) for (let i = 0; i < 3; i++) {
+          const cycle = (s.t * 0.7 + i / 3) % 1;
+          const cell = Math.min(5, Math.floor(cycle * 6));
+          const size = 86;
+          const height = size * windArt.naturalHeight / (windArt.naturalWidth / 6);
+          ctx.save(); ctx.globalAlpha = Math.sin(cycle * Math.PI) * 0.75;
+          ctx.translate(vw * (0.18 + i * 0.32) + windDir * cycle * 18, 200 + i * 72);
+          ctx.scale(windDir, 1);
+          ctx.drawImage(windArt, cell * windArt.naturalWidth / 6, 0, windArt.naturalWidth / 6, windArt.naturalHeight, -size / 2, -height / 2, size, height);
+          ctx.restore();
+        }
       }
 
       raf = requestAnimationFrame(frame);
@@ -465,7 +478,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); setAmbience([]); };
+    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); setAmbience([]); };
   }, [levelIndex]);
 
   useEffect(() => {
@@ -483,6 +496,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
+      <div ref={balancePanel} className="tower-balance hud-pill" data-state="stable">
+        <span className="hud-label">BALANCE</span>
+        <meter ref={balanceMeter} aria-label="Tower instability" min={0} max={1} low={0.6} high={0.85} optimum={0} defaultValue={0} />
+        <span ref={balanceLabel}>Stable</span>
+      </div>
       {started && (
         <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="hud-pill"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>

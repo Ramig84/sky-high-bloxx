@@ -46,3 +46,7 @@
 - [x] Review and test rendered leaning/contact collapse; correct excessive reactions without weakening support rules
 - [x] Review rain and district add-on effects; replace cheap-looking repeats with cohesive painted effects
 - [x] Gently reduce the moving-speed ramp; play-test and provide recommendations
+- [ ] Correct boat grounding and replace sliding wind with painted changing poses
+- [ ] Separate music/SFX volume controls; quiet coins and match sprite arrivals to reward amounts
+- [ ] Add live support-balance warning and verify phone touch play
+- [ ] Connect real rewarded ads for continue and five-level offers (blocked by publisher setup)

@@ -82,6 +82,21 @@ export function collapseIndex(xs: number[], width: number, foundationWidth = wid
   return -1;
 }
 
+/** Risk is closeness to the weakest contact edge, not a probability or a floor-count estimate. */
+export function towerBalance(xs: number[], width: number, foundationWidth = width * 1.12) {
+  let sum = xs.reduce((a, b) => a + b, 0), risk = 0, direction = 0;
+  for (let i = -1; i < xs.length - 1; i++) {
+    const lower = i < 0 ? 0 : (xs[i] ?? 0), upper = xs[i + 1] ?? 0;
+    const half = i < 0 ? foundationWidth / 2 : width / 2;
+    const left = Math.max(lower - half, upper - width / 2), right = Math.min(lower + half, upper + width / 2);
+    const com = sum / (xs.length - i - 1), midpoint = (left + right) / 2;
+    const value = right <= left ? 1 : Math.min(1, Math.abs(com - midpoint) / ((right - left) / 2));
+    if (value > risk) { risk = value; direction = Math.sign(com - midpoint); }
+    sum -= upper;
+  }
+  return { risk, direction, state: risk >= 0.85 ? "danger" : risk >= 0.6 ? "warning" : "stable" } as const;
+}
+
 export function landingReward(kind: Landing, combo: number) {
   if (kind === "miss") return { combo: 0, points: 0 };
   if (kind === "ok") return { combo: 0, points: 10 };

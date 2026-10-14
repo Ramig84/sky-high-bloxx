@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { sfx, setMusic, currentMusic } from "./audio";
 import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
 import { topScores, type ScoreRow } from "./leaderboard";
@@ -139,11 +141,11 @@ function Leaderboard({ onBack }: { onBack: () => void }) {
 function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () => void }) {
   const [s, setS] = useState<Settings>(loadSettings);
   const [confirm, setConfirm] = useState(false);
-  const update = (p: Partial<Settings>) => { const n = { ...s, ...p }; setS(n); saveSettings(n); };
+  const update = (p: Partial<Settings>) => { const n = { ...s, ...p }; setS(n); saveSettings(n); setMusic(true, 0.35, currentMusic()); };
   const Toggle = ({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) => (
-    <button type="button" className="flex items-center justify-between rounded px-1 py-2 text-lg" onClick={() => set(!on)} aria-pressed={on}>
+    <Button variant="ghost" className="flex items-center justify-between rounded px-1 py-2 text-lg" onClick={() => set(!on)} aria-pressed={on}>
       <span>{label}</span><span className={`paper-btn rounded-full px-4 py-1 text-sm font-extrabold ${on ? "" : "opacity-50"}`}>{on ? "On" : "Off"}</span>
-    </button>
+    </Button>
   );
   return (
     <div className="hud-pill w-full max-w-sm gap-2 p-4">
@@ -152,8 +154,12 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
         <input className="rounded border border-current/30 bg-transparent px-3 py-2 text-base" maxLength={16} value={s.name}
           onChange={e => update({ name: e.target.value })} onBlur={e => { if (!e.target.value.trim()) update({ name: "Builder" }); }} />
       </label>
-      <Toggle label="Sound" on={s.sound} set={v => update({ sound: v })} />
-      <Toggle label="Music" on={s.music} set={v => update({ music: v })} />
+      <label className="volume-control">Music <output>{Math.round((s.music ? s.musicVolume : 0) * 100)}%</output>
+        <Slider aria-label="Music volume" min={0} max={100} step={1} value={[s.music ? Math.round(s.musicVolume * 100) : 0]} onValueChange={([v]) => update({ music: true, musicVolume: (v ?? 0) / 100 })} />
+      </label>
+      <label className="volume-control">Sound effects <output>{Math.round((s.sound ? s.soundVolume : 0) * 100)}%</output>
+        <Slider aria-label="Sound effects volume" min={0} max={100} step={1} value={[s.sound ? Math.round(s.soundVolume * 100) : 0]} onValueChange={([v]) => update({ sound: true, soundVolume: (v ?? 0) / 100 })} onValueCommit={() => void sfx("drop", 0.55)} />
+      </label>
       <Toggle label="Vibration" on={s.vibrate} set={v => update({ vibrate: v })} />
       {!confirm ? <Button variant="ghost" className="paper-btn rounded-full" onClick={() => setConfirm(true)}>Reset progress</Button> : (
         <div className="flex flex-col gap-2"><span>Erase all stars and best scores?</span>
