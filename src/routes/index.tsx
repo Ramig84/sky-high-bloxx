@@ -4,11 +4,14 @@ import { setAmbience, setMusic, sfx, unlockAudio } from "@/game/audio";
 import { TowerGame } from "@/game/TowerGame";
 import { CityMap } from "@/game/CityMap";
 import { HomeMenu } from "@/game/HomeMenu";
+import { Shop } from "@/game/Shop";
 import { submitScore } from "@/game/leaderboard";
 import { loadSettings } from "@/game/settings";
 import { DISTRICTS, LEVELS_PER_DISTRICT, TOTAL_LEVELS, levelSpec, loadStars, recordStars, saveStars } from "@/game/levels";
 import { Preloader } from "@/game/Preloader";
-import { homeAssets, levelAssets, mapAssets, preload } from "@/game/preload";
+import { homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
+import { blockSource, craneSource } from "@/game/shopArtwork";
+import { dailyLevel, loadLoadout } from "@/game/wallet";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -25,7 +28,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-type Screen = { kind: "home" } | { kind: "map" } | { kind: "level"; level: number } | { kind: "endless"; run: number };
+type Screen = { kind: "home" } | { kind: "map" } | { kind: "shop" } | { kind: "level"; level: number; daily?: boolean } | { kind: "endless"; run: number };
 
 function Home() {
   const [screen, setScreen] = useState<Screen>({ kind: "home" });
@@ -42,21 +45,23 @@ function Home() {
     return () => window.removeEventListener("pointerdown", onDown);
   }, [menu]);
 
-  if (screen.kind === "home") return <Preloader key="home" assets={homeAssets}><HomeMenu onCampaign={() => setScreen({ kind: "map" })} onEndless={() => setScreen({ kind: "endless", run: Date.now() })} onReset={() => setStars([])} /></Preloader>;
+  if (screen.kind === "home") return <Preloader key="home" assets={homeAssets}><HomeMenu onCampaign={() => setScreen({ kind: "map" })} onDaily={() => setScreen({ kind: "level", level: dailyLevel(), daily: true })} onEndless={() => setScreen({ kind: "endless", run: Date.now() })} onShop={() => setScreen({ kind: "shop" })} onReset={() => setStars([])} /></Preloader>;
   if (screen.kind === "map") return <Preloader key="map" assets={mapAssets}><CityMap stars={stars} focus={lastDistrict} onHome={home} onPlay={level => setScreen({ kind: "level", level })} /></Preloader>;
+  if (screen.kind === "shop") return <Preloader key="shop" assets={shopAssets}><Shop onBack={home} /></Preloader>;
+  const loadoutAssets = () => { const x = loadLoadout(); return [craneSource(x.crane), blockSource(x.block)].filter((v): v is string => Boolean(v)); };
   if (screen.kind === "endless") return (
-    <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id)}>
+    <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id, loadoutAssets())}>
       <TowerGame level={0} endless onMap={home} onComplete={() => {}}
         onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); }} />
     </Preloader>
   );
   const level = screen.level;
   return (
-    <Preloader key={level} assets={() => levelAssets(DISTRICTS[levelSpec(level).district]!.id)}>
-      <TowerGame level={level}
-        onMap={() => { setLastDistrict(Math.floor(level / LEVELS_PER_DISTRICT)); setScreen({ kind: "map" }); }}
-        onNext={level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
-        onComplete={n => setStars(p => { const next = recordStars(p, level, n); if (next !== p) saveStars(next); return next; })} />
+    <Preloader key={`${level}-${screen.daily ? "daily" : "city"}`} assets={() => levelAssets(DISTRICTS[levelSpec(level).district]!.id, loadoutAssets())}>
+      <TowerGame level={level} daily={screen.daily}
+        onMap={() => { if (screen.daily) home(); else { setLastDistrict(Math.floor(level / LEVELS_PER_DISTRICT)); setScreen({ kind: "map" }); } }}
+        onNext={!screen.daily && level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
+        onComplete={n => { if (!screen.daily) setStars(p => { const next = recordStars(p, level, n); if (next !== p) saveStars(next); return next; }); }} />
     </Preloader>
   );
 }

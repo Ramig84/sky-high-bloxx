@@ -7,6 +7,7 @@ import confettiSrc from "@/assets/painted-confetti.webp";
 import plaqueSrc from "@/assets/ui-plaque.webp";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, type DistrictId } from "./levels";
+import { SHOP_IMAGES } from "./shopArtwork";
 import { DISTRICT_MUSIC, preloadSounds, type Sound } from "./audio";
 
 const cache = new Map<string, HTMLImageElement>();
@@ -45,11 +46,12 @@ export function mapAssets(): ScreenAssets {
   const a = art(), t = isTablet();
   return { images: [a.mapSrc, a.cloudSrc, a.birdSrc, a.logoSrc, plaqueSrc, ...DISTRICTS.flatMap(d => districtFloors(d.id, t))], sounds: UI_SOUNDS };
 }
-export function levelAssets(district: DistrictId): ScreenAssets {
+export function shopAssets(): ScreenAssets { return { images: SHOP_IMAGES, sounds: ["tap", "music"] }; }
+export function levelAssets(district: DistrictId, extras: string[] = []): ScreenAssets {
   const a = art(), t = isTablet();
   return {
     images: [...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
-      a.birdSrc, a.rainSrc, footingSrc, paintedContactSrc, confettiSrc, roofSrc, ambientSrc],
+      a.birdSrc, a.rainSrc, footingSrc, paintedContactSrc, confettiSrc, roofSrc, ambientSrc, ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
 }
