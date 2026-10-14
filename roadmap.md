@@ -59,3 +59,4 @@
 - [ ] Discard unfinished campaign coins on retry; preserve completed rewards
 - [ ] Add pause/resume and a leave-game confirmation; verify touch flow
 - [ ] Create and integrate a painted game icon reflecting tower-stacking gameplay
+- [x] Recommend a modest camera zoom-out without changing landing rules; no size change requested yet
