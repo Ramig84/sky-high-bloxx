@@ -34,6 +34,8 @@ function Home() {
   const home = () => setScreen({ kind: "home" });
   const menu = screen.kind === "home" || screen.kind === "map";
   useEffect(() => { if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } }, [menu]);
+  // Quietly warm the map in the background so opening it is instant.
+  useEffect(() => { const t = window.setTimeout(() => void preload(mapAssets()), 2500); return () => window.clearTimeout(t); }, []);
   useEffect(() => {
     const onDown = (e: PointerEvent) => { unlockAudio(); if ((e.target as HTMLElement).closest("button")) void sfx("tap", 0.6); if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } };
     window.addEventListener("pointerdown", onDown);
