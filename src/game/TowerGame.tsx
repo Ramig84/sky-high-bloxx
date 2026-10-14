@@ -207,6 +207,7 @@ export function TowerGame() {
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
+    (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); audio?.close(); };
   }, []);
