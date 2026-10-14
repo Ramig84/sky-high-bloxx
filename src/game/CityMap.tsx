@@ -24,7 +24,7 @@ const OPEN_ALL_FOR_TESTING = true;
 const isDistrictUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedDistrict(st, i);
 const isLevelUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedLevel(st, i);
 
-export function CityMap({ stars, focus, onPlay }: { stars: Stars; focus: number; onPlay: (level: number) => void }) {
+export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus: number; onPlay: (level: number) => void; onHome?: () => void }) {
   const [sel, setSel] = useState<number | null>(null);
   const a = isTablet() ? tabletArtwork : phoneArtwork;
   const scroller = useRef<HTMLDivElement>(null);
@@ -67,7 +67,7 @@ export function CityMap({ stars, focus, onPlay }: { stars: Stars; focus: number;
           </div>
         ))}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <img src={a.logoSrc} alt="Sky Bloxx" className="w-28 drop-shadow-md" />
+          {onHome ? <button type="button" className="paper-btn pointer-events-auto rounded-full px-4 py-2 font-extrabold" onClick={onHome}>‹ Home</button> : <img src={a.logoSrc} alt="Sky Bloxx" className="w-28 drop-shadow-md" />}
           <div className="hud-pill items-center"><span className="hud-label">STARS</span><span className="hud-value flex items-center gap-1"><Star className="h-4 w-4 fill-current" />{stars.reduce((x, y) => x + (y ?? 0), 0)}</span></div>
         </div>
         {d && sel !== null && (
