@@ -38,7 +38,7 @@ function Home() {
   const [lastDistrict, setLastDistrict] = useState(-1);
   const [stars, setStars] = useState(loadStars);
   const home = () => setScreen({ kind: "home" });
-  const menu = screen.kind === "home" || screen.kind === "map";
+  const menu = screen.kind === "home" || screen.kind === "map" || screen.kind === "celebrate";
   useEffect(() => { if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } }, [menu]);
   useEffect(() => {
     void syncAccount().then(() => setStars(loadStars()));
