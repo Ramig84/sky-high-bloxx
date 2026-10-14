@@ -8,7 +8,7 @@ import { submitScore } from "@/game/leaderboard";
 import { loadSettings } from "@/game/settings";
 import { DISTRICTS, LEVELS_PER_DISTRICT, TOTAL_LEVELS, levelSpec, loadStars, recordStars, saveStars } from "@/game/levels";
 import { Preloader } from "@/game/Preloader";
-import { homeAssets, levelAssets, mapAssets } from "@/game/preload";
+import { homeAssets, levelAssets, mapAssets, preload } from "@/game/preload";
 
 export const Route = createFileRoute("/")({
   ssr: false,
