@@ -1,7 +1,7 @@
 // Signed-in player accounts: the server owns coins and Market items; the device keeps a cache for instant UI.
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { LOADOUT_KEY, WALLET_KEY, addCoins, coins, loadLoadout } from "./wallet";
+import { LOADOUT_KEY, WALLET_KEY, addCoins, coins, loadLoadout, type DailyReward } from "./wallet";
 import { loadSettings, saveSettings } from "./settings";
 import { loadStars, saveStars, type Stars } from "./levels";
 
