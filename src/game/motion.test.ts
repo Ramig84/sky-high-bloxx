@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { advanceSwing, suspendedBlock, HOOK_HEIGHT, ROPE_LENGTH, integrateFall, floorSway } from "./motion";
+import { advanceSwing, suspendedBlock, HOOK_HEIGHT, ROPE_LENGTH, integrateFall, floorSway, advanceToLanding } from "./motion";
 
 describe("continuous game motion", () => {
+  it("judges horizontal contact at the same position across frame rates", () => {
+    const contactX = (fps: number) => {
+      const block = { x: 0, y: 200, vx: 40, vy: 0 };
+      for (let i = 0; i < fps * 2; i++) {
+        if (advanceToLanding(block, 1 / fps, 1500, 50, 25)) return block.x;
+      }
+      throw new Error("No landing");
+    };
+    expect(contactX(20)).toBeCloseTo(40 * Math.sqrt(250 / 1500));
+    expect(contactX(120)).toBeCloseTo(contactX(20));
+  });
   it("keeps the swing continuous when another floor lands", () => {
     const phase = 42;
     expect(advanceSwing(phase, 15, 0)).toBe(phase);

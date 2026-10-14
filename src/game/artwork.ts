@@ -24,14 +24,12 @@ import foundationSrc from "@/assets/foundation.webp";
 import foundationSrcTablet from "@/assets/foundation-tablet.webp";
 import cloudSrc from "@/assets/cloud.webp";
 import cloudSrcTablet from "@/assets/cloud-tablet.webp";
-import crowdSrc from "@/assets/crowd.webp";
-import crowdSrcTablet from "@/assets/crowd-tablet.webp";
+import crowdSrc from "@/assets/spectators.webp";
+import crowdSrcTablet from "@/assets/spectators-tablet.webp";
 import birdSrc from "@/assets/bird-flight.webp";
 import birdSrcTablet from "@/assets/bird-flight-tablet.webp";
-import cheerSrc from "@/assets/crowd-cheer.webp";
-import cheerSrcTablet from "@/assets/crowd-cheer-tablet.webp";
 import logoSrc from "@/assets/logo.webp";
 import logoSrcTablet from "@/assets/logo-tablet.webp";
 
-export const phoneArtwork = { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, residentSrc, craneSrc, foundationSrc, cloudSrc, crowdSrc, birdSrc, cheerSrc, logoSrc };
-export const tabletArtwork = { b1: b1Tablet, b2: b2Tablet, b3: b3Tablet, bg0: bg0Tablet, streetSrc: streetSrcTablet, cloudsSrc: cloudsSrcTablet, sunsetSrc: sunsetSrcTablet, spaceSrc: spaceSrcTablet, hookSrc: hookSrcTablet, residentSrc: residentSrcTablet, craneSrc: craneSrcTablet, foundationSrc: foundationSrcTablet, cloudSrc: cloudSrcTablet, crowdSrc: crowdSrcTablet, birdSrc: birdSrcTablet, cheerSrc: cheerSrcTablet, logoSrc: logoSrcTablet };
+export const phoneArtwork = { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, residentSrc, craneSrc, foundationSrc, cloudSrc, crowdSrc, birdSrc, logoSrc };
+export const tabletArtwork = { b1: b1Tablet, b2: b2Tablet, b3: b3Tablet, bg0: bg0Tablet, streetSrc: streetSrcTablet, cloudsSrc: cloudsSrcTablet, sunsetSrc: sunsetSrcTablet, spaceSrc: spaceSrcTablet, hookSrc: hookSrcTablet, residentSrc: residentSrcTablet, craneSrc: craneSrcTablet, foundationSrc: foundationSrcTablet, cloudSrc: cloudSrcTablet, crowdSrc: crowdSrcTablet, birdSrc: birdSrcTablet, logoSrc: logoSrcTablet };

@@ -18,6 +18,16 @@ export function integrateFall(f: { x: number; y: number; vx: number; vy: number 
   f.vy -= gravity * dt;
 }
 
+/** Stop exactly at contact, rather than judging the offset a frame too late. */
+export function advanceToLanding(f: { x: number; y: number; vx: number; vy: number }, dt: number, gravity: number, surface: number, halfHeight: number) {
+  const gap = f.y - halfHeight - surface;
+  const contactTime = gap <= 0 ? 0 : (f.vy + Math.sqrt(f.vy * f.vy + 2 * gravity * gap)) / gravity;
+  const landed = contactTime <= dt;
+  integrateFall(f, landed ? contactTime : dt, gravity);
+  if (landed) f.y = surface + halfHeight;
+  return landed;
+}
+
 export function floorSway(sway: number, index: number) {
   // Existing floors must not jump sideways whenever the floor count changes.
   return sway * Math.pow(Math.max(0, index + 1) / 6, 1.6) / (1 + Math.pow(Math.max(0, index + 1) / 9, 1.6));
@@ -42,9 +52,9 @@ export function classifyLanding(offset: number, width: number, firstFloor = fals
 export function collapseIndex(xs: number[], width: number): number {
   for (let i = 0; i < xs.length - 1; i++) {
     let sum = 0;
-    for (let j = i + 1; j < xs.length; j++) sum += xs[j]!;
+    for (let j = i + 1; j < xs.length; j++) sum += xs[j] ?? 0;
     const com = sum / (xs.length - i - 1);
-    if (Math.abs(com - xs[i]!) > width / 2) return i;
+    if (Math.abs(com - (xs[i] ?? 0)) > width / 2) return i;
   }
   return -1;
 }
