@@ -319,7 +319,7 @@ export function TowerGame() {
       {started && hud.combo > 1 && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
       {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 top-1/3 text-center text-4xl animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
       {!started && (
-        <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(3rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
+        <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(16rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
           onPointerDown={e => { e.stopPropagation(); api.current.start(); setStarted(true); }}>
           <img src={logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full max-w-sm drop-shadow-xl animate-in fade-in zoom-in duration-700" />
           <div className="flex flex-col items-center gap-3">
