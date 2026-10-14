@@ -39,10 +39,10 @@ describe("campaign levels", () => {
   });
   it("awards 1-3 stars", () => {
     const s = levelSpec(0);
-    expect(starsFor(s, 9, 10, 0)).toBe(0);
-    expect(starsFor(s, 10, 0, 1)).toBe(1);
-    expect(starsFor(s, 10, s.perfectGoal, 1)).toBe(2);
-    expect(starsFor(s, 10, s.perfectGoal, 0)).toBe(3);
+    expect(starsFor(s, 14, 10, 0)).toBe(0);
+    expect(starsFor(s, 15, 0, 1)).toBe(1);
+    expect(starsFor(s, 15, s.perfectGoal, 1)).toBe(2);
+    expect(starsFor(s, 15, s.perfectGoal, 0)).toBe(3);
   });
   it("unlocks the next level only after clearing the previous", () => {
     expect(isLevelUnlocked([], 0)).toBe(true);
