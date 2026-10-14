@@ -89,8 +89,8 @@ jobs:
         if: ${{ env.KEYSTORE_B64 == '' }}
         run: |
           if [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "::error::Add the ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_PASSWORD secrets first (Settings → Secrets and variables → Actions)."
-            exit 1
+            echo "::warning::No signing passwords set — building test APK and unsigned AAB only."
+            exit 0
           fi
           ALIAS="${KEY_ALIAS:-skybloxx}"
           keytool -genkeypair -v \
