@@ -332,7 +332,7 @@ export function TowerGame() {
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       {started && (
         <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
+          <div className="hud-pill"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
           <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
           <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
           <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-11 w-11 items-center justify-center !p-0"
@@ -341,8 +341,7 @@ export function TowerGame() {
           </Button>
         </div>
       )}
-      {started && hud.combo > 1 && <div className="game-combo pointer-events-none absolute left-3 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
-      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 bottom-[18%] px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
+      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
       {!started && (
         <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(16rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
           onPointerDown={e => { e.stopPropagation(); api.current.start(); setStarted(true); }}>
