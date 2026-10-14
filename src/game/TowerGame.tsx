@@ -24,10 +24,10 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 function load(src: string) { const i = new Image(); i.src = src; return i; }
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
-export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { level: number; onMap: () => void; onNext?: () => void; onComplete: (stars: number) => void }) {
+export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { level: number; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void }) {
   const spec = levelSpec(levelIndex);
   const goal = spec.goal;
-  const district = DISTRICTS[spec.district] ?? DISTRICTS[0];
+  const district = DISTRICTS[spec.district] ?? DISTRICTS[0]!;
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, msg: "", msgKey: 0 });
