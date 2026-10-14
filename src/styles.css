@@ -193,7 +193,7 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 /* City map: living painted districts */
 .map-pan { animation: map-pan 40s ease-in-out infinite alternate; transform-origin: 50% 60%; }
 @keyframes map-pan { from { transform: scale(1.04) translateY(0); } to { transform: scale(1.08) translateY(-1%); } }
-.map-cloud { position: absolute; left: -40%; width: 45%; opacity: 0.8; pointer-events: none; animation: map-cloud linear infinite; }
+.map-cloud { position: absolute; left: -40%; width: 40%; opacity: 0.5; pointer-events: none; animation: map-cloud linear infinite; }
 @keyframes map-cloud { to { transform: translateX(330%); } }
 .map-bird-path { position: absolute; left: -10%; pointer-events: none; animation: map-bird-fly 22s linear infinite; }
 @keyframes map-bird-fly { 0% { transform: translate(0, 0); } 50% { transform: translate(60vmin, -4vmin); } 100% { transform: translate(130vmin, 2vmin); } }

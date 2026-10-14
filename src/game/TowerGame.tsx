@@ -340,7 +340,7 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
 
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      if (spec.night) { ctx.fillStyle = "rgba(20,26,58,0.42)"; ctx.fillRect(0, 0, vw, VH); }
+      if (spec.night) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
       if (spec.fog) {
         const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
         g.addColorStop(0, `rgba(226,224,214,${spec.fog})`); g.addColorStop(1, "rgba(226,224,214,0)");
@@ -348,13 +348,13 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
       }
       if (spec.slip && ok(rain)) {
         const sz = 260, oy = (s.t * 520) % sz, ox = (s.t * 60) % sz;
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.28;
         for (let y = -sz; y < VH + sz; y += sz) for (let x = -sz; x < vw + sz; x += sz) ctx.drawImage(rain, x + ox - sz, y + oy - sz, sz, sz);
         ctx.globalAlpha = 1;
       }
       if (spec.wind && s.held && !s.over) {
         ctx.fillStyle = "rgba(60,44,32,0.55)"; ctx.font = "600 13px system-ui"; ctx.textAlign = "center";
-        ctx.fillText(windDir > 0 ? "wind ›››" : "‹‹‹ wind", vw / 2, 92);
+        ctx.fillText(windDir > 0 ? "wind ›››" : "‹‹‹ wind", vw / 2, 176);
       }
 
       raf = requestAnimationFrame(frame);

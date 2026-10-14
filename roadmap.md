@@ -32,3 +32,5 @@
 - [ ] Wind at high altitude (late-game challenge)
 - [ ] Unlockable tower looks (night-time, autumn, seaside palettes)
 - [ ] Optional rewarded extra life (never forced)
+- [x] 10 districts x 10 levels, stars, obstacles (wind, sliding crane, rain, fog, night, narrower floors)
+- [ ] Per-district backdrops (sea for Harbour, towers for Downtown) and a painted roof cap
