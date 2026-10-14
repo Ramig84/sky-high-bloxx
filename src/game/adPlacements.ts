@@ -7,3 +7,6 @@ export const AD_PLACEMENTS: Record<AdPlacement, { title: string; offer: string }
 export function fiveLevelOffer(level: number, won: boolean, endless: boolean, daily: boolean) {
   return won && !endless && !daily && (level + 1) % 5 === 0;
 }
+export function extraLifeOffer(lives: number, over: boolean, won: boolean) {
+  return lives === 0 && over && !won;
+}

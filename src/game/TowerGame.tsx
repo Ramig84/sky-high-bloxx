@@ -21,7 +21,7 @@ import { coins, loadLoadout, runReward } from "./wallet";
 import { finishRun, startRun } from "./account";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
-import { fiveLevelOffer, type AdPlacement } from "./adPlacements";
+import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -510,21 +510,22 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} />}
-      {!hud.over && hud.lives < baseSpec.lives && <Button variant="ghost" className="plaque absolute bottom-6 left-3 h-12 rounded-none px-3 text-xs font-semibold" onPointerDown={e => e.stopPropagation()} onClick={() => openAd("extra-life")}>+1 life · Test ad</Button>}
-      <div ref={balancePanel} className="tower-balance hud-pill" data-state="stable">
+      <div ref={balancePanel} className={`tower-balance hud-pill${hud.over ? " invisible" : ""}`} data-state="stable">
         <span className="hud-label">BALANCE</span>
         <meter ref={balanceMeter} aria-label="Tower instability" min={0} max={1} low={0.6} high={0.85} optimum={0} defaultValue={0} />
         <span ref={balanceLabel}>Stable</span>
       </div>
       {started && (
-        <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="hud-pill"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
-          <div className="hud-pill items-center"><span className="hud-label">{daily ? "DAILY · 3× COINS" : endless ? "ENDLESS" : `${district.name.toUpperCase()} ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
-          <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
-          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-11 w-11 items-center justify-center !p-0"
+        <div className="game-hud pointer-events-none">
+          <div className="game-status-bar">
+          <div className="game-stat game-score"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
+          <div className="game-stat game-progress"><span className="hud-label">{daily ? "DAILY · 3×" : endless ? "ENDLESS" : `${district.name.toUpperCase()} · ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
+          <div className="game-stat game-lives"><span className="hud-label">LIVES</span><span className="hud-value whitespace-nowrap" aria-label={`${hud.lives} lives`}>{[0, 1, 2].map(i => <span key={i} className={i < hud.lives ? "" : "opacity-20"}>♥</span>)}</span></div>
+          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} title={muted ? "Turn sound on" : "Turn sound off"} className="game-sound pointer-events-auto h-11 w-11 text-foreground !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </Button>
+          </div>
         </div>
       )}
       {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
@@ -543,7 +544,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()} coins</span></span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
-            {!hud.won && <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => openAd("continue")}>Continue · Test ad</Button>}
+            {extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => openAd("extra-life")}>+1 life · Test ad</Button>}
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
             {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
             <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={onMap}><MapIcon className="h-4 w-4" /> {endless ? "Home" : "City map"}</Button>
