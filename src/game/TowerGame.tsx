@@ -1,23 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import b1 from "@/assets/floor-1.webp";
-import b2 from "@/assets/floor-2.webp";
-import b3 from "@/assets/floor-3.webp";
-import bg0 from "@/assets/floor-ground.webp";
-import streetSrc from "@/assets/bg-street.webp";
-import cloudsSrc from "@/assets/bg-clouds.webp";
-import sunsetSrc from "@/assets/bg-sunset.webp";
-import spaceSrc from "@/assets/bg-space.webp";
-import hookSrc from "@/assets/hook.webp";
-import residentSrc from "@/assets/resident-jump.webp";
-import craneSrc from "@/assets/crane.webp";
-import foundationSrc from "@/assets/foundation.webp";
-import cloudSrc from "@/assets/cloud.webp";
-import crowdSrc from "@/assets/crowd.webp";
-import birdSrc from "@/assets/bird-flight.webp";
-import cheerSrc from "@/assets/crowd-cheer.webp";
-import logoSrc from "@/assets/logo.webp";
+import { phoneArtwork, tabletArtwork } from "./artwork";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
 
 const VH = 640; // logical height
@@ -49,6 +33,7 @@ export function TowerGame() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, residentSrc, craneSrc, foundationSrc, cloudSrc, crowdSrc, birdSrc, cheerSrc } = window.matchMedia("(min-width: 600px)").matches ? tabletArtwork : phoneArtwork;
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
@@ -87,11 +72,14 @@ export function TowerGame() {
     let scale = 1, vw = 360;
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      canvas.width = window.innerWidth * dpr; canvas.height = window.innerHeight * dpr;
-      scale = (window.innerHeight * dpr) / VH;
+      const bounds = canvas.getBoundingClientRect();
+      canvas.width = Math.round(bounds.width * dpr); canvas.height = Math.round(bounds.height * dpr);
+      scale = canvas.height / VH;
       vw = canvas.width / scale;
     };
-    resize(); window.addEventListener("resize", resize);
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
 
     const best0 = Number(localStorage.getItem("bloxx-best") || 0);
     let s = fresh();
@@ -325,18 +313,19 @@ export function TowerGame() {
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); audio?.close(); };
+    return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); };
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-game-shell select-none touch-none" onPointerDown={() => api.current.tap()}>
+    <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
+    <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       {started && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
           <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
           <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
-          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="hud-pill pointer-events-auto h-12 w-12 items-center justify-center !p-0"
+          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-12 w-12 items-center justify-center !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </Button>
@@ -347,7 +336,10 @@ export function TowerGame() {
       {!started && (
         <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(16rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
           onPointerDown={e => { e.stopPropagation(); api.current.start(); setStarted(true); }}>
-          <img src={logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full max-w-sm drop-shadow-xl animate-in fade-in zoom-in duration-700" />
+          <picture className="w-full max-w-sm">
+            <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
+            <img src={phoneArtwork.logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full drop-shadow-xl animate-in fade-in zoom-in duration-700" />
+          </picture>
           <div className="flex flex-col items-center gap-3">
             {hud.best > 0 && <div className="hud-pill items-center"><span className="hud-label">BEST</span><span className="hud-value">{hud.best}</span></div>}
             <div className="paper-btn animate-pulse rounded-full px-10 py-4 text-2xl font-black">Tap to play</div>
@@ -358,7 +350,10 @@ export function TowerGame() {
       {hud.over && (
         <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
           <div className="hud-pill items-center gap-3 px-8 py-6">
-            <img src={logoSrc} alt="" width={1280} height={640} className="w-48" />
+            <picture>
+              <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
+              <img src={phoneArtwork.logoSrc} alt="" width={1280} height={640} className="w-48" />
+            </picture>
             <span className="text-3xl font-extrabold">Game Over</span>
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
@@ -366,6 +361,7 @@ export function TowerGame() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
