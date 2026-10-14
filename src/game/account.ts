@@ -47,14 +47,16 @@ export async function signOut() {
 export type RunMode = "city" | "daily" | "endless";
 /** Signed-in runs get a server ticket at start; the server later judges the result against it. */
 export async function startRun(mode: RunMode, level: number): Promise<string | null> {
-  if (!signedIn) return null;
+  // Check the session directly so a game started before account sync still gets a ticket.
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) return null;
   const { data, error } = await supabase.rpc("start_game_run", { _mode: mode, _level: level });
   return error ? null : (data as string);
 }
 /** Returns the coins actually granted; the server recomputes and caps the reward itself. */
 export async function finishRun(ticket: Promise<string | null>, stats: { floors: number; perfects: number; stars: number }, guestReward: number): Promise<number> {
-  if (!signedIn) { addCoins(guestReward); return guestReward; }
   const id = await ticket;
+  if (!id && !signedIn) { addCoins(guestReward); return guestReward; }
   if (!id) return 0;
   const { data } = await supabase.rpc("finish_game_run", { _run: id, _floors: stats.floors, _perfects: stats.perfects, _stars: stats.stars });
   await syncAccount();
