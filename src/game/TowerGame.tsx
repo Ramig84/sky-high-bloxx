@@ -12,7 +12,7 @@ import residentSrc from "@/assets/resident.png";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
 
 const VH = 640; // logical height
-const GROUND_SCREEN = 470; // screen y of plot at camera 0
+const GROUND_SCREEN = 535; // screen y of plot at camera 0
 const PIVOT_SCREEN = 36;
 const ROPE = 150;
 const GRAVITY = 1500;
