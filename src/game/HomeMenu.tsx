@@ -8,6 +8,7 @@ import { ENDLESS_STAGES } from "./endless";
 import { coin } from "./shopArtwork";
 import { GIFT_KEY, claimDailyGift, claimDailyStreak, coins, giftAvailable } from "./wallet";
 import { CoinTotal } from "./CoinReward";
+import { sfx } from "./audio";
 import { ACCOUNT_EVENT, claimGift, claimStreak, isSignedIn, signIn, signOut } from "./account";
 
 type Panel = "home" | "leaderboard" | "settings";
@@ -22,6 +23,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
     if (!giftAvailable()) return;
     const done = (reward: number) => {
       if (reward <= 0) return;
+      void sfx("coins", 0.7);
       localStorage.setItem(GIFT_KEY, new Date().toISOString().slice(0, 10));
       setGift({ available: false, reward });
     };
