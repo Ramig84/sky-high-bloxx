@@ -12,7 +12,7 @@ import residentSrc from "@/assets/resident.png";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
 
 const VH = 640; // logical height
-const GROUND_SCREEN = 400; // screen y of plot at camera 0
+const GROUND_SCREEN = 488; // screen y of plot at camera 0
 const PIVOT_SCREEN = 36;
 const ROPE = 150;
 const GRAVITY = 1500;
@@ -204,7 +204,7 @@ export function TowerGame() {
       drawCover(sunset, a(1200, 2000), 0);
       drawCover(space, a(3000, 3800), 0);
       if (!faded && street.complete && street.naturalWidth) buildFade();
-      drawCover(faded ? streetFaded : street, 1 - a(400, 900), alt * 0.9);
+      drawCover(faded ? streetFaded : street, 1 - a(400, 900), alt);
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
       for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true);
