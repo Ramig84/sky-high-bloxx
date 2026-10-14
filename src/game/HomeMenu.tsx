@@ -61,7 +61,7 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, streak 
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
   return (
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
-      <div className="home-wallet"><img src={coin} alt="" /><strong>{coins().toLocaleString()}</strong><span>coins · {streak.count} day streak{streak.reward ? ` · +${streak.reward}` : ""}</span></div>
+      <div className="home-wallet"><img src={coin} alt="" /><strong><CoinTotal value={coins()} from={streak.reward ? coins() - streak.reward : undefined} /></strong><span>coins · {streak.count} day streak{streak.reward ? ` · +${streak.reward}` : ""}</span></div>
       {isSignedIn()
         ? <button type="button" className="home-account" onClick={() => void signOut()}>Signed in as {loadSettings().name} · Sign out</button>
         : <button type="button" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins on every phone</button>}

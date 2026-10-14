@@ -465,7 +465,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             {endless && !daily && <span className="hud-label">SCORE SENT TO LEADERBOARD</span>}
             {daily && <span className="hud-label">TODAY'S SHARED TOWER · TRIPLE REWARD</span>}
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
-            <span className="coin-earned">+{hud.coins.toLocaleString()} coins</span>
+            <CoinReward amount={hud.coins} />
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
             {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
