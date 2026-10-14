@@ -58,3 +58,4 @@
 
 - [ ] Discard unfinished campaign coins on retry; preserve completed rewards
 - [ ] Add pause/resume and a leave-game confirmation; verify touch flow
+- [ ] Create and integrate a painted game icon reflecting tower-stacking gameplay
