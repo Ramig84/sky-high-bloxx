@@ -41,7 +41,7 @@ export function CityMap({ progress, best, onPick }: { progress: ZoneProgress; be
           </div>
         ))}
         <div className="absolute inset-x-0 top-0 flex flex-col items-center gap-2 px-6 pt-[max(1rem,env(safe-area-inset-top))]">
-          <img src={a.logoSrc} alt="Sky Bloxx" className="w-full max-w-[14rem] drop-shadow-md" />
+          <img src={a.logoSrc} alt="Sky Bloxx" className="w-full max-w-[8.5rem] drop-shadow-md" />
           {best > 0 && <div className="hud-pill items-center"><span className="hud-label">BEST</span><span className="hud-value">{best}</span></div>}
         </div>
         {ZONES.map((z, i) => {
@@ -51,7 +51,7 @@ export function CityMap({ progress, best, onPick }: { progress: ZoneProgress; be
           return (
             <button key={z.id} type="button" onClick={() => setSel(i)} aria-label={`${z.name} details`}
               className={`map-pin absolute -translate-x-1/2 -translate-y-full ${open && !done ? "map-pin-live" : ""} ${!open ? "map-pin-locked" : ""}`}
-              style={{ left: `${z.mapX}%`, top: `${z.mapY + (i === 2 ? 8 : 0)}%` }}>
+              style={{ left: `${z.mapX}%`, top: `${z.mapY + (i === 2 ? 12 : 0)}%` }}>
               {open && floors > 0 && <MiniTower id={z.id} floors={floors} goal={z.goal} />}
               <span className="map-pin-name">{z.name}{done ? <Check className="h-3.5 w-3.5" /> : !open ? <Lock className="h-3.5 w-3.5" /> : null}</span>
               <span className="hud-label">{open ? `${Math.min(floors, z.goal)} / ${z.goal}` : "LOCKED"}</span>

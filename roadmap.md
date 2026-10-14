@@ -26,9 +26,9 @@
 - [x] Larger tablet controls and portrait play area
 - [x] Verify phone and tablet touch gameplay
 - [x] Publish the current game
-- [ ] City map & tower goals: zones map, each zone with its own building styles and block designs
-- [ ] Living map: towers rise in cleared districts, drifting clouds, flying birds
-- [ ] District details card with its painted buildings, goal and best
+- [x] City map & tower goals: zones map, each zone with its own building styles and block designs
+- [x] Living map: towers rise in cleared districts, drifting clouds, flying birds
+- [x] District details card with its painted buildings, goal and best
 - [ ] Wind at high altitude (late-game challenge)
 - [ ] Unlockable tower looks (night-time, autumn, seaside palettes)
 - [ ] Optional rewarded extra life (never forced)
