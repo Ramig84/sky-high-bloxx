@@ -36,6 +36,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
     return () => { window.removeEventListener(ACCOUNT_EVENT, on); window.clearTimeout(t); };
   }, []);
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
+  useEffect(() => setGift(g => ({ ...g, available: giftAvailable() })), []);
   const [woke, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
   return (
@@ -58,7 +59,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
         <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
           <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
           {!woke && panel === "home" && <span className="home-hint">Tap anywhere to start</span>}
-          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} streak={streak} />}
+          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} streak={streak} gift={gift} onGift={claimGiftNow} />}
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
         </div>
@@ -69,11 +70,13 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
 
 const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none text-xl font-extrabold";
 
-function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, streak }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; streak: { count: number; reward: number } }) {
+function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, streak, gift, onGift }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; streak: { count: number; reward: number }; gift: { available: boolean; reward: number }; onGift: () => void }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
+  const gained = streak.reward + gift.reward;
   return (
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
-      <div className="home-wallet"><img src={coin} alt="" /><strong><CoinTotal value={coins()} from={streak.reward ? coins() - streak.reward : undefined} /></strong><span>coins · {streak.count} day streak{streak.reward ? ` · +${streak.reward}` : ""}</span></div>
+      <div className="home-wallet"><img src={coin} alt="" /><strong><CoinTotal value={coins()} from={gained ? coins() - gained : undefined} /></strong><span>coins · {streak.count} day streak{streak.reward ? ` · +${streak.reward}` : ""}{gift.reward ? ` · gift +${gift.reward}` : ""}</span></div>
+      <Button variant="ghost" className={big} onClick={onGift} disabled={!gift.available}><Gift className="h-6 w-6" /> Daily gift<span className="ml-auto text-sm font-semibold">{gift.available ? "+500 coins" : "claimed"}</span></Button>
       {isSignedIn()
         ? <button type="button" className="home-account" onClick={() => void signOut()}>Signed in as {loadSettings().name} · Sign out</button>
         : <button type="button" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins on every phone</button>}
