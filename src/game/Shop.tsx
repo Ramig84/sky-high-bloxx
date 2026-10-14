@@ -18,6 +18,7 @@ export function Shop({ onBack }: { onBack: () => void }) {
   const signedIn = isSignedIn();
   const choose = async (item: ShopItem) => {
     if (busy) return;
+    if (item.price < 0 && !owned.includes(item.id)) { setNote("Collect 7 daily rewards in a row to win this crane."); return; }
     if (!signedIn) { setNote("Sign in to buy and keep items on every phone."); return; }
     if (!owned.includes(item.id) && balance < item.price) { setNote(`You need ${(item.price - balance).toLocaleString()} more coins.`); return; }
     setBusy(true); setNote("");
@@ -41,11 +42,11 @@ export function Shop({ onBack }: { onBack: () => void }) {
         {note && <p className="market-note" role="status">{note}</p>}
         <div className="market-grid">
           {items.map(item => { const has = owned.includes(item.id), active = selected === item.id; return (
-            <button type="button" key={item.id} className={`market-item ${active ? "is-selected" : ""}`} onClick={() => void choose(item)} aria-label={`${item.name}, ${active ? "selected" : has ? "owned" : `${item.price} coins`}`}>
+            <button type="button" key={item.id} className={`market-item ${active ? "is-selected" : ""}`} onClick={() => void choose(item)} aria-label={`${item.name}, ${active ? "selected" : has ? "owned" : item.price < 0 ? "day 7 reward" : `${item.price} coins`}`}>
               <div className={`market-art ${tab}`}><img src={item.src} alt="" loading="lazy" /></div>
               <strong>{item.name}</strong>
-              <span>{active ? <><Check /> Equipped</> : has ? "Equip" : <><img src={coin} alt="" /> {item.price.toLocaleString()}</>}</span>
-              {!has && balance < item.price && <LockKeyhole className="market-lock" />}
+              <span>{active ? <><Check /> Equipped</> : has ? "Equip" : item.price < 0 ? "Day 7 reward" : <><img src={coin} alt="" /> {item.price.toLocaleString()}</>}</span>
+              {!has && (item.price < 0 || balance < item.price) && <LockKeyhole className="market-lock" />}
             </button>
           ); })}
         </div>
