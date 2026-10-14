@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Star, Map as MapIcon, Volume2, VolumeX } from "lucide-react";
+import { Star, Map as MapIcon, Volume2, VolumeX, Pause, Play, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
@@ -22,6 +22,7 @@ import { finishRun, startRun } from "./account";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
+import { canBankRun } from "./runPolicy";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -59,6 +60,15 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const [credited, setCredited] = useState(0);
   const [adPlacement, setAdPlacement] = useState<AdPlacement | null>(null);
   const adPaused = useRef(false);
+  const manualPaused = useRef(false);
+  const [pauseView, setPauseView] = useState<"paused" | "leave" | null>(null);
+  const pause = () => { manualPaused.current = true; setPauseView("paused"); };
+  const resume = () => { manualPaused.current = false; setPauseView(null); };
+  useEffect(() => {
+    const hide = () => { if (document.hidden) pause(); };
+    document.addEventListener("visibilitychange", hide);
+    return () => document.removeEventListener("visibilitychange", hide);
+  }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
   const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
   const runGeneration = useRef(0);
@@ -185,7 +195,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
     api.current.tap = () => {
       unlockAudio();
-      if (adPaused.current || s.over || !s.held || !isStarted) return;
+      if (adPaused.current || manualPaused.current || s.over || !s.held || !isStarted) return;
       void sfx("release", 0.5);
       setHud(h => ({ ...h, msg: "" }));
       const h = hung();
@@ -201,7 +211,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (s.lives <= 0) {
         s.over = true;
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem(bestKey, String(s.best)); }
-        awardRun();
+        if (canBankRun(s.won, endless, daily)) awardRun();
         if (endless && !daily) endCb.current?.(s.score, s.floors.length);
       }
       publish(msg);
@@ -306,7 +316,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     let last = performance.now(), raf = 0;
     const frame = (now: number) => {
       const dt = Math.min((now - last) / 1000, 1 / 20); last = now;
-      if (adPaused.current) { raf = requestAnimationFrame(frame); return; }
+      if (adPaused.current || manualPaused.current) { raf = requestAnimationFrame(frame); return; }
       s.t += dt;
       if (!s.over) s.phase = advanceSwing(s.phase, level(), dt);
 
@@ -521,13 +531,27 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           <div className="game-stat game-score"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
           <div className="game-stat game-progress"><span className="hud-label">{daily ? "DAILY · 3×" : endless ? "ENDLESS" : `${district.name.toUpperCase()} · ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
           <div className="game-stat game-lives"><span className="hud-label">LIVES</span><span className="hud-value whitespace-nowrap" aria-label={`${hud.lives} lives`}>{[0, 1, 2].map(i => <span key={i} className={i < hud.lives ? "" : "opacity-20"}>♥</span>)}</span></div>
-          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} title={muted ? "Turn sound on" : "Turn sound off"} className="game-sound pointer-events-auto h-11 w-11 text-foreground !p-0"
-            onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
-            {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          <Button variant="ghost" aria-label="Pause game" title="Pause game" disabled={hud.over} className="game-sound pointer-events-auto h-11 w-11 text-foreground !p-0"
+            onPointerDown={e => e.stopPropagation()} onClick={pause}>
+            <Pause className="h-5 w-5" />
           </Button>
           </div>
         </div>
       )}
+      {pauseView && <div className="absolute inset-0 z-40 flex items-center justify-center bg-game-shell/70 p-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={pauseView === "leave" ? "Leave game?" : "Game paused"} onPointerDown={e => e.stopPropagation()}>
+        <div className="hud-pill w-full max-w-xs items-center gap-4 p-6 text-center">
+          <h2 className="text-2xl font-extrabold">{pauseView === "leave" ? "Leave game?" : "Paused"}</h2>
+          {pauseView === "leave" ? <>
+            <p className="text-sm">Your unfinished tower and its pending coins will be lost. Your wallet and completed rewards stay safe.</p>
+            <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => setPauseView("paused")}>Keep playing</Button>
+            <Button variant="ghost" className="paper-btn h-12 w-full" onClick={onMap}>Leave game</Button>
+          </> : <>
+            <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={resume}><Play className="h-5 w-5" /> Resume</Button>
+            <Button variant="ghost" className="paper-btn h-12 w-full" onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>{muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />} {muted ? "Sound off" : "Sound on"}</Button>
+            <Button variant="ghost" className="paper-btn h-12 w-full" onClick={() => setPauseView("leave")}><ArrowLeft className="h-5 w-5" /> {endless ? "Home" : "City map"}</Button>
+          </>}
+        </div>
+      </div>}
       {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
       {hud.over && (
         <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
@@ -544,6 +568,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()} coins</span></span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
+            {!hud.won && !endless && <span className="text-xs text-center">Level unfinished · coins not banked</span>}
             {extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => openAd("extra-life")}>+1 life · Test ad</Button>}
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
             {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
