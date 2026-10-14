@@ -1,4 +1,8 @@
 # Roadmap
+- [x] Paint one cohesive scene and derive matching background, floors, footing and spectators
+- [x] Correct human scale, repeated floor frames and oversized score display
+- [x] Visually review real phone/tablet gameplay and amend flaws
+- [x] Verify stacking, misses, reactions and replay without changing game rules
 - [x] Anchor spectators to the street and integrate their feet into the painted ground
 - [x] Replace framed floor edges with soft painted contact shading
 - [x] Verify ground placement and camera ascent on phones and tablets

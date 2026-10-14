@@ -144,10 +144,12 @@
 }
 
 :root {
-  --game-shell: oklch(0.22 0.04 260);
+  --game-shell: oklch(0.26 0.025 175);
   --hud-bg: oklch(0.96 0.035 85 / 0.94);
-  --hud-fg: oklch(0.36 0.07 45);
-  --hud-accent: oklch(0.58 0.16 38);
+  --hud-fg: oklch(0.32 0.035 180);
+  --hud-accent: oklch(0.53 0.11 38);
+  --hud-edge: oklch(0.74 0.035 85 / 0.45);
+  --hud-shadow: oklch(0.32 0.035 180 / 0.12);
   --hud-track: oklch(0.25 0.05 260 / 0.6);
   --combo: oklch(0.82 0.18 80);
   --overlay: oklch(0.35 0.12 255 / 0.55);
@@ -162,24 +164,26 @@
   --color-overlay-foreground: var(--overlay-foreground);
 }
 body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none; }
-.hud-pill { display: flex; flex-direction: column; background: var(--hud-bg); color: var(--hud-fg); border-radius: 1rem; padding: 0.35rem 0.9rem; border: 2px solid oklch(0.42 0.08 45); box-shadow: 0 3px 0 oklch(0.42 0.08 45 / 0.55); }
-.hud-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; opacity: 0.85; }
-.hud-value { font-size: 1.6rem; font-weight: 800; line-height: 1; color: var(--hud-accent); }
+.hud-pill { display: flex; flex-direction: column; background: var(--hud-bg); color: var(--hud-fg); border-radius: 6px; padding: 0.4rem 0.7rem; border: 1px solid var(--hud-edge); box-shadow: 0 2px 8px var(--hud-shadow); }
+.hud-label { font-size: 0.6rem; font-weight: 500; letter-spacing: 0; opacity: 0.8; }
+.hud-value { font-size: 1.35rem; font-weight: 600; line-height: 1.15; color: var(--hud-fg); font-variant-numeric: tabular-nums; }
+.game-hud .hud-pill { min-width: 3.6rem; min-height: 3.2rem; }
+.game-hud .game-sound { min-width: 2.75rem; min-height: 2.75rem; }
 .combo-pop { font-size: 2.4rem; font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 2px oklch(0.45 0.15 40); text-shadow: 0 4px 0 oklch(0.45 0.15 40); animation: pop 0.9s ease-out forwards; }
 @keyframes pop { 0% { transform: scale(0.3); opacity: 0; } 20% { transform: scale(1.25); opacity: 1; } 40% { transform: scale(1); } 80% { opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
 .title-logo { font-size: 4.5rem; line-height: 0.9; font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 3px oklch(0.4 0.14 40); text-shadow: 0 6px 0 oklch(0.4 0.14 40); }
 .play-btn { pointer-events: auto; background: var(--combo); color: oklch(0.3 0.1 40); font-weight: 900; font-size: 1.4rem; padding: 1rem 2.4rem; border-radius: 999px; box-shadow: 0 6px 0 oklch(0.5 0.14 50); }
 .play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 oklch(0.5 0.14 50); }
-.msg-pop { font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 1.5px oklch(0.97 0.03 85); text-shadow: 0 3px 0 oklch(0.42 0.08 45); }
-.paper-btn { background: var(--hud-accent); color: oklch(0.97 0.03 85); border: 2px solid oklch(0.42 0.08 45); box-shadow: 0 4px 0 oklch(0.42 0.08 45); }
+.msg-pop { font-weight: 600; color: var(--hud-fg); text-shadow: 0 1px 3px var(--hud-bg); }
+.paper-btn { background: var(--hud-fg); color: var(--hud-bg); border: 1px solid var(--hud-edge); box-shadow: 0 2px 8px var(--hud-shadow); }
 
 /* Keep a phone-shaped stage on wider devices without changing world physics. */
 .game-viewport { width: 100%; max-width: 56.25dvh; }
 @media (min-width: 600px) {
   .game-hud { gap: 0.75rem; padding: 1.25rem; padding-top: max(1.25rem, env(safe-area-inset-top)); }
   .game-viewport .hud-pill { padding: 0.55rem 1rem; }
-  .game-viewport .hud-label { font-size: 0.85rem; }
-  .game-viewport .hud-value { font-size: 2rem; }
+  .game-viewport .hud-label { font-size: 0.75rem; }
+  .game-viewport .hud-value { font-size: 1.65rem; }
   .game-viewport .game-sound { width: 3.5rem; height: 3.5rem; }
   .game-viewport .game-sound svg { width: 1.5rem; height: 1.5rem; }
   .game-viewport .paper-btn { min-height: 3.5rem; }

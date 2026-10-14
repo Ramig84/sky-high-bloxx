@@ -17,3 +17,4 @@
 - Select phone or higher-resolution tablet WebP artwork at mount while retaining source paintings, so phones avoid tablet downloads.
 - Size the canvas from its portrait-constrained container and observe container resizing; keep HUD controls larger on tablets without changing logical motion or landing rules.
 - Project street spectators through the tested browser-safe scene module and use painted contact artwork, so camera ascent leaves ground residents behind and scene joins avoid synthetic frames.
+- Derive building floors, street plate and footing from a single approved master painting and match auxiliary sprites to it, so independent asset generation cannot fragment the scene's visual language.
