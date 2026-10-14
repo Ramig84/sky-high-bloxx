@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AD_PLACEMENTS, type AdPlacement } from "./adPlacements";
 
 /** Deliberately no provider calls, wallet writes or gameplay rewards. */
-export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdPlacement; onClose: () => void; onReward?: () => void }) {
+export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdPlacement; onClose: () => void; onReward?: (() => void) | undefined }) {
   const automatic = placement === "five-levels";
   const [stage, setStage] = useState<"offer" | "playing" | "complete">(automatic ? "playing" : "offer");
   const [remaining, setRemaining] = useState(3);
