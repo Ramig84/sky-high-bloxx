@@ -5,6 +5,7 @@ import { phoneArtwork, tabletArtwork } from "./artwork";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
+import confettiSrc from "@/assets/painted-confetti.webp";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -16,7 +17,7 @@ const HOOK_GAP = 22;
 
 type Floor = { x: number; skin: number; swayAtLanding: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
-type Particle = { x: number; y: number; vx: number; vy: number; life: number; hue: number };
+type Particle = { x: number; y: number; vx: number; vy: number; life: number; chip: number; rot: number };
 type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; msg: string; msgKey: number };
 
 function load(src: string) { const i = new Image(); i.src = src; return i; }
@@ -45,6 +46,7 @@ export function TowerGame() {
     const hook = load(hookSrc);
     const crane = load(craneSrc), foundation = load(footingSrc), cloud = load(cloudSrc), bird = load(birdSrc);
     const paintedContact = load(paintedContactSrc);
+    const confetti = load(confettiSrc);
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
       const cell = img.naturalWidth / count;
@@ -177,7 +179,7 @@ export function TowerGame() {
         if (kind === "perfect") {
           chime(523 * Math.pow(1.122, Math.min(s.combo, 8))); chime(784, 0.35);
           navigator.vibrate?.(30);
-          for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, hue: Math.random() * 360 });
+          for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, chip: i % 6, rot: Math.random() * Math.PI * 2 });
         } else { chime(330, 0.15); }
         s.shake = 3;
         publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
@@ -203,8 +205,8 @@ export function TowerGame() {
       if (ok(img)) {
         // Painted pigment at the join grounds the facade without a picture-frame outline.
         if (shadow && ok(paintedContact)) {
-          ctx.globalAlpha = 0.36;
-          ctx.drawImage(paintedContact, -BW * 0.56 - 2, BH / 2 - 6, BW * 1.12, 14);
+          ctx.globalAlpha = 0.18;
+          ctx.drawImage(paintedContact, -BW / 2, BH / 2 - 2, BW, 4);
           ctx.globalAlpha = 1;
         }
         // The sprite is authored for this exact rectangle, including its painted side return.
@@ -309,7 +311,12 @@ export function TowerGame() {
       if (s.held && !s.over) drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th);
       if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot);
 
-      for (const p of s.parts) { ctx.fillStyle = `hsla(${p.hue},90%,60%,${Math.min(1, p.life)})`; ctx.fillRect(vw / 2 + p.x, toScreenY(p.y), 4, 7); }
+      if (ok(confetti)) for (const p of s.parts) {
+        ctx.save(); ctx.translate(vw / 2 + p.x, toScreenY(p.y)); ctx.rotate(p.rot + (1.4 - p.life) * p.vx * 0.025);
+        ctx.globalAlpha = Math.min(1, p.life * 2);
+        ctx.drawImage(confetti, p.chip * 32, 0, 32, 48, -3, -4.5, 6, 9);
+        ctx.restore();
+      }
 
       raf = requestAnimationFrame(frame);
     };
@@ -334,14 +341,14 @@ export function TowerGame() {
           </Button>
         </div>
       )}
-      {started && hud.combo > 1 && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
-      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 top-1/3 text-center text-4xl animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
+      {started && hud.combo > 1 && <div className="game-combo pointer-events-none absolute left-3 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
+      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 bottom-[18%] px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
       {!started && (
         <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(16rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
           onPointerDown={e => { e.stopPropagation(); api.current.start(); setStarted(true); }}>
           <picture className="w-full max-w-sm">
             <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
-            <img src={phoneArtwork.logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full drop-shadow-xl animate-in fade-in zoom-in duration-700" />
+            <img src={phoneArtwork.logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full animate-in fade-in zoom-in duration-700" />
           </picture>
           <div className="flex flex-col items-center gap-3">
             {hud.best > 0 && <div className="hud-pill items-center"><span className="hud-label">BEST</span><span className="hud-value">{hud.best}</span></div>}

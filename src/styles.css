@@ -174,7 +174,8 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .title-logo { font-size: 4.5rem; line-height: 0.9; font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 3px oklch(0.4 0.14 40); text-shadow: 0 6px 0 oklch(0.4 0.14 40); }
 .play-btn { pointer-events: auto; background: var(--combo); color: oklch(0.3 0.1 40); font-weight: 900; font-size: 1.4rem; padding: 1rem 2.4rem; border-radius: 999px; box-shadow: 0 6px 0 oklch(0.5 0.14 50); }
 .play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 oklch(0.5 0.14 50); }
-.msg-pop { font-weight: 600; color: var(--hud-fg); text-shadow: 0 1px 3px var(--hud-bg); }
+.msg-pop { font-size: 1.75rem; line-height: 1.2; font-weight: 600; color: var(--hud-fg); text-shadow: 0 1px 3px var(--hud-bg); }
+.game-combo { top: max(4.8rem, calc(env(safe-area-inset-top) + 4rem)); }
 .paper-btn { background: var(--hud-fg); color: var(--hud-bg); border: 1px solid var(--hud-edge); box-shadow: 0 2px 8px var(--hud-shadow); }
 
 /* Keep a phone-shaped stage on wider devices without changing world physics. */
@@ -187,4 +188,5 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
   .game-viewport .game-sound { width: 3.5rem; height: 3.5rem; }
   .game-viewport .game-sound svg { width: 1.5rem; height: 1.5rem; }
   .game-viewport .paper-btn { min-height: 3.5rem; }
+  .game-combo { left: 1.25rem; top: max(6rem, calc(env(safe-area-inset-top) + 4.75rem)); }
 }
