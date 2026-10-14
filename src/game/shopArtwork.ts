@@ -9,6 +9,7 @@ import royal from "@/assets/shop/crane-royal.webp";
 import jade from "@/assets/shop/crane-jade.webp";
 import midnight from "@/assets/shop/crane-midnight.webp";
 import gold from "@/assets/shop/crane-gold.webp";
+import weekly from "@/assets/shop/crane-weekly.webp";
 import rose from "@/assets/shop/block-rose.webp";
 import tudor from "@/assets/shop/block-tudor.webp";
 import azulejo from "@/assets/shop/block-azulejo.webp";
@@ -25,7 +26,8 @@ import { BLOCK_PRICES, CRANE_PRICES } from "./wallet";
 export type ShopItem = { id: string; name: string; src: string; price: number };
 const cranes = [["classic", "Classic Yellow", classicCrane], ["red", "Firehouse Red", red], ["mint", "Mint Works", mint], ["copper", "Copper Foundry", copper], ["navy", "Harbour Navy", navy], ["blossom", "Blossom Crane", blossom], ["royal", "Royal Blue", royal], ["jade", "Jade Imperial", jade], ["midnight", "Midnight Steel", midnight], ["gold", "Golden Skyline", gold]] as const;
 const blocks = [["classic", "District Classic", classicBlock], ["rose", "Rose Geranium", rose], ["tudor", "Tudor Manor", tudor], ["azulejo", "Azulejo House", azulejo], ["ivy", "Ivy Cottage", ivy], ["deco", "Teal Art Deco", deco], ["marble", "Marble Palace", marble], ["pagoda", "Painted Pagoda", pagoda], ["star", "Star Observatory", star], ["crown", "Gilded Crown", crown]] as const;
-export const CRANE_ITEMS: ShopItem[] = cranes.map((x, i) => ({ id: x[0], name: x[1], src: x[2], price: CRANE_PRICES[i] ?? 0 }));
+/** price -1 = reward-only (day 7 of the daily reward), never sold. */
+export const CRANE_ITEMS: ShopItem[] = [...cranes.map((x, i) => ({ id: x[0], name: x[1], src: x[2], price: CRANE_PRICES[i] ?? 0 })), { id: "weekly", name: "Festival Crane", src: weekly, price: -1 }];
 export const BLOCK_ITEMS: ShopItem[] = blocks.map((x, i) => ({ id: x[0], name: x[1], src: x[2], price: BLOCK_PRICES[i] ?? 0 }));
 export const craneSource = (id: string) => CRANE_ITEMS.find(x => x.id === id)?.src ?? classicCrane;
 export const blockSource = (id: string) => id === "classic" ? undefined : BLOCK_ITEMS.find(x => x.id === id)?.src;

@@ -1,7 +1,7 @@
 // Signed-in player accounts: the server owns coins and Market items; the device keeps a cache for instant UI.
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { LOADOUT_KEY, WALLET_KEY, addCoins, coins, loadLoadout } from "./wallet";
+import { LOADOUT_KEY, WALLET_KEY, addCoins, coins, loadLoadout, type DailyReward } from "./wallet";
 import { loadSettings, saveSettings } from "./settings";
 import { loadStars, saveStars, type Stars } from "./levels";
 
@@ -63,19 +63,12 @@ export async function finishRun(ticket: Promise<string | null>, stats: { floors:
   return Number((data as { reward?: number } | null)?.reward ?? 0);
 }
 
-export async function claimStreak(): Promise<{ count: number; reward: number } | null> {
+/** Signed-in weekly daily reward, paid by the server. */
+export async function claimGift(): Promise<DailyReward | null> {
   if (!signedIn) return null;
-  const { data } = await supabase.rpc("claim_daily_streak");
+  const { data } = await supabase.rpc("claim_daily_reward");
   await syncAccount();
-  return data as { count: number; reward: number } | null;
-}
-
-/** Signed-in daily gift: the server pays 500 coins once per day. Returns coins granted. */
-export async function claimGift(): Promise<number> {
-  if (!signedIn) return 0;
-  const { data } = await supabase.rpc("claim_daily_gift");
-  await syncAccount();
-  return Number((data as { reward?: number } | null)?.reward ?? 0);
+  return data as DailyReward | null;
 }
 
 export async function buyOrEquip(kind: "crane" | "block", item: string) {

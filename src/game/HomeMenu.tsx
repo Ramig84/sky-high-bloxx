@@ -5,40 +5,38 @@ import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
 import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
-import { coin } from "./shopArtwork";
-import { GIFT_KEY, claimDailyGift, claimDailyStreak, coins, giftAvailable } from "./wallet";
+import { coin, craneSource } from "./shopArtwork";
+import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinTotal } from "./CoinReward";
 import { sfx } from "./audio";
-import { ACCOUNT_EVENT, claimGift, claimStreak, isSignedIn, signIn, signOut } from "./account";
+import { ACCOUNT_EVENT, claimGift, isSignedIn, signIn, signOut } from "./account";
 
 type Panel = "home" | "leaderboard" | "settings";
 
 export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; onReset: () => void }) {
   const [panel, setPanel] = useState<Panel>("home");
   const [tablet, setTablet] = useState(false);
-  const [streak, setStreak] = useState({ count: 0, reward: 0 });
   const [, refresh] = useState(0);
-  const [gift, setGift] = useState({ available: false, reward: 0 });
+  const [gift, setGift] = useState({ available: false, day: 1, reward: 0, crane: false });
+  const [showMap, setShowMap] = useState(false);
   const claimGiftNow = () => {
     if (!giftAvailable()) return;
-    const done = (reward: number) => {
-      if (reward <= 0) return;
+    const done = (r: { day: number; reward: number; crane: boolean; claimed: boolean } | null) => {
+      if (!r || r.claimed) { setGift(g => ({ ...g, available: false })); return; }
       void sfx("coins", 0.7);
-      localStorage.setItem(GIFT_KEY, new Date().toISOString().slice(0, 10));
-      setGift({ available: false, reward });
+      localStorage.setItem(GIFT_KEY, JSON.stringify({ day: new Date().toISOString().slice(0, 10), count: r.day }));
+      setGift({ available: false, day: r.day, reward: r.reward, crane: r.crane });
     };
     if (isSignedIn()) void claimGift().then(done);
-    else done(claimDailyGift());
+    else done(claimDailyReward());
   };
   useEffect(() => {
     const on = () => refresh(n => n + 1);
     window.addEventListener(ACCOUNT_EVENT, on);
-    // Signed-in streaks are counted by the server; guests keep a phone streak.
-    const t = window.setTimeout(() => { void claimStreak().then(r => setStreak(r ?? claimDailyStreak())); }, 600);
-    return () => { window.removeEventListener(ACCOUNT_EVENT, on); window.clearTimeout(t); };
+    return () => window.removeEventListener(ACCOUNT_EVENT, on);
   }, []);
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
-  useEffect(() => setGift(g => ({ ...g, available: giftAvailable() })), []);
+  useEffect(() => setGift(g => ({ ...g, available: giftAvailable(), day: nextRewardDay() })), []);
   const [woke, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
   return (
@@ -61,7 +59,8 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
         <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
           <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
           {!woke && panel === "home" && <span className="home-hint">Tap anywhere to start</span>}
-          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} streak={streak} gift={gift} onGift={claimGiftNow} />}
+          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} onGift={() => setShowMap(true)} />}
+          {showMap && <RewardMap gift={gift} onClaim={claimGiftNow} onClose={() => setShowMap(false)} />}
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
         </div>
@@ -72,21 +71,30 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
 
 const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none text-xl font-extrabold";
 
-function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, streak, gift, onGift }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; streak: { count: number; reward: number }; gift: { available: boolean; reward: number }; onGift: () => void }) {
+const small = "plaque h-14 rounded-none text-sm font-extrabold";
+
+function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, onGift }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; gift: { available: boolean; day: number; reward: number; crane: boolean }; onGift: () => void }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
-  const gained = streak.reward + gift.reward;
+  const label = gift.day === 7 ? "crane!" : `+${DAILY_REWARDS[gift.day - 1] ?? 100}`;
   return (
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
-      <div className="home-wallet"><img src={coin} alt="" /><strong><CoinTotal value={coins()} from={gained ? coins() - gained : undefined} /></strong><span>coins · {streak.count} day streak{streak.reward ? ` · +${streak.reward}` : ""}{gift.reward ? ` · gift +${gift.reward}` : ""}</span></div>
-      <Button variant="ghost" className={big} onClick={onGift} disabled={!gift.available}><Gift className="h-6 w-6" /> Daily gift<span className="ml-auto text-sm font-semibold">{gift.available ? "+500 coins" : "claimed"}</span></Button>
-      {isSignedIn()
-        ? <button type="button" className="home-account" onClick={() => void signOut()}>Signed in as {loadSettings().name} · Sign out</button>
-        : <button type="button" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins on every phone</button>}
+      <div className="home-topline">
+        <div className="home-wallet"><img src={coin} alt="" /><strong><CoinTotal value={coins()} from={gift.reward ? coins() - gift.reward : undefined} /></strong></div>
+        <button type="button" className={`home-gift ${gift.available ? "is-ready" : ""}`} onClick={onGift} aria-label={`Daily reward, day ${gift.day} of 7`}>
+          <Gift className="h-4 w-4" /> Day {gift.day}/7 · {gift.crane ? "crane won!" : gift.available ? label : "claimed"}
+        </button>
+      </div>
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /> Daily challenge<span className="ml-auto text-sm font-semibold">3× coins</span></Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
-      <Button variant="ghost" className={big} onClick={onShop}><Store className="h-6 w-6" /> Market</Button>
-      <div className="grid grid-cols-2 gap-2"><Button variant="ghost" className="plaque h-14 rounded-none text-sm font-extrabold" onClick={() => setPanel("leaderboard")}><Trophy /> Scores</Button><Button variant="ghost" className="plaque h-14 rounded-none text-sm font-extrabold" onClick={() => setPanel("settings")}><Cog /> Settings</Button></div>
+      <div className="grid grid-cols-3 gap-2">
+        <Button variant="ghost" className={small} onClick={onShop}><Store /> Market</Button>
+        <Button variant="ghost" className={small} onClick={() => setPanel("leaderboard")}><Trophy /> Scores</Button>
+        <Button variant="ghost" className={small} onClick={() => setPanel("settings")}><Cog /> Settings</Button>
+      </div>
+      {isSignedIn()
+        ? <button type="button" className="home-account" onClick={() => void signOut()}>{loadSettings().name} · Sign out</button>
+        : <button type="button" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins</button>}
     </div>
   );
 }
@@ -144,6 +152,34 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
         </div>
       )}
       <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
+    </div>
+  );
+}
+
+function RewardMap({ gift, onClaim, onClose }: { gift: { available: boolean; day: number; reward: number; crane: boolean }; onClaim: () => void; onClose: () => void }) {
+  return (
+    <div className="reward-backdrop" role="dialog" aria-label="Daily rewards" onClick={onClose}>
+      <div className="reward-map hud-pill" onClick={e => e.stopPropagation()}>
+        <strong className="text-lg">Daily rewards</strong>
+        <p className="text-xs opacity-75">Come back every day. Miss a day and it starts again at day 1.</p>
+        <div className="reward-grid">
+          {[1, 2, 3, 4, 5, 6, 7].map(n => {
+            const done = n < gift.day || (n === gift.day && !gift.available), today = n === gift.day;
+            return (
+              <div key={n} className={`reward-tile ${n === 7 ? "is-big" : ""} ${done ? "is-done" : ""} ${today && gift.available ? "is-today" : ""}`}>
+                <span>Day {n}</span>
+                <img src={n === 7 ? craneSource("weekly") : coin} alt="" className={n === 7 ? "reward-crane" : ""} />
+                <b>{n === 7 ? "Festival Crane" : `+${DAILY_REWARDS[n - 1]}`}</b>
+                {done && <i>✓</i>}
+              </div>
+            );
+          })}
+          <div className="reward-tile is-mystery"><span>Next week</span><b className="text-2xl">?</b><b>Mystery</b></div>
+        </div>
+        {gift.available
+          ? <Button variant="ghost" className="plaque h-14 w-full rounded-none text-lg font-extrabold" onClick={onClaim}>Claim day {gift.day}</Button>
+          : <Button variant="ghost" className="plaque h-12 w-full rounded-none font-extrabold" onClick={onClose}>{gift.crane ? "Festival Crane won!" : gift.reward ? `+${gift.reward} coins!` : "Come back tomorrow"}</Button>}
+      </div>
     </div>
   );
 }

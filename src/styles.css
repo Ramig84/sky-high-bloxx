@@ -291,3 +291,19 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 @media (prefers-reduced-motion: reduce) { .market-item { transition: none; } }
 .home-account { align-self: center; border-radius: 999px; background: var(--hud-bg); color: var(--plaque-ink); padding: 0.35rem 0.9rem; font-size: 0.75rem; font-weight: 700; box-shadow: 0 2px 6px var(--hud-shadow); }
 .market-note { position: relative; margin: 0 auto 0.75rem; max-width: 22rem; border-radius: 6px; background: var(--hud-bg); padding: 0.5rem 0.75rem; text-align: center; font-size: 0.85rem; font-weight: 700; }
+.home-topline { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.home-gift { display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 999px; background: var(--hud-bg); color: var(--plaque-ink); padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 800; box-shadow: 0 2px 6px var(--hud-shadow); }
+.home-gift:disabled { opacity: 0.7; }
+.home-gift.is-ready { animation: gift-pulse 1.6s ease-in-out infinite; }
+@keyframes gift-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+.reward-backdrop { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 1rem; background: var(--hud-shadow); }
+.reward-map { width: 100%; max-width: 22rem; flex-direction: column; gap: 0.6rem; padding: 1rem; text-align: center; color: var(--plaque-ink); }
+.reward-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+.reward-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.15rem; border-radius: 10px; background: var(--hud-bg); box-shadow: inset 0 0 0 2px var(--hud-shadow); padding: 0.4rem 0.2rem; font-size: 0.7rem; font-weight: 700; }
+.reward-tile img { width: 1.8rem; height: 1.8rem; object-fit: contain; }
+.reward-tile .reward-crane { width: 100%; height: 1.8rem; }
+.reward-tile.is-big { grid-column: span 2; }
+.reward-tile.is-done { opacity: 0.55; }
+.reward-tile.is-done i { position: absolute; top: 0.1rem; right: 0.35rem; font-style: normal; color: var(--hud-accent); font-size: 1rem; }
+.reward-tile.is-today { box-shadow: inset 0 0 0 3px var(--hud-accent); animation: gift-pulse 1.6s ease-in-out infinite; }
+.reward-tile.is-mystery { grid-column: span 2; justify-content: center; }
