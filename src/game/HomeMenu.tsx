@@ -12,6 +12,7 @@ import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRe
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { ACCOUNT_EVENT, claimGift, isSignedIn, signIn, signOut } from "./account";
 import { AdPlacementTests } from "./AdPlaceholder";
+import { deleteMyAccount } from "./account.functions";
 
 type Panel = "home" | "leaderboard" | "settings";
 
@@ -163,6 +164,15 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
       </label>
       <Toggle label="Vibration" on={s.vibrate} set={v => update({ vibrate: v })} />
       <AdPlacementTests />
+      <div className="flex justify-center gap-4 text-sm underline">
+        <a href="/privacy">Privacy Policy</a><a href="/terms">Terms</a>
+      </div>
+      {isSignedIn() && <Button variant="ghost" className="paper-btn rounded-full text-destructive" onClick={async () => {
+        const typed = window.prompt("This permanently deletes your account, coins, cranes, tower styles and stars. Type DELETE to confirm.");
+        if (typed !== "DELETE") return;
+        try { await deleteMyAccount({ data: { confirm: typed } }); await signOut(); window.alert("Your account has been deleted."); onBack(); }
+        catch (e) { window.alert(e instanceof Error ? e.message : "Could not delete your account"); }
+      }}>Delete account</Button>}
       {!confirm ? <Button variant="ghost" className="paper-btn rounded-full" onClick={() => setConfirm(true)}>Reset progress</Button> : (
         <div className="flex flex-col gap-2"><span>Erase all stars and best scores?</span>
           <div className="flex gap-2">

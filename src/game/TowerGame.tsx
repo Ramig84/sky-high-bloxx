@@ -71,6 +71,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
   const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
+  const reviveAfterAd = () => { api.current.revive?.(); closeAd(); };
   const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
   useEffect(() => {
@@ -86,7 +87,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const timer = window.setTimeout(() => setHud(h => h.msgKey === hud.msgKey ? { ...h, msg: "" } : h), 1100);
     return () => window.clearTimeout(timer);
   }, [hud.msg, hud.msgKey]);
-  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
+  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -204,6 +205,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.held = false;
     };
     api.current.restart = () => { runGeneration.current++; collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
+
+    api.current.revive = () => { if (!s.over || s.won || endless) return; s.over = false; s.lives = 1; s.combo = 0; s.shake = 0; if (!s.drop) s.held = true; publish("EXTRA LIFE!"); };
 
     const loseLife = (msg: string) => {
       s.lives--; s.combo = 0; s.shake = 10; void sfx(msg === "COLLAPSE!" ? "collapse" : "miss", 0.75);
@@ -519,7 +522,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
-      {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} />}
+      {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
       <div ref={balancePanel} className={`tower-balance hud-pill${hud.over ? " invisible" : ""}`} data-state="stable">
         <span className="hud-label">BALANCE</span>
         <meter ref={balanceMeter} aria-label="Tower instability" min={0} max={1} low={0.6} high={0.85} optimum={0} defaultValue={0} />
@@ -569,7 +572,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             <span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()} coins</span></span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
             {!hud.won && !endless && <span className="text-xs text-center">Level unfinished · coins not banked</span>}
-            {extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => openAd("extra-life")}>+1 life · Test ad</Button>}
+            {!endless && extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => openAd("extra-life")}>+1 life · Test ad</Button>}
             <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
             {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
             <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={onMap}><MapIcon className="h-4 w-4" /> {endless ? "Home" : "City map"}</Button>
