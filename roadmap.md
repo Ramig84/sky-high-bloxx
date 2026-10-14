@@ -36,3 +36,8 @@
 - [x] Per-district backdrops (sea for Harbour, towers for Downtown) and a painted roof cap
 - [x] Check every district's floors match its backdrop and nature; repaint any that look out of place
 - [x] District scenery truly animated (tumbling, flapping, rocking), never sliding stills
+- [x] Roof on the final floor of each level; crane speeds up every level; all districts open for testing
+- [ ] Home screen (Play, Endless, Leaderboard, Settings) — waiting on leaderboard choice
+- [ ] Settings: sound/music volume, vibration, reset progress, player name
+- [ ] Endless mode: crane speed + obstacles stack up and combine, scores go to leaderboard
+- [ ] Re-lock districts after owner review
