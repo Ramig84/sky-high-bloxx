@@ -36,6 +36,17 @@ export function TowerGame() {
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
     let audio: AudioContext | null = null;
+    // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
+    const streetFaded = document.createElement("canvas");
+    street.onload = () => {
+      streetFaded.width = street.naturalWidth; streetFaded.height = street.naturalHeight;
+      const c = streetFaded.getContext("2d")!;
+      c.drawImage(street, 0, 0);
+      const g = c.createLinearGradient(0, 0, 0, street.naturalHeight * 0.3);
+      g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
+      c.globalCompositeOperation = "destination-out"; c.fillStyle = g;
+      c.fillRect(0, 0, street.naturalWidth, street.naturalHeight * 0.3);
+    };
 
     let scale = 1, vw = 360;
     const resize = () => {
@@ -130,10 +141,12 @@ export function TowerGame() {
 
     const toScreenY = (wy: number) => GROUND_SCREEN - (wy - s.camY);
 
-    const drawCover = (img: HTMLImageElement, alpha: number, yOff: number) => {
-      if (!img.complete || !img.naturalWidth || alpha <= 0) return;
-      const sc = Math.max(vw / img.naturalWidth, VH / img.naturalHeight);
-      const w = img.naturalWidth * sc, h = img.naturalHeight * sc;
+    const drawCover = (img: HTMLImageElement | HTMLCanvasElement, alpha: number, yOff: number) => {
+      const iw = img instanceof HTMLImageElement ? img.naturalWidth : img.width;
+      const ih = img instanceof HTMLImageElement ? img.naturalHeight : img.height;
+      if (!iw || alpha <= 0) return;
+      const sc = Math.max(vw / iw, VH / ih);
+      const w = iw * sc, h = ih * sc;
       ctx.globalAlpha = alpha; ctx.drawImage(img, (vw - w) / 2, (VH - h) / 2 + yOff, w, h); ctx.globalAlpha = 1;
     };
     const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0) => {
@@ -180,7 +193,7 @@ export function TowerGame() {
       drawCover(clouds, 1, 0);
       drawCover(sunset, a(1200, 2000), 0);
       drawCover(space, a(3000, 3800), 0);
-      drawCover(street, 1 - a(250, 700), alt * 0.9);
+      drawCover(alt < 30 ? street : streetFaded, 1 - a(400, 900), alt * 0.9);
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
       for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2));
