@@ -34,7 +34,7 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
           <span className="block text-xs font-bold tracking-widest">{next ? `DISTRICT ${district + 1} CLEARED` : "CITY COMPLETE"}</span>
           <h1 className="text-3xl font-extrabold leading-tight">{done.name}</h1>
         </div>
-        <div className="celebrate-stars mt-3 flex items-center gap-1 hud-pill flex-row px-4">
+        <div className="celebrate-stars hud-pill mt-3 items-center gap-1 px-4" style={{ flexDirection: "row" }}>
           <Star className="h-5 w-5 fill-current" /><span className="hud-value">{st}/{LEVELS_PER_DISTRICT * 3}</span>
         </div>
 
