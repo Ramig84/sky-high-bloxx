@@ -114,10 +114,11 @@ jobs:
       - name: Sign AAB
         if: ${{ env.SIGNING_READY == 'true' }}
         run: |
+          ALIAS="${KEY_ALIAS:-skybloxx}"
           jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore "$RUNNER_TEMP/keystore.jks" \
             -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
-            android/app/build/outputs/bundle/release/app-release.aab "${KEY_ALIAS:-$ALIAS}"
+            android/app/build/outputs/bundle/release/app-release.aab "$ALIAS"
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload APK (testing)
