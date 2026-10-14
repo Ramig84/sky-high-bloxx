@@ -253,15 +253,15 @@ export function TowerGame() {
         c.x += c.sp * dt; if (c.x > vw / 2 + 140) c.x = -vw / 2 - 140;
         const sy = GROUND_SCREEN - (c.y - alt * 0.6);
         if (sy < -120 || sy > VH + 60) continue;
-        const w = 150 * c.sc;
-        ctx.globalAlpha = 0.85 * (1 - a(3200, 3800)); ctx.drawImage(cloud, vw / 2 + c.x - w / 2, sy, w, w * 0.56); ctx.globalAlpha = 1;
+        const w = 100 * c.sc;
+        ctx.globalAlpha = 0.45 * (1 - a(3200, 3800)); ctx.drawImage(cloud, vw / 2 + c.x - w / 2, sy, w, w * cloud.naturalHeight / cloud.naturalWidth); ctx.globalAlpha = 1;
       }
       if (ok(bird)) for (const b of birds) {
         b.x += b.sp * dt; if (b.x > vw / 2 + 80) { b.x = -vw / 2 - 80 - Math.random() * 300; b.y = 120 + Math.random() * 160; }
         const wingCycle = [0, 1, 2, 3, 2, 1];
         const pose = wingCycle[Math.floor((s.t + b.ph) * 10) % wingCycle.length] ?? 0;
         ctx.globalAlpha = 1 - a(1500, 2200);
-        drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 2 + b.ph) * 2, 34, 43.52); ctx.globalAlpha = 1;
+        drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 2 + b.ph) * 2, 20, 25.6); ctx.globalAlpha = 1;
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
@@ -311,7 +311,10 @@ export function TowerGame() {
       ctx.translate(px, py); ctx.rotate(-h.th);
       ctx.strokeStyle = "rgba(55,40,30,0.95)"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, ROPE - 24); ctx.stroke();
-      if (ok(hook)) ctx.drawImage(hook, -11, ROPE - 28, 22, 29);
+      if (ok(hook)) {
+        const hookWidth = 29 * hook.naturalWidth / hook.naturalHeight;
+        ctx.drawImage(hook, -hookWidth / 2, ROPE - 28, hookWidth, 29);
+      }
       if (s.held && !s.over) {
         ctx.lineWidth = 1.4;
         ctx.beginPath();
