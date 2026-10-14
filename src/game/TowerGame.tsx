@@ -305,20 +305,38 @@ export function TowerGame() {
   return (
     <div className="fixed inset-0 overflow-hidden bg-game-shell select-none touch-none" onPointerDown={() => api.current.tap()}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
-        <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
-        <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
-      </div>
-      {hud.combo > 1 && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
-      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="pointer-events-none absolute inset-x-0 top-1/3 text-center text-4xl font-extrabold text-hud-accent drop-shadow-lg animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
+      {started && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
+          <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
+          <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
+          <button aria-label={muted ? "Turn sound on" : "Turn sound off"} className="hud-pill pointer-events-auto h-12 w-12 items-center justify-center !p-0"
+            onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
+            {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+        </div>
+      )}
+      {started && hud.combo > 1 && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 hud-pill items-center"><span className="hud-label">COMBO</span><span className="hud-value">×{Math.min(hud.combo, 10)}</span></div>}
+      {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 top-1/3 text-center text-4xl animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
+      {!started && (
+        <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pb-[max(3rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))]"
+          onPointerDown={e => { e.stopPropagation(); api.current.start(); setStarted(true); }}>
+          <img src={logoSrc} alt="Sky Bloxx" width={1280} height={640} className="w-full max-w-sm drop-shadow-xl animate-in fade-in zoom-in duration-700" />
+          <div className="flex flex-col items-center gap-3">
+            {hud.best > 0 && <div className="hud-pill items-center"><span className="hud-label">BEST</span><span className="hud-value">{hud.best}</span></div>}
+            <div className="paper-btn animate-pulse rounded-full px-10 py-4 text-2xl font-black">Tap to play</div>
+            <span className="msg-pop text-base">Tap anywhere to drop the floor</span>
+          </div>
+        </div>
+      )}
       {hud.over && (
-        <div className="absolute inset-0 flex items-center justify-center bg-game-shell/60 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
+        <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
           <div className="hud-pill items-center gap-3 px-8 py-6">
+            <img src={logoSrc} alt="" width={1280} height={640} className="w-48" />
             <span className="text-3xl font-extrabold">Game Over</span>
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
-            <button className="mt-2 rounded-full bg-hud-accent px-8 py-3 text-xl font-extrabold text-game-shell" onClick={() => api.current.restart()}>Play again</button>
+            <button className="paper-btn mt-2 rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => api.current.restart()}>Play again</button>
           </div>
         </div>
       )}
