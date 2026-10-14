@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import b1 from "@/assets/block-1.jpg";
-import b2 from "@/assets/block-2.jpg";
-import b3 from "@/assets/block-3.jpg";
+import b1 from "@/assets/floor-1.jpg";
+import b2 from "@/assets/floor-2.jpg";
+import b3 from "@/assets/floor-3.jpg";
+import bg0 from "@/assets/floor-ground.jpg";
 import streetSrc from "@/assets/bg-street.jpg";
 import cloudsSrc from "@/assets/bg-clouds.jpg";
 import sunsetSrc from "@/assets/bg-sunset.jpg";
@@ -34,7 +35,7 @@ export function TowerGame() {
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
-    const skins = [load(b1), load(b2), load(b3)];
+    const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
     let audio: AudioContext | null = null;
@@ -66,7 +67,7 @@ export function TowerGame() {
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[], res: [] as Resident[],
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
-        nextSkin: 0, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
+        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
     }
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg: msg || h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
 
@@ -140,7 +141,7 @@ export function TowerGame() {
           loseLife("COLLAPSE!");
         } else publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
       }
-      s.nextSkin = (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
+      s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
       s.held = true;
     };
 
@@ -159,9 +160,8 @@ export function TowerGame() {
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
       if (shadow) { ctx.fillStyle = "rgba(20,10,30,0.25)"; ctx.fillRect(-BW / 2, BH / 2 - 2, BW, 4); }
       if (img.complete && img.naturalWidth) {
-        // trim the white margins baked into the sprites (~13% sides, ~6% top/bottom)
-        const sw = img.naturalWidth, sh = img.naturalHeight;
-        ctx.drawImage(img, sw * 0.13, sh * 0.06, sw * 0.74, sh * 0.88, -BW / 2, -BH / 2, BW, BH);
+        ctx.drawImage(img, -BW / 2, -BH / 2, BW, BH);
+        ctx.strokeStyle = "rgba(40,20,10,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(-BW / 2 + 0.5, -BH / 2 + 0.5, BW - 1, BH - 1);
       }
       ctx.restore();
     };
