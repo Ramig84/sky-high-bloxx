@@ -6,7 +6,9 @@ import { CityMap } from "@/game/CityMap";
 import { HomeMenu } from "@/game/HomeMenu";
 import { submitScore } from "@/game/leaderboard";
 import { loadSettings } from "@/game/settings";
-import { LEVELS_PER_DISTRICT, TOTAL_LEVELS, loadStars, recordStars, saveStars } from "@/game/levels";
+import { DISTRICTS, LEVELS_PER_DISTRICT, TOTAL_LEVELS, levelSpec, loadStars, recordStars, saveStars } from "@/game/levels";
+import { Preloader } from "@/game/Preloader";
+import { homeAssets, levelAssets, mapAssets } from "@/game/preload";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -38,17 +40,21 @@ function Home() {
     return () => window.removeEventListener("pointerdown", onDown);
   }, [menu]);
 
-  if (screen.kind === "home") return <HomeMenu onCampaign={() => setScreen({ kind: "map" })} onEndless={() => setScreen({ kind: "endless", run: Date.now() })} onReset={() => setStars([])} />;
-  if (screen.kind === "map") return <CityMap stars={stars} focus={lastDistrict} onHome={home} onPlay={level => setScreen({ kind: "level", level })} />;
+  if (screen.kind === "home") return <Preloader key="home" assets={homeAssets}><HomeMenu onCampaign={() => setScreen({ kind: "map" })} onEndless={() => setScreen({ kind: "endless", run: Date.now() })} onReset={() => setStars([])} /></Preloader>;
+  if (screen.kind === "map") return <Preloader key="map" assets={mapAssets}><CityMap stars={stars} focus={lastDistrict} onHome={home} onPlay={level => setScreen({ kind: "level", level })} /></Preloader>;
   if (screen.kind === "endless") return (
-    <TowerGame key={`e${screen.run}`} level={0} endless onMap={home} onComplete={() => {}}
-      onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); }} />
+    <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id)}>
+      <TowerGame level={0} endless onMap={home} onComplete={() => {}}
+        onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); }} />
+    </Preloader>
   );
   const level = screen.level;
   return (
-    <TowerGame key={level} level={level}
-      onMap={() => { setLastDistrict(Math.floor(level / LEVELS_PER_DISTRICT)); setScreen({ kind: "map" }); }}
-      onNext={level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
-      onComplete={n => setStars(p => { const next = recordStars(p, level, n); if (next !== p) saveStars(next); return next; })} />
+    <Preloader key={level} assets={() => levelAssets(DISTRICTS[levelSpec(level).district]!.id)}>
+      <TowerGame level={level}
+        onMap={() => { setLastDistrict(Math.floor(level / LEVELS_PER_DISTRICT)); setScreen({ kind: "map" }); }}
+        onNext={level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
+        onComplete={n => setStars(p => { const next = recordStars(p, level, n); if (next !== p) saveStars(next); return next; })} />
+    </Preloader>
   );
 }
