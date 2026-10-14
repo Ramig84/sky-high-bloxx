@@ -6,6 +6,8 @@ import release from "@/assets/audio/sfx-release.mp3.asset.json";
 import collapse from "@/assets/audio/sfx-collapse.mp3.asset.json";
 import clear from "@/assets/audio/sfx-clear.mp3.asset.json";
 import tap from "@/assets/audio/sfx-tap.mp3.asset.json";
+import coins from "@/assets/audio/sfx-coins.mp3.asset.json";
+import coinDing from "@/assets/audio/sfx-coin-ding.mp3.asset.json";
 import wind from "@/assets/audio/amb-wind.mp3.asset.json";
 import waves from "@/assets/audio/amb-waves.mp3.asset.json";
 import birds from "@/assets/audio/amb-birds.mp3.asset.json";
@@ -27,7 +29,7 @@ import mCloudpeak from "@/assets/audio/music-cloudpeak.mp3.asset.json";
 import { loadSettings } from "./settings";
 import type { DistrictId, LevelSpec } from "./levels";
 
-const SRC = { drop, perfect, miss, release, collapse, clear, tap, wind, waves, birds, train, city, night, rain, music,
+const SRC = { drop, perfect, miss, release, collapse, clear, tap, coins, coinDing, wind, waves, birds, train, city, night, rain, music,
   mOldtown, mHarbour, mMarket, mRiverside, mGardens, mUniversity, mRailyard, mDowntown, mSkyline, mCloudpeak } as const;
 export type Track = "music" | "mOldtown" | "mHarbour" | "mMarket" | "mRiverside" | "mGardens" | "mUniversity" | "mRailyard" | "mDowntown" | "mSkyline" | "mCloudpeak";
 
