@@ -208,6 +208,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
         if (endless) {
           const before = endlessStage(s.floors.length - 1), after = endlessStage(s.floors.length);
           spec = endlessSpec(s.floors.length); bw = BW * spec.width;
+          if (after > before) setAmbience(ambienceFor(district.id, spec));
           if (after > before) stageMsg = `${ENDLESS_STAGES[after]?.toUpperCase()} INCOMING!`;
         }
         const zoneClear = s.floors.length >= goal;
@@ -419,7 +420,7 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); };
+    return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); setAmbience([]); };
   }, [levelIndex]);
 
   return (
