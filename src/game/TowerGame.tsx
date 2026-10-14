@@ -159,9 +159,9 @@ export function TowerGame() {
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
       if (shadow) { ctx.fillStyle = "rgba(20,10,30,0.25)"; ctx.fillRect(-BW / 2, BH / 2 - 2, BW, 4); }
       if (img.complete && img.naturalWidth) {
-        // trim the white margins baked into the sprites (~7% sides, ~5% top/bottom)
+        // trim the white margins baked into the sprites (~13% sides, ~6% top/bottom)
         const sw = img.naturalWidth, sh = img.naturalHeight;
-        ctx.drawImage(img, sw * 0.07, sh * 0.05, sw * 0.86, sh * 0.9, -BW / 2, -BH / 2, BW, BH);
+        ctx.drawImage(img, sw * 0.13, sh * 0.06, sw * 0.74, sh * 0.88, -BW / 2, -BH / 2, BW, BH);
       }
       ctx.restore();
     };
