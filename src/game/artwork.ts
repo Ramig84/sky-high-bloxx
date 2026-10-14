@@ -50,7 +50,7 @@ export const phoneArtwork = { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, 
 export const tabletArtwork = { b1: b1Tablet, b2: b2Tablet, b3: b3Tablet, bg0: bg0Tablet, streetSrc: streetSrcTablet, cloudsSrc: cloudsSrcTablet, sunsetSrc: sunsetSrcTablet, spaceSrc: spaceSrcTablet, hookSrc: hookSrcTablet, craneSrc: craneSrcTablet, foundationSrc: foundationSrcTablet, cloudSrc: cloudSrcTablet, birdSrc: birdSrcTablet, logoSrc: logoSrcTablet, mapSrc: mapSrcTablet };
 
 // Floor skins per zone, ordered [floor1, floor2, floor3, ground].
-export const zoneFloors: Record<ZoneId, { phone: string[]; tablet: string[] }> = {
+export const zoneFloors: Record<ZoneId, { phone: [string, string, string, string]; tablet: [string, string, string, string] }> = {
   oldtown: { phone: [b1, b2, b3, bg0], tablet: [b1Tablet, b2Tablet, b3Tablet, bg0Tablet] },
   harbour: { phone: [h1, h2, h3, h0], tablet: [h1T, h2T, h3T, h0T] },
   downtown: { phone: [d1, d2, d3, d0], tablet: [d1T, d2T, d3T, d0T] },
