@@ -167,10 +167,15 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .hud-pill { display: flex; flex-direction: column; background: var(--hud-bg); color: var(--hud-fg); border-radius: 6px; padding: 0.4rem 0.7rem; border: 1px solid var(--hud-edge); box-shadow: 0 2px 8px var(--hud-shadow); }
 .hud-label { font-size: 0.6rem; font-weight: 500; letter-spacing: 0; opacity: 0.8; }
 .hud-value { font-size: 1.35rem; font-weight: 600; line-height: 1.15; color: var(--hud-fg); font-variant-numeric: tabular-nums; }
-.game-hud .hud-pill { min-width: 3.6rem; min-height: 3.2rem; }
-.game-hud .game-sound { min-width: 2.75rem; min-height: 2.75rem; }
-.game-hud .game-lives { flex-shrink: 0; min-width: 4.3rem; }
-.game-hud .hud-label { max-width: 10rem; text-align: center; overflow-wrap: anywhere; }
+.game-hud { position: absolute; inset: 0 0 auto; padding: max(0.65rem, env(safe-area-inset-top)) 0.65rem 0; }
+.game-status-bar { display: grid; grid-template-columns: minmax(3.5rem, 1fr) minmax(0, 1.65fr) 4rem 2.75rem; align-items: center; min-height: 3.5rem; padding: 0.35rem 0.45rem; background: var(--hud-bg); color: var(--hud-fg); border: 1px solid var(--hud-edge); border-radius: 6px; box-shadow: 0 2px 8px var(--hud-shadow); }
+.game-stat { display: flex; flex-direction: column; justify-content: center; gap: 0.15rem; min-width: 0; padding: 0 0.4rem; }
+.game-progress { align-items: center; border-inline: 1px solid var(--hud-edge); }
+.game-hud .game-sound { min-width: 2.75rem; min-height: 2.75rem; color: var(--hud-fg); }
+.game-hud .game-lives { align-items: center; }
+.game-hud .game-lives .hud-value { font-size: 1.1rem; }
+.game-hud .hud-label { text-align: center; overflow-wrap: anywhere; line-height: 1.2; }
+.game-score .hud-label { text-align: left; }
 .combo-pop { font-size: 2.4rem; font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 2px oklch(0.45 0.15 40); text-shadow: 0 4px 0 oklch(0.45 0.15 40); animation: pop 0.9s ease-out forwards; }
 @keyframes pop { 0% { transform: scale(0.3); opacity: 0; } 20% { transform: scale(1.25); opacity: 1; } 40% { transform: scale(1); } 80% { opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
 .title-logo { font-size: 4.5rem; line-height: 0.9; font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 3px oklch(0.4 0.14 40); text-shadow: 0 6px 0 oklch(0.4 0.14 40); }
@@ -182,7 +187,9 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 /* Keep a phone-shaped stage on wider devices without changing world physics. */
 .game-viewport { width: 100%; max-width: 56.25dvh; }
 @media (min-width: 600px) {
-  .game-hud { gap: 0.75rem; padding: 1.25rem; padding-top: max(1.25rem, env(safe-area-inset-top)); }
+  .game-hud { padding: max(1rem, env(safe-area-inset-top)) 1rem 0; }
+  .game-status-bar { grid-template-columns: minmax(4rem, 1fr) minmax(0, 1.65fr) 5rem 3.5rem; min-height: 4.5rem; }
+  .game-hud .game-lives .hud-value { font-size: 1.4rem; }
   .game-viewport .hud-pill { padding: 0.55rem 1rem; }
   .game-viewport .hud-label { font-size: 0.75rem; }
   .game-viewport .hud-value { font-size: 1.65rem; }
