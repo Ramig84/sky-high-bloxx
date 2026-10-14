@@ -283,7 +283,7 @@ export function TowerGame() {
         if (ok(cheer)) {
           const elapsed = 1.2 - s.cheer;
           const pose = s.cheer <= 0 ? 0 : elapsed < 0.18 ? 1 : elapsed < 0.85 ? 2 : 1;
-          const crops = [[25, 190], [535, 175], [1020, 225]];
+          const crops: [number, number][] = [[25, 190], [535, 175], [1020, 225]];
           const crop = crops[pose];
           if (crop) ctx.drawImage(cheer, crop[0], 50, crop[1], 450, vw / 2 - 110, cy - 49, 25, 49);
         }
