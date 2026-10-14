@@ -1,4 +1,7 @@
 # Roadmap
+- [ ] Repaint cohesive floor sections with readable painted thickness and varied windows
+- [ ] Correct and regression-test leaning, support balance, collapse and replay
+- [ ] Verify real touch runs and visually review phone/tablet artwork
 - [x] Remove all animated people and verify gameplay without people downloads
 - [x] Inspect the building blocks in live portrait gameplay and explain the remaining visual problems
 - [x] Paint one cohesive scene and derive matching background, floors, footing and spectators
