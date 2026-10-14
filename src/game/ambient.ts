@@ -13,9 +13,9 @@ export const AMBIENT: Record<DistrictId, AmbientLayer[]> = {
   gardens: [{ kind: "fall", cells: [1], count: 10, size: 9, alpha: 0.85 }, { kind: "flutter", cells: [2], count: 3, size: 12, alpha: 1 }],
   university: [{ kind: "fall", cells: [0], count: 8, size: 11, alpha: 0.9 }],
   railyard: [{ kind: "steam", cells: [4], count: 2, size: 48, alpha: 0.7 }],
-  downtown: [{ kind: "steam", cells: [4], count: 2, size: 36, alpha: 0.5 }, { kind: "fall", cells: [0, 6], count: 4, size: 10, alpha: 0.85 }],
-  skyline: [{ kind: "steam", cells: [4], count: 3, size: 40, alpha: 0.4 }],
-  cloudpeak: [{ kind: "mist", cells: [4], count: 4, size: 120, alpha: 0.35 }],
+  downtown: [{ kind: "steam", cells: [4], count: 1, size: 28, alpha: 0.3 }],
+  skyline: [{ kind: "mist", cells: [], count: 2, size: 180, alpha: 0.16 }],
+  cloudpeak: [{ kind: "mist", cells: [], count: 3, size: 220, alpha: 0.2 }],
 };
 
 export interface AmbientParticle { layer: AmbientLayer; cell: number; x: number; y: number; ph: number; age: number; sp: number }

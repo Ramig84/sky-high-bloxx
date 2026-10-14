@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 - Keep motion calculations in the browser-safe game motion module with regression tests, so crane attachment and falling remain consistent across frame rates.
+- Keep weather trajectories in browser-safe weather logic and draw individual painted rain strokes rather than tiled overlays, so wind direction and frame-rate behavior stay consistent.
 - Judge equal-mass balance against rendered contact-overlap intervals and the fixed footing on every gameplay frame; capture each floor's landing bend so artwork and physics share coordinates without contact jumps.
 - Animate game transforms through refs and publish HUD changes only on gameplay events, so React commits cannot reset moving objects.
 - Animate painted coin collection with CoinCollector and update counter refs only on sprite arrivals; live run coins are previews and only validated finish rewards enter the wallet.

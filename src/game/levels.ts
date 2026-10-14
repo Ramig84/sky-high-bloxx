@@ -47,7 +47,7 @@ export function levelSpec(index: number): LevelSpec {
     goal: districtGoal(d, l),
     perfectGoal: Math.round(districtGoal(d, l) * 0.25),
     lives: l === LEVELS_PER_DISTRICT - 1 && d > 0 ? 2 : 3,
-    speed: n * 0.9, // crane swings faster every level; floors stacked inside a level add more
+    speed: n * 0.81, // 10% gentler growth, still faster every level
     wind: d >= 2 ? Math.round(100 + (n - 20) * 2.5) : 0,
     slide: d >= 4 ? Math.round(30 + (n - 40) * 0.9) : 0,
     slip: d >= 6 ? 3 + (n - 60) * 0.1 : 0,

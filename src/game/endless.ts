@@ -10,7 +10,7 @@ export function endlessSpec(floors: number): LevelSpec {
   const f = Math.max(0, floors), st = endlessStage(f);
   return {
     index: -1, district: 0, level: 0, goal: Number.POSITIVE_INFINITY, perfectGoal: 0, lives: 3,
-    speed: 92 + f * 0.6, // starts above the Cloud Peak finale and keeps climbing
+    speed: 92 + f * 0.54, // 10% gentler growth; starts above the campaign finale
     wind: st >= 1 ? Math.round(110 + (f - 10) * 2) : 0,
     slide: st >= 2 ? Math.round(30 + (f - 20) * 0.8) : 0,
     slip: st >= 3 ? 4 + (f - 30) * 0.12 : 0,

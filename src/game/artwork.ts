@@ -28,7 +28,7 @@ import logoSrc from "@/assets/logo.webp";
 import logoSrcTablet from "@/assets/logo-tablet.webp";
 import mapSrc from "@/assets/city-map-10.webp";
 import mapSrcTablet from "@/assets/city-map-10-tablet.webp";
-import rainSrc from "@/assets/painted-rain.webp";
+import rainSrc from "@/assets/rain-strokes.webp";
 import type { DistrictId } from "./levels";
 
 export const phoneArtwork = { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, foundationSrc, cloudSrc, birdSrc, logoSrc, mapSrc, rainSrc };
