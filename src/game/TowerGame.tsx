@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Star, Map as MapIcon, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
+import ambientSrc from "@/assets/ambient.webp";
+import { spawnAmbient, stepAmbient } from "./ambient";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
@@ -60,6 +62,9 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
     const paintedContact = load(paintedContactSrc);
     const confetti = load(confettiSrc);
     const roof = load(roofSrc);
+    const amb = load(ambientSrc);
+    const life = spawnAmbient(district.id, 360);
+    let flash = 0;
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
       const cell = img.naturalWidth / count;
@@ -294,6 +299,22 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
         ctx.globalAlpha = 1 - a(1500, 2200);
         drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 2 + b.ph) * 2, 20, 25.6); ctx.globalAlpha = 1;
       }
+      // district life: painted leaves, petals, butterflies, steam, boats and mist
+      if (ok(amb)) {
+        const gs = toScreenY(0), fadeHi = 1 - a(500, 1100);
+        for (const p of life) {
+          stepAmbient(p, dt, vw, spec.wind ? windDir * spec.wind : 0);
+          const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0;
+          if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 2 + p.ph) * 1.2; }
+          else if (L.kind === "mist") { y = p.y; al *= 0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph); }
+          else if (L.kind === "flutter") { y = gs - p.y - 40; cell = Math.floor(p.age * 9) % 2 ? 3 : 2; al *= fadeHi; }
+          else if (L.kind === "boat") { y = gs - 66 + p.y; al *= fadeHi; }
+          else { const k = p.age / 4; x += Math.sin(p.age + p.ph) * 6 + k * 14; y = gs - 150 - k * 70; sz *= 0.5 + k; al *= (1 - k) * fadeHi; }
+          if (al <= 0.01 || y < -150 || y > VH + 60) continue;
+          ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot);
+          ctx.drawImage(amb, cell * 160, 0, 160, 160, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+        }
+      }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
       // building site foundation with a pulsing "build here" glow before the first floor
@@ -353,6 +374,11 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
         const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
         g.addColorStop(0, `rgba(226,224,214,${spec.fog})`); g.addColorStop(1, "rgba(226,224,214,0)");
         ctx.fillStyle = g; ctx.fillRect(0, 0, vw, VH * 0.55);
+      }
+      if (district.id === "cloudpeak") {
+        // distant lightning: rare soft sky flash
+        if (flash <= 0 && Math.random() < dt * 0.08) flash = 0.5;
+        if (flash > 0) { ctx.fillStyle = `rgba(240,236,220,${flash * 0.35})`; ctx.fillRect(0, 0, vw, VH); flash -= dt * 1.6; }
       }
       if (spec.slip && ok(rain)) {
         const sz = 260, oy = (s.t * 520) % sz, ox = (s.t * 60) % sz;
