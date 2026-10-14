@@ -1,6 +1,5 @@
 export const WALLET_KEY = "bloxx-coins";
 export const LOADOUT_KEY = "bloxx-loadout";
-export const STREAK_KEY = "bloxx-streak";
 
 export type Loadout = { ownedCranes: string[]; ownedBlocks: string[]; crane: string; block: string };
 export type RewardInput = { stars?: number; perfects: number; floors: number; endless?: boolean; daily?: boolean };
@@ -32,29 +31,34 @@ export function runReward({ stars = 0, perfects, floors, endless = false, daily 
 
 const dayKey = (d: Date) => d.toISOString().slice(0, 10);
 const previousDay = (d: Date) => { const x = new Date(d); x.setUTCDate(x.getUTCDate() - 1); return dayKey(x); };
-export function claimDailyStreak(now = new Date()) {
-  const today = dayKey(now);
-  let old: { day?: string; count?: number } = {};
-  try { old = canStore() ? JSON.parse(localStorage.getItem(STREAK_KEY) || "{}") : {}; } catch { /* ignore */ }
-  if (old.day === today) return { count: old.count ?? 1, reward: 0 };
-  const count = old.day === previousDay(now) ? Math.min(7, (old.count ?? 0) + 1) : 1;
-  const reward = 150 * count;
-  if (canStore()) localStorage.setItem(STREAK_KEY, JSON.stringify({ day: today, count }));
-  addCoins(reward);
-  return { count, reward };
-}
 
+/** Weekly daily reward: days 1–6 pay coins, day 7 gives the reward-only crane (1,000 coins if owned), then it restarts. */
 export const GIFT_KEY = "bloxx-gift";
-export const DAILY_GIFT = 500;
-export function giftAvailable(now = new Date()) {
-  return canStore() ? localStorage.getItem(GIFT_KEY) !== dayKey(now) : false;
+export const DAILY_REWARDS = [100, 150, 200, 250, 300, 400] as const;
+export const WEEKLY_CRANE = "weekly";
+export const WEEKLY_REPEAT_COINS = 1000;
+export type DailyReward = { day: number; reward: number; crane: boolean; claimed: boolean };
+type GiftState = { day?: string; count?: number };
+function giftState(): GiftState { try { return canStore() ? JSON.parse(localStorage.getItem(GIFT_KEY) || "{}") : {}; } catch { return {}; } }
+export function nextRewardDay(now = new Date()) {
+  const s = giftState();
+  if (s.day === dayKey(now)) return s.count ?? 1;
+  return s.day === previousDay(now) && (s.count ?? 0) < 7 ? (s.count ?? 0) + 1 : 1;
 }
-/** Guest daily gift; signed-in players claim on the server via account.claimGift. */
-export function claimDailyGift(now = new Date()) {
-  if (!giftAvailable(now)) return 0;
-  if (canStore()) localStorage.setItem(GIFT_KEY, dayKey(now));
-  addCoins(DAILY_GIFT);
-  return DAILY_GIFT;
+export function giftAvailable(now = new Date()) { return canStore() && giftState().day !== dayKey(now); }
+/** Guest version; signed-in players claim on the server via account.claimGift. */
+export function claimDailyReward(now = new Date()): DailyReward {
+  if (!giftAvailable(now)) return { day: giftState().count ?? 1, reward: 0, crane: false, claimed: true };
+  const day = nextRewardDay(now);
+  let reward = 0, crane = false;
+  if (day === 7) {
+    const l = loadLoadout();
+    if (l.ownedCranes.includes(WEEKLY_CRANE)) reward = WEEKLY_REPEAT_COINS;
+    else { crane = true; saveLoadout({ ...l, ownedCranes: [...l.ownedCranes, WEEKLY_CRANE] }); }
+  } else reward = DAILY_REWARDS[day - 1] ?? 100;
+  if (canStore()) localStorage.setItem(GIFT_KEY, JSON.stringify({ day: dayKey(now), count: day }));
+  addCoins(reward);
+  return { day, reward, crane, claimed: false };
 }
 
 export function dailyLevel(now = new Date()) {
