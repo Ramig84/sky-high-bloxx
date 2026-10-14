@@ -23,8 +23,8 @@ export function floorSway(sway: number, index: number) {
   return sway * Math.pow(Math.max(0, index + 1) / 6, 1.6) / (1 + Math.pow(Math.max(0, index + 1) / 9, 1.6));
 }
 // ---- 2D rules (illustrated canvas game) ----
-export const BLOCK_W = 96;
-export const BLOCK_H = 54;
+export const BLOCK_W = 84;
+export const BLOCK_H = 50;
 export const PERFECT_RATIO = 0.04;
 export const FIRST_FLOOR_TOLERANCE = 0.45;
 
