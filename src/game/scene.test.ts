@@ -5,7 +5,7 @@ describe("spectators stay on the street", () => {
   it("moves street feet with the ground as the camera rises", () => {
     const initial = streetSpectators(488, 0, 640);
     const climbed = streetSpectators(488, 100, 640);
-    expect(initial.feetY).toBe(524);
+    expect(initial.feetY).toBe(495);
     expect(climbed.feetY - initial.feetY).toBe(100);
   });
   it("leaves view when the street is below the camera", () => {

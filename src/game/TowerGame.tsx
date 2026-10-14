@@ -6,6 +6,7 @@ import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyL
 import { spectatorPose, type SpectatorMood } from "./reactions";
 import { streetSpectators } from "./scene";
 import paintedContactSrc from "@/assets/painted-contact.webp";
+import footingSrc from "@/assets/storybook-footing.png";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -45,7 +46,7 @@ export function TowerGame() {
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
-    const crane = load(craneSrc), foundation = load(foundationSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
+    const crane = load(craneSrc), foundation = load(footingSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
     const paintedContact = load(paintedContactSrc);
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
@@ -267,19 +268,13 @@ export function TowerGame() {
       // building site foundation with a pulsing "build here" glow before the first floor
       const gy = toScreenY(0);
       if (gy < VH + 200 && ok(foundation)) {
-        const fw = BW * 1.9, fh = fw * 0.5;
+        const fw = BW * 1.12, fh = 7;
         if (ok(paintedContact)) {
           ctx.globalAlpha = 0.45;
-          ctx.drawImage(paintedContact, vw / 2 - fw * 0.65 - 5, gy + fh * 0.2, fw * 1.3, 30);
+          ctx.drawImage(paintedContact, vw / 2 - fw * 0.65 - 5, gy - 4, fw * 1.3, 16);
           ctx.globalAlpha = 1;
         }
-        if (n === 0 && !s.drop) {
-          const pulse = 0.35 + Math.sin(s.t * 4) * 0.2;
-          const g = ctx.createRadialGradient(vw / 2, gy, 4, vw / 2, gy, BW);
-          g.addColorStop(0, `rgba(255,220,120,${pulse})`); g.addColorStop(1, "rgba(255,220,120,0)");
-          ctx.fillStyle = g; ctx.fillRect(vw / 2 - BW, gy - BW, BW * 2, BW * 2);
-        }
-        ctx.drawImage(foundation, vw / 2 - fw / 2, gy - fh * 0.42, fw, fh);
+        ctx.drawImage(foundation, vw / 2 - fw / 2, gy, fw, fh);
       }
 
       for (let i = 0; i < n; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
@@ -290,10 +285,10 @@ export function TowerGame() {
       const pose = spectatorPose(s.mood, s.mood === "idle" ? s.t : s.t - s.reactionAt);
       const spectators = streetSpectators(GROUND_SCREEN, s.camY, VH);
       if (spectators.visible) {
-        const sx = vw / 2 + BW * 0.95;
+        const sx = vw / 2 + BW * 0.78;
         if (ok(paintedContact)) {
           ctx.globalAlpha = 0.42;
-          ctx.drawImage(paintedContact, sx - 35, spectators.feetY - 9, 66, 16);
+          ctx.drawImage(paintedContact, sx - 14, spectators.feetY - 4, 28, 7);
           ctx.globalAlpha = 1;
         }
         // Align the sheet's common shoe baseline (363/384) to the street.
@@ -302,7 +297,7 @@ export function TowerGame() {
         // Reuse actual street paint over the lowest shoe pixels, not synthetic grass.
         if (ok(street)) {
           ctx.save();
-          ctx.beginPath(); ctx.rect(sx - 27, spectators.feetY - 1, 54, 2); ctx.clip();
+          ctx.beginPath(); ctx.rect(sx - 12, spectators.feetY - 0.5, 24, 1); ctx.clip();
           drawCover(street, 1 - a(400, 900), alt);
           ctx.restore();
         }
@@ -311,7 +306,7 @@ export function TowerGame() {
       // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
       const h = hung();
       const py = toScreenY(h.p.y), px = vw / 2 + h.p.x;
-      if (ok(crane)) { const cw = 420, ch = cw / 3; ctx.drawImage(crane, px - cw * 0.48, py - ch * 0.46, cw, ch); }
+      if (ok(crane)) { const cw = 420, ch = 58; ctx.drawImage(crane, px - cw * 0.5, py - 23, cw, ch); }
       ctx.save();
       ctx.translate(px, py); ctx.rotate(-h.th);
       ctx.strokeStyle = "rgba(55,40,30,0.95)"; ctx.lineWidth = 2;
@@ -335,7 +330,7 @@ export function TowerGame() {
         const y = r.sy + (r.ty - r.sy) * flight + 4 * 45 * flight * (1 - flight);
         const pose = r.t < 0.12 ? 0 : r.t < 0.24 ? 1 : r.t < 0.5 ? 2 : r.t < 0.74 ? 3 : r.t < 0.86 ? 4 : 5;
         ctx.globalAlpha = r.t > 0.94 ? (1 - r.t) / 0.06 : 1;
-        drawPose(resident, 6, pose, vw / 2 + x, toScreenY(y), 24, 34.13, r.sx > r.tx); ctx.globalAlpha = 1;
+        drawPose(resident, 6, pose, vw / 2 + x, toScreenY(y), 15, 21, r.sx > r.tx); ctx.globalAlpha = 1;
       }
       for (const p of s.parts) { ctx.fillStyle = `hsla(${p.hue},90%,60%,${Math.min(1, p.life)})`; ctx.fillRect(vw / 2 + p.x, toScreenY(p.y), 4, 7); }
 
@@ -356,7 +351,7 @@ export function TowerGame() {
           <div className="hud-pill"><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
           <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}</span></div>
           <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
-          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-12 w-12 items-center justify-center !p-0"
+          <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-11 w-11 items-center justify-center !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </Button>
@@ -373,8 +368,7 @@ export function TowerGame() {
           </picture>
           <div className="flex flex-col items-center gap-3">
             {hud.best > 0 && <div className="hud-pill items-center"><span className="hud-label">BEST</span><span className="hud-value">{hud.best}</span></div>}
-            <div className="paper-btn animate-pulse rounded-full px-10 py-4 text-2xl font-black">Tap to play</div>
-            <span className="msg-pop text-base">Tap anywhere to drop the floor</span>
+            <Button variant="ghost" className="paper-btn h-auto rounded-md px-10 py-4 text-xl font-medium" onClick={() => { api.current.start(); setStarted(true); }}>Tap to play</Button>
           </div>
         </div>
       )}
