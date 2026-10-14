@@ -211,3 +211,9 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .map-card { pointer-events: auto; }
 @media (min-width: 600px) { .map-tower-floor { width: 48px; height: 28px; } .map-pin-name { font-size: 1.1rem; } }
 @media (prefers-reduced-motion: reduce) { .map-pan, .map-cloud, .map-bird-path, .map-bird, .map-pin-live .map-pin-name { animation: none; } }
+.map-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.map-scroll::-webkit-scrollbar { display: none; }
+.map-canvas { position: relative; height: 210%; aspect-ratio: 1024 / 1920; left: 50%; transform: translateX(-50%); }
+.map-pin-stars { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--hud-shell, rgba(250,244,230,0.9)); }
+.level-tile { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; border-radius: 8px; background: rgba(255,250,238,0.7); box-shadow: inset 0 0 0 1px var(--hud-edge, rgba(90,70,50,0.25)); color: inherit; }
+.level-tile:disabled { opacity: 0.45; }

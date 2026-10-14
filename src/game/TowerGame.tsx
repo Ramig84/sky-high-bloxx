@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Map as MapIcon, Volume2, VolumeX } from "lucide-react";
+import { Star, Map as MapIcon, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { phoneArtwork, tabletArtwork, zoneFloors } from "./artwork";
-import { ZONES, type ZoneId } from "./zones";
+import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
+import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
@@ -19,16 +19,18 @@ const HOOK_GAP = 22;
 type Floor = { x: number; skin: number; swayAtLanding: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; chip: number; rot: number };
-type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; msg: string; msgKey: number };
+type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; won: boolean; stars: number; msg: string; msgKey: number };
 
 function load(src: string) { const i = new Image(); i.src = src; return i; }
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
-export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () => void; onFloors: (floors: number) => void }) {
-  const goal = ZONES.find(z => z.id === zone)?.goal ?? 10;
-  const floorsCb = useRef(onFloors); floorsCb.current = onFloors;
+export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { level: number; onMap: () => void; onNext?: () => void; onComplete: (stars: number) => void }) {
+  const spec = levelSpec(levelIndex);
+  const goal = spec.goal;
+  const district = DISTRICTS[spec.district] ?? DISTRICTS[0];
+  const doneCb = useRef(onComplete); doneCb.current = onComplete;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, msg: "", msgKey: 0 });
+  const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, msg: "", msgKey: 0 });
   const started = true;
   const [muted, setMuted] = useState(false);
   useEffect(() => {
@@ -44,7 +46,10 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const tablet = window.matchMedia("(min-width: 600px)").matches;
-    const [b1, b2, b3, bg0] = zoneFloors[zone][tablet ? "tablet" : "phone"];
+    const [b1, b2, b3, bg0] = districtFloors(district.id, tablet);
+    const bw = BW * spec.width;
+    const rain = load((tablet ? tabletArtwork : phoneArtwork).rainSrc);
+    let windDir = 1;
     const { streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
@@ -99,9 +104,9 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[],
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
-        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
+        nextSkin: 3, score: 0, lives: spec.lives, perfects: 0, won: false, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
     }
-    const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg, msgKey: h.msgKey + 1 }));
+    const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, won: s.won, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, msg, msgKey: h.msgKey + 1 }));
 
     const chime = (freq: number, dur = 0.25) => {
       if (!audio || isMuted) return;
@@ -114,10 +119,10 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
     const topY = () => s.floors.length * BH;
     const displayX = (i: number) => {
       const floor = s.floors[i];
-      return floor ? floorPosition(floor.x, floor.swayAtLanding, s.sway, i, BW) : 0;
+      return floor ? floorPosition(floor.x, floor.swayAtLanding, s.sway, i, bw) : 0;
     };
-    const level = () => s.floors.length;
-    const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(level() * 3, 70), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN });
+    const level = () => s.floors.length + spec.speed;
+    const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(s.floors.length * 3, 70) + (spec.slide ? Math.sin(s.t * 0.9) * spec.slide : 0), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN });
     const hung = () => {
       // Rope, hook and block swing as one rigid pendulum so the block never detaches from the hook.
       const th = SWING * Math.sin(s.phase), p = pivot(), dist = ROPE + HOOK_GAP + BH / 2;
@@ -132,6 +137,7 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
       const dth = SWING * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
+      windDir = Math.random() < 0.5 ? -1 : 1;
     };
     api.current.restart = () => { best0 = s.best; s = fresh(); publish(); };
 
@@ -147,7 +153,7 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
 
     const checkCollapse = () => {
       const xs = s.floors.map((_, i) => displayX(i));
-      const ci = collapseIndex(xs, BW);
+      const ci = collapseIndex(xs, bw);
       if (ci === -1) return false;
       const first = ci === -2 ? 0 : ci + 1;
       const anchor = ci === -2 ? 0 : (xs[ci] ?? 0);
@@ -168,18 +174,19 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
       const n = s.floors.length;
       const support = n === 0 ? 0 : displayX(n - 1);
       const off = d.x - support;
-      const kind = classifyLanding(off, BW, n === 0);
+      const kind = classifyLanding(off, bw, n === 0);
       const skin = s.nextSkin;
       if (kind === "miss") {
         s.fallers.push({ x: d.x, y: topY() + BH / 2, vx: d.vx + Math.sign(off) * 80, vy: 0, rot: 0, vr: Math.sign(off) * 4, skin });
         loseLife("MISS!");
       } else {
         // Capture the visible contact and the current bend; cosmetic sway cannot inject drift.
-        const x = kind === "perfect" ? support : d.x;
+        let x = kind === "perfect" ? support : d.x;
+        if (spec.slip && kind !== "perfect") x += Math.sign(off) * spec.slip; // rain-slick floors slide outward
         s.floors.push({ x, skin, swayAtLanding: s.sway });
         if (checkCollapse()) return;
-        floorsCb.current(s.floors.length);
-        const zoneClear = s.floors.length === goal;
+        if (kind === "perfect") s.perfects++;
+        const zoneClear = s.floors.length >= goal;
         const reward = landingReward(kind, s.combo);
         s.combo = reward.combo; s.score += reward.points;
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem("bloxx-best", String(s.best)); }
@@ -189,7 +196,12 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, chip: i % 6, rot: Math.random() * Math.PI * 2 });
         } else { chime(330, 0.15); }
         s.shake = 3;
-        publish(zoneClear ? "DISTRICT CLEARED!" : kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
+        if (zoneClear) {
+          s.won = true; s.over = true;
+          doneCb.current(starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives));
+          chime(659, 0.3); chime(880, 0.5);
+        }
+        publish(zoneClear ? "LEVEL CLEAR!" : kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
       }
       s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
       s.held = true;
@@ -213,11 +225,11 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
         // Painted pigment at the join grounds the facade without a picture-frame outline.
         if (shadow && ok(paintedContact)) {
           ctx.globalAlpha = 0.18;
-          ctx.drawImage(paintedContact, -BW / 2, BH / 2 - 2, BW, 4);
+          ctx.drawImage(paintedContact, -bw / 2, BH / 2 - 2, bw, 4);
           ctx.globalAlpha = 1;
         }
         // The sprite is authored for this exact rectangle, including its painted side return.
-        ctx.drawImage(img, -BW / 2, -BH / 2, BW, BH);
+        ctx.drawImage(img, -bw / 2, -BH / 2, bw, BH);
       }
       ctx.restore();
     };
@@ -231,7 +243,7 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
       // lean & sway
       const n = s.floors.length;
       const com = n ? s.floors.reduce((a, _, i) => a + displayX(i), 0) / n : 0;
-      const lean = Math.max(-1.6, Math.min(1.6, com / (BW * 0.5)));
+      const lean = Math.max(-1.6, Math.min(1.6, com / (bw * 0.5)));
       const targetSway = lean * 0.6 + Math.sin(s.t * 1.5) * (0.1 + Math.min(n, 30) * 0.012 + Math.abs(lean) * 0.5);
       if (!s.over && isStarted) {
         s.sway += (targetSway - s.sway) * (1 - Math.exp(-dt * 3));
@@ -240,6 +252,7 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
 
       // drop
       if (s.drop) {
+        if (spec.wind) s.drop.vx += spec.wind * windDir * dt;
         const landed = advanceToLanding(s.drop, dt, GRAVITY, topY(), BH / 2);
         s.drop.rot *= Math.exp(-dt * 14); // settle level while falling
         if (landed) { const d = s.drop; s.drop = null; land(d); }
@@ -283,7 +296,7 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
       // building site foundation with a pulsing "build here" glow before the first floor
       const gy = toScreenY(0);
       if (gy < VH + 200 && ok(foundation)) {
-        const fw = BW * 1.12, fh = 7;
+        const fw = bw * 1.12, fh = 7;
         if (ok(paintedContact)) {
           ctx.globalAlpha = 0.45;
           ctx.drawImage(paintedContact, vw / 2 - fw * 0.65 - 5, gy - 4, fw * 1.3, 16);
@@ -310,8 +323,8 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
       if (s.held && !s.over) {
         ctx.lineWidth = 1.4;
         ctx.beginPath();
-        ctx.moveTo(0, ROPE - 2); ctx.lineTo(-BW * 0.38, ROPE + HOOK_GAP);
-        ctx.moveTo(0, ROPE - 2); ctx.lineTo(BW * 0.38, ROPE + HOOK_GAP);
+        ctx.moveTo(0, ROPE - 2); ctx.lineTo(-bw * 0.38, ROPE + HOOK_GAP);
+        ctx.moveTo(0, ROPE - 2); ctx.lineTo(bw * 0.38, ROPE + HOOK_GAP);
         ctx.stroke();
       }
       ctx.restore();
@@ -325,13 +338,32 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
         ctx.restore();
       }
 
+      // weather: night tint, fog over the upper sky, painted rain streaks
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      if (spec.night) { ctx.fillStyle = "rgba(20,26,58,0.42)"; ctx.fillRect(0, 0, vw, VH); }
+      if (spec.fog) {
+        const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
+        g.addColorStop(0, `rgba(226,224,214,${spec.fog})`); g.addColorStop(1, "rgba(226,224,214,0)");
+        ctx.fillStyle = g; ctx.fillRect(0, 0, vw, VH * 0.55);
+      }
+      if (spec.slip && ok(rain)) {
+        const sz = 260, oy = (s.t * 520) % sz, ox = (s.t * 60) % sz;
+        ctx.globalAlpha = 0.5;
+        for (let y = -sz; y < VH + sz; y += sz) for (let x = -sz; x < vw + sz; x += sz) ctx.drawImage(rain, x + ox - sz, y + oy - sz, sz, sz);
+        ctx.globalAlpha = 1;
+      }
+      if (spec.wind && s.held && !s.over) {
+        ctx.fillStyle = "rgba(60,44,32,0.55)"; ctx.font = "600 13px system-ui"; ctx.textAlign = "center";
+        ctx.fillText(windDir > 0 ? "wind ›››" : "‹‹‹ wind", vw / 2, 92);
+      }
+
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
     return () => { cancelAnimationFrame(raf); observer.disconnect(); audio?.close(); };
-  }, [zone, goal]);
+  }, [levelIndex]);
 
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
@@ -340,7 +372,7 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
       {started && (
         <div className="game-hud pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="hud-pill"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
-          <div className="hud-pill items-center"><span className="hud-label">FLOORS</span><span className="hud-value">{hud.floors}<span className="hud-label"> / {goal}</span></span></div>
+          <div className="hud-pill items-center"><span className="hud-label">{district.name.toUpperCase()} {spec.level + 1}</span><span className="hud-value">{hud.floors}<span className="hud-label"> / {goal}</span></span></div>
           <div className="hud-pill items-end"><span className="hud-label">LIVES</span><span className="hud-value">{"♥".repeat(Math.max(0, hud.lives))}</span></div>
           <Button variant="ghost" aria-label={muted ? "Turn sound on" : "Turn sound off"} className="game-sound hud-pill pointer-events-auto h-11 w-11 items-center justify-center !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={() => { const m = !muted; setMuted(m); api.current.mute(m); }}>
@@ -356,10 +388,13 @@ export function TowerGame({ zone, onMap, onFloors }: { zone: ZoneId; onMap: () =
               <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
               <img src={phoneArtwork.logoSrc} alt="" width={1280} height={640} className="w-48" />
             </picture>
-            <span className="text-3xl font-extrabold">Game Over</span>
+            <span className="text-3xl font-extrabold">{hud.won ? "Level clear!" : "Game Over"}</span>
+            {hud.won && <span className="flex gap-1" aria-label={`${hud.stars} stars`}>{[0, 1, 2].map(k => <Star key={k} className={`h-8 w-8 ${k < hud.stars ? "fill-current" : "opacity-30"}`} />)}</span>}
+            <span className="hud-label">★ goal · ★ {spec.perfectGoal} perfects · ★ no lives lost</span>
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
-            <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => api.current.restart()}>Play again</Button>
+            <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
+            {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
             <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={onMap}><MapIcon className="h-4 w-4" /> City map</Button>
           </div>
         </div>
