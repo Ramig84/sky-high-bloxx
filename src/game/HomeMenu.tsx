@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store } from "lucide-react";
+import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
 import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
 import { coin } from "./shopArtwork";
-import { claimDailyStreak, coins } from "./wallet";
+import { GIFT_KEY, claimDailyGift, claimDailyStreak, coins, giftAvailable } from "./wallet";
 import { CoinTotal } from "./CoinReward";
-import { ACCOUNT_EVENT, claimStreak, isSignedIn, signIn, signOut } from "./account";
+import { ACCOUNT_EVENT, claimGift, claimStreak, isSignedIn, signIn, signOut } from "./account";
 
 type Panel = "home" | "leaderboard" | "settings";
 
@@ -17,6 +17,17 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
   const [tablet, setTablet] = useState(false);
   const [streak, setStreak] = useState({ count: 0, reward: 0 });
   const [, refresh] = useState(0);
+  const [gift, setGift] = useState({ available: false, reward: 0 });
+  const claimGiftNow = () => {
+    if (!giftAvailable()) return;
+    const done = (reward: number) => {
+      if (reward <= 0) return;
+      localStorage.setItem(GIFT_KEY, new Date().toISOString().slice(0, 10));
+      setGift({ available: false, reward });
+    };
+    if (isSignedIn()) void claimGift().then(done);
+    else done(claimDailyGift());
+  };
   useEffect(() => {
     const on = () => refresh(n => n + 1);
     window.addEventListener(ACCOUNT_EVENT, on);
