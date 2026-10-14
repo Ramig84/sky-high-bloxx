@@ -63,6 +63,6 @@
 - [x] Push the tower back ~9% (VH 640→700, ground 488→534) so it sits smaller with more room for crane, wind and falls; landing rules untouched
 - [x] Android: GitHub build creates signing-info.txt (passwords, alias, base64) for user to save
 
-- [ ] Resume button after continue/extra-life ad completes
-- [ ] Privacy policy, terms, delete account (copied from older games)
+- [x] Resume button after extra-life ad (test ad now grants 1 life, campaign/daily only)
+- [x] Privacy policy, terms, delete account
 - [ ] Run signed Android build
