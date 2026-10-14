@@ -1,7 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { advanceSwing, suspendedBlock, HOOK_HEIGHT, ROPE_LENGTH, integrateFall, floorSway, advanceToLanding } from "./motion";
+import { advanceSwing, suspendedBlock, HOOK_HEIGHT, ROPE_LENGTH, integrateFall, floorSway, advanceToLanding, targetTowerSway, floorPosition, collapseIndex, floorDifficulty } from "./motion";
 
 describe("continuous game motion", () => {
+  it("slightly slows floor speed growth while keeping it increasing", () => {
+    expect(floorDifficulty(10, 0)).toBe(4.5);
+    expect(floorDifficulty(20, 0)).toBeGreaterThan(floorDifficulty(10, 0));
+  });
+  it("keeps a straight 140-floor tower stable throughout its sway cycle", () => {
+    for (let t = 0; t < 12; t += 0.1) {
+      const sway = targetTowerSway(0, 140, t);
+      const xs = Array.from({ length: 140 }, (_, i) => floorPosition(0, 0, sway, i, 84));
+      expect(collapseIndex(xs, 84)).toBe(-1);
+      expect(Math.abs(xs[139] ?? 0)).toBeLessThan(7);
+    }
+  });
+  it("bounds extreme lean instead of amplifying it", () => {
+    expect(Math.abs(targetTowerSway(100, 140, 1))).toBeLessThanOrEqual(0.4);
+    expect(Math.abs(targetTowerSway(-100, 140, 1))).toBeLessThanOrEqual(0.4);
+  });
   it("judges horizontal contact at the same position across frame rates", () => {
     const contactX = (fps: number) => {
       const block = { x: 0, y: 200, vx: 40, vy: 0 };

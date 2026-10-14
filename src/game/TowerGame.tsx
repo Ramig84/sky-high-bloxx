@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
 import { spawnAmbient, stepAmbient } from "./ambient";
+import { spawnRain, stepRain } from "./weather";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
-import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
+import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
@@ -40,7 +41,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const goal = baseSpec.goal;
   const endCb = useRef(onEndlessOver); endCb.current = onEndlessOver;
   const bestKey = endless ? "bloxx-endless-best" : "bloxx-best";
-  const district = DISTRICTS[baseSpec.district] ?? DISTRICTS[0]!;
+  const district = DISTRICTS[baseSpec.district] ?? DISTRICTS[0];
+  if (!district) throw new Error("No game districts configured");
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const collector = useRef<CoinCollectorHandle>(null);
@@ -127,6 +129,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
+    const rainStrokes = spawnRain(vw, VH);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
     let previewCoins = 0;
@@ -165,7 +168,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       return floor ? floorPosition(floor.x, floor.swayAtLanding, s.sway, i, bw) : 0;
     };
     // The crane speeds up with every floor inside a level and with every level across the city.
-    const level = () => s.floors.length * 0.5 + spec.speed;
+    const level = () => floorDifficulty(s.floors.length, spec.speed);
     const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(s.floors.length * 3, 70) + (spec.slide ? Math.sin(s.t * 0.9) * spec.slide : 0), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN });
     const hung = () => {
       // Rope, hook and block swing as one rigid pendulum so the block never detaches from the hook.
@@ -304,7 +307,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const n = s.floors.length;
       const com = n ? s.floors.reduce((a, _, i) => a + displayX(i), 0) / n : 0;
       const lean = Math.max(-1.6, Math.min(1.6, com / (bw * 0.5)));
-      const targetSway = lean * 0.6 + Math.sin(s.t * 1.5) * (0.1 + Math.min(n, 30) * 0.012 + Math.abs(lean) * 0.5);
+      const targetSway = targetTowerSway(lean, n, s.t);
       if (!s.over && isStarted) {
         s.sway += (targetSway - s.sway) * (1 - Math.exp(-dt * 3));
         checkCollapse();
@@ -323,7 +326,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.parts = s.parts.filter(p => p.life > 0);
 
       const target = Math.max(0, topY() - BH * 1.2);
-      s.camY += (target - s.camY) * Math.min(1, dt * 3);
+      s.camY += (target - s.camY) * (1 - Math.exp(-dt * 3));
       s.shake *= Math.exp(-dt * 7.67);
 
       // render
@@ -364,7 +367,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           else { const k = p.age / 4; x += Math.sin(p.age + p.ph) * 6 + k * 14; y = gs - 150 - k * 70; sz *= 0.5 + k; al *= (1 - k) * fadeHi; }
           if (al <= 0.01 || y < -150 || y > VH + 60) continue;
           ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot); ctx.scale(Math.abs(flipX) < 0.15 ? 0.15 * Math.sign(flipX || 1) : flipX, 1);
-          ctx.drawImage(amb, cell * 160, 0, 160, 160, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+          if (L.kind === "mist" && ok(cloud)) ctx.drawImage(cloud, -sz / 2, -sz / 4, sz, sz * 0.5);
+          else ctx.drawImage(amb, cell * 160, 0, 160, 160, -sz / 2, -sz / 2, sz, sz);
+          ctx.restore();
         }
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
@@ -381,7 +386,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.drawImage(foundation, vw / 2 - fw / 2, gy, fw, fh);
       }
 
-      for (let i = 0; i < s.floors.length; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
+      for (let i = 0; i < s.floors.length; i++) {
+        const floor = s.floors[i], y = toScreenY(i * BH + BH / 2);
+        if (floor && y > -BH && y < VH + BH) drawBlock(floor.skin, displayX(i), y, 0, true);
+      }
       if (s.won && ok(roof) && s.floors.length) {
         // Painted roof caps the finished tower.
         const rw = bw * 1.12, rh = rw * roof.naturalHeight / roof.naturalWidth;
@@ -440,9 +448,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         if (flash > 0) { ctx.fillStyle = `rgba(240,236,220,${flash * 0.35})`; ctx.fillRect(0, 0, vw, VH); flash -= dt * 1.6; }
       }
       if (spec.slip && ok(rain)) {
-        const sz = 260, oy = (s.t * 520) % sz, ox = (s.t * 60) % sz;
-        ctx.globalAlpha = 0.28;
-        for (let y = -sz; y < VH + sz; y += sz) for (let x = -sz; x < vw + sz; x += sz) ctx.drawImage(rain, x + ox - sz, y + oy - sz, sz, sz);
+        for (const p of rainStrokes) {
+          stepRain(p, dt, vw, VH, spec.wind * windDir);
+          ctx.globalAlpha = p.alpha;
+          ctx.drawImage(rain, p.cell * 32, 0, 32, 96, p.x, p.y - 40, p.length / 3, p.length);
+        }
         ctx.globalAlpha = 1;
       }
       if (spec.wind && s.held && !s.over) {

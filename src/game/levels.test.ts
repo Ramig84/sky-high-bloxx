@@ -18,6 +18,8 @@ describe("campaign levels", () => {
     }
   });
   it("crane gets faster every level", () => {
+    expect(levelSpec(10).speed).toBeCloseTo(8.1);
+    expect(levelSpec(99).speed).toBeCloseTo(80.19);
     for (let i = 1; i < TOTAL_LEVELS; i++) expect(levelSpec(i).speed).toBeGreaterThan(levelSpec(i - 1).speed);
   });
   it("introduces obstacles district by district", () => {

@@ -4,8 +4,8 @@ import { levelSpec } from "./levels";
 
 describe("endless mode", () => {
   it("starts harder than the last campaign level's crane", () => {
-    expect(endlessSpec(0).speed).toBeLessThan(levelSpec(99).speed + 20);
-    expect(endlessSpec(20).speed).toBeGreaterThan(levelSpec(99).speed);
+    expect(endlessSpec(0).speed).toBeGreaterThan(levelSpec(99).speed);
+    expect(endlessSpec(10).speed - endlessSpec(0).speed).toBeCloseTo(5.4);
   });
   it("adds a new obstacle every 10 floors and keeps earlier ones", () => {
     expect(endlessSpec(9).wind).toBe(0);

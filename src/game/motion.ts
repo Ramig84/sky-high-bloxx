@@ -55,6 +55,15 @@ export function floorPosition(x: number, swayAtLanding: number, sway: number, in
   return x + (floorSway(sway, index) - floorSway(swayAtLanding, index)) * width / 2;
 }
 
+/** Restrained bend: bounded lean response avoids a self-amplifying COM/sway loop. */
+export function targetTowerSway(lean: number, floors: number, time: number) {
+  const bias = Math.max(-0.28, Math.min(0.28, lean * 0.32));
+  const ripple = 0.025 + Math.min(floors, 30) * 0.002 + Math.min(Math.abs(lean), 1) * 0.035;
+  return bias + Math.sin(time * 1.5) * ripple;
+}
+
+export const floorDifficulty = (floors: number, speed: number) => speed + floors * 0.45;
+
 /** Equal-mass stack balance at the actual contact overlap, including the footing.
  * -2 means foundation failure, -1 stable, otherwise the supporting floor index.
  */
