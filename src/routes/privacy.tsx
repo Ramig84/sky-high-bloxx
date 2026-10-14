@@ -38,7 +38,13 @@ function Privacy() {
       <h2>Children</h2>
       <p>The game is not directed at children under 13, and we do not knowingly collect their data.</p>
       <h2>Contact</h2>
-      <p>Questions or deletion requests: contact the developer through the Google Play store listing.</p>
+      <p>
+        Questions or deletion requests: email{" "}
+        <a className="underline" href="mailto:support@moonbeacon.com">support@moonbeacon.com</a>{" "}
+        or visit our studio site{" "}
+        <a className="underline" href="https://moon-beacon-showcase.lovable.app" target="_blank" rel="noopener noreferrer">Moon Beacon</a>. To request account deletion by email, use our{" "}
+        <a className="underline" href="https://moon-beacon-showcase.lovable.app/account-deletion" target="_blank" rel="noopener noreferrer">Moon Beacon account deletion page</a>.
+      </p>
     </LegalPage>
   );
 }
