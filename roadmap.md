@@ -34,3 +34,4 @@
 - [ ] Optional rewarded extra life (never forced)
 - [x] 10 districts x 10 levels, stars, obstacles (wind, sliding crane, rain, fog, night, narrower floors)
 - [ ] Per-district backdrops (sea for Harbour, towers for Downtown) and a painted roof cap
+- [ ] Check every district's floors match its backdrop and nature; repaint any that look out of place

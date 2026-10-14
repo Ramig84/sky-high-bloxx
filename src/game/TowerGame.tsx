@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Star, Map as MapIcon, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
+import roofSrc from "@/assets/roof-cap.webp";
+import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
@@ -50,13 +51,15 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
     const bw = BW * spec.width;
     const rain = load((tablet ? tabletArtwork : phoneArtwork).rainSrc);
     let windDir = 1;
-    const { streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
+    const streetSrc = districtStreet(district.id, tablet);
+    const { cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc);
     const crane = load(craneSrc), foundation = load(footingSrc), cloud = load(cloudSrc), bird = load(birdSrc);
     const paintedContact = load(paintedContactSrc);
     const confetti = load(confettiSrc);
+    const roof = load(roofSrc);
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
       const cell = img.naturalWidth / count;
@@ -306,6 +309,11 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
       }
 
       for (let i = 0; i < s.floors.length; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
+      if (s.won && ok(roof) && s.floors.length) {
+        // Painted roof caps the finished tower.
+        const rw = bw * 1.12, rh = rw * roof.naturalHeight / roof.naturalWidth;
+        ctx.drawImage(roof, vw / 2 + displayX(s.floors.length - 1) - rw / 2, toScreenY(topY()) - rh + 2, rw, rh);
+      }
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
       // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
