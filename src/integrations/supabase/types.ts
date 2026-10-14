@@ -41,12 +41,163 @@ export type Database = {
         }
         Relationships: []
       }
+      player_profiles: {
+        Row: {
+          block: string
+          coins: number
+          crane: string
+          created_at: string
+          endless_best: number
+          guest_imported: boolean
+          last_award_at: string | null
+          name: string
+          owned_blocks: string[]
+          owned_cranes: string[]
+          stars: number[]
+          streak_count: number
+          streak_day: string | null
+          user_id: string
+        }
+        Insert: {
+          block?: string
+          coins?: number
+          crane?: string
+          created_at?: string
+          endless_best?: number
+          guest_imported?: boolean
+          last_award_at?: string | null
+          name?: string
+          owned_blocks?: string[]
+          owned_cranes?: string[]
+          stars?: number[]
+          streak_count?: number
+          streak_day?: string | null
+          user_id: string
+        }
+        Update: {
+          block?: string
+          coins?: number
+          crane?: string
+          created_at?: string
+          endless_best?: number
+          guest_imported?: boolean
+          last_award_at?: string | null
+          name?: string
+          owned_blocks?: string[]
+          owned_cranes?: string[]
+          stars?: number[]
+          streak_count?: number
+          streak_day?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      award_run_coins: {
+        Args: { _amount: number }
+        Returns: {
+          block: string
+          coins: number
+          crane: string
+          created_at: string
+          endless_best: number
+          guest_imported: boolean
+          last_award_at: string | null
+          name: string
+          owned_blocks: string[]
+          owned_cranes: string[]
+          stars: number[]
+          streak_count: number
+          streak_day: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      buy_or_equip: {
+        Args: { _item: string; _kind: string }
+        Returns: {
+          block: string
+          coins: number
+          crane: string
+          created_at: string
+          endless_best: number
+          guest_imported: boolean
+          last_award_at: string | null
+          name: string
+          owned_blocks: string[]
+          owned_cranes: string[]
+          stars: number[]
+          streak_count: number
+          streak_day: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      claim_daily_streak: { Args: never; Returns: Json }
+      ensure_player_profile: {
+        Args: never
+        Returns: {
+          block: string
+          coins: number
+          crane: string
+          created_at: string
+          endless_best: number
+          guest_imported: boolean
+          last_award_at: string | null
+          name: string
+          owned_blocks: string[]
+          owned_cranes: string[]
+          stars: number[]
+          streak_count: number
+          streak_day: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      import_guest_progress: {
+        Args: { _best: number; _coins: number; _name: string; _stars: number[] }
+        Returns: {
+          block: string
+          coins: number
+          crane: string
+          created_at: string
+          endless_best: number
+          guest_imported: boolean
+          last_award_at: string | null
+          name: string
+          owned_blocks: string[]
+          owned_cranes: string[]
+          stars: number[]
+          streak_count: number
+          streak_day: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
