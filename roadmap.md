@@ -5,3 +5,6 @@
 - [x] Match floor artwork to the painted town
 - [x] Replace sliding residents and birds with pose-by-pose animation
 - [x] Verify the changes on a portrait phone
+- [x] Sharper tablet artwork without heavier phone downloads
+- [x] Larger tablet controls and portrait play area
+- [x] Verify phone and tablet touch gameplay

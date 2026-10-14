@@ -172,3 +172,15 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 oklch(0.5 0.14 50); }
 .msg-pop { font-weight: 900; color: var(--hud-accent); -webkit-text-stroke: 1.5px oklch(0.97 0.03 85); text-shadow: 0 3px 0 oklch(0.42 0.08 45); }
 .paper-btn { background: var(--hud-accent); color: oklch(0.97 0.03 85); border: 2px solid oklch(0.42 0.08 45); box-shadow: 0 4px 0 oklch(0.42 0.08 45); }
+
+/* Keep a phone-shaped stage on wider devices without changing world physics. */
+.game-viewport { width: 100%; max-width: 56.25dvh; }
+@media (min-width: 600px) {
+  .game-hud { gap: 0.75rem; padding: 1.25rem; padding-top: max(1.25rem, env(safe-area-inset-top)); }
+  .game-viewport .hud-pill { padding: 0.55rem 1rem; }
+  .game-viewport .hud-label { font-size: 0.85rem; }
+  .game-viewport .hud-value { font-size: 2rem; }
+  .game-viewport .game-sound { width: 3.5rem; height: 3.5rem; }
+  .game-viewport .game-sound svg { width: 1.5rem; height: 1.5rem; }
+  .game-viewport .paper-btn { min-height: 3.5rem; }
+}
