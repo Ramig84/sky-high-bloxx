@@ -77,7 +77,7 @@ export function TowerGame() {
       if (s.over || !s.held) return;
       const h = hung();
       const dth = 0.62 * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
-      s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth, vy: 0 };
+      s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0 };
       s.held = false;
     };
     api.current.restart = () => { s = fresh(); publish(" "); };
