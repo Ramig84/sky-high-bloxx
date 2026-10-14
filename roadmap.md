@@ -1,4 +1,7 @@
 # Roadmap
+- [x] Diagnose and correct misleading MISS feedback after safe landings
+- [x] Replace static crowd with two painted spectators with idle, happy, and sad pose animations
+- [x] Verify feedback and spectator reactions in portrait gameplay
 - [x] Save agreed 2D conclusions to memory
 - [x] Stacking rules + regression tests (small blocks, ±4% perfect, collapse)
 - [x] Illustrated 2D canvas rebuild of the game

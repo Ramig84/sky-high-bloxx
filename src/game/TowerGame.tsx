@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { phoneArtwork, tabletArtwork } from "./artwork";
-import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
+import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
+import { spectatorPose, type SpectatorMood } from "./reactions";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
@@ -26,6 +27,11 @@ export function TowerGame() {
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, msg: "", msgKey: 0 });
   const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(false);
+  useEffect(() => {
+    if (!hud.msg) return;
+    const timer = window.setTimeout(() => setHud(h => h.msgKey === hud.msgKey ? { ...h, msg: "" } : h), 1100);
+    return () => window.clearTimeout(timer);
+  }, [hud.msg, hud.msgKey]);
   const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
@@ -33,12 +39,11 @@ export function TowerGame() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, residentSrc, craneSrc, foundationSrc, cloudSrc, crowdSrc, birdSrc, cheerSrc } = window.matchMedia("(min-width: 600px)").matches ? tabletArtwork : phoneArtwork;
+    const { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, residentSrc, craneSrc, foundationSrc, cloudSrc, crowdSrc, birdSrc } = window.matchMedia("(min-width: 600px)").matches ? tabletArtwork : phoneArtwork;
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
     const crane = load(craneSrc), foundation = load(foundationSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
-    const cheer = load(cheerSrc);
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
       const cell = img.naturalWidth / count;
@@ -86,9 +91,11 @@ export function TowerGame() {
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[], res: [] as Resident[],
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
-        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0, cheer: 0 };
+        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0, cheer: 0,
+        mood: "idle" as SpectatorMood, reactionAt: 0, reactionUntil: 0 };
     }
-    const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg: msg || h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
+    const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg, msgKey: h.msgKey + 1 }));
+    const react = (mood: SpectatorMood) => { s.mood = mood; s.reactionAt = s.t; s.reactionUntil = s.t + 2.4; };
 
     const chime = (freq: number, dur = 0.25) => {
       if (!audio || isMuted) return;
@@ -111,15 +118,17 @@ export function TowerGame() {
     api.current.tap = () => {
       if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } }
       if (s.over || !s.held || !isStarted) return;
+      setHud(h => ({ ...h, msg: "" }));
       const h = hung();
       const dth = SWING * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { s = fresh(); publish(" "); };
+    api.current.restart = () => { s = fresh(); publish(); };
 
     const loseLife = (msg: string) => {
       s.lives--; s.combo = 0; s.shake = 10; chime(160, 0.4);
+      react("sad");
       navigator.vibrate?.(120);
       if (s.lives <= 0) {
         s.over = true;
@@ -138,8 +147,8 @@ export function TowerGame() {
         s.fallers.push({ x: d.x, y: topY() + BH / 2, vx: d.vx + Math.sign(off) * 80, vy: 0, rot: 0, vr: Math.sign(off) * 4, skin });
         loseLife("MISS!");
       } else {
-        const base = s.floors[n - 1]?.x ?? 0;
-        const x = kind === "perfect" ? base : base + off;
+        // Store the new floor in rest coordinates so it stays where contact was drawn.
+        const x = (kind === "perfect" ? support : d.x) - floorSway(s.sway, n) * BW * 0.5;
         s.floors.push({ x, skin });
         if (kind === "perfect") {
           s.cheer = 1.2; s.combo++; s.score += 25 * Math.min(s.combo, 10);
@@ -158,7 +167,10 @@ export function TowerGame() {
             s.fallers.push({ x: f.x, y: (ci + 1 + k) * BH + BH / 2, vx: dir * (60 + k * 20), vy: 0, rot: 0, vr: dir * (1.5 + k * 0.3), skin: f.skin });
           });
           loseLife("COLLAPSE!");
-        } else publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
+        } else {
+          react("happy");
+          publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
+        }
       }
       s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
       s.held = true;
@@ -202,10 +214,9 @@ export function TowerGame() {
 
       // drop
       if (s.drop) {
-        const prevBottom = s.drop.y - BH / 2;
-        integrateFall(s.drop, dt, GRAVITY);
+        const landed = advanceToLanding(s.drop, dt, GRAVITY, topY(), BH / 2);
         s.drop.rot *= Math.exp(-dt * 14); // settle level while falling
-        if (prevBottom >= topY() && s.drop.y - BH / 2 <= topY()) { const d = s.drop; s.drop = null; land(d); }
+        if (landed) { const d = s.drop; s.drop = null; land(d); }
       }
       for (const f of s.fallers) { integrateFall(f, dt, GRAVITY); f.rot += f.vr * dt; }
       s.fallers = s.fallers.filter(f => f.y > s.camY - 800);
@@ -262,20 +273,10 @@ export function TowerGame() {
       for (let i = 0; i < n; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
-      // cheering crowd on the sidewalk
-      const cy = toScreenY(-92);
-      if (cy < VH + 100 && ok(crowd)) {
-        const cw = 170, ch = cw * 640 / 1536;
-        ctx.drawImage(crowd, vw / 2 - cw / 2 + 12, cy - ch, cw, ch);
-        // Use the same spectator in every pose; generated group panels change cast between frames.
-        if (ok(cheer)) {
-          const elapsed = 1.2 - s.cheer;
-          const pose = s.cheer <= 0 ? 0 : elapsed < 0.18 ? 1 : elapsed < 0.85 ? 2 : 1;
-          const crops: [number, number][] = [[25, 190], [535, 175], [1020, 225]];
-          const crop = crops[pose];
-          if (crop) ctx.drawImage(cheer, crop[0], 50, crop[1], 450, vw / 2 - 110, cy - 49, 25, 49);
-        }
-      }
+      // Two persistent spectators stay in the foreground, even as the tower climbs.
+      if (s.t >= s.reactionUntil && !s.over) s.mood = "idle";
+      const pose = spectatorPose(s.mood, s.mood === "idle" ? s.t : s.t - s.reactionAt);
+      drawPose(crowd, 6, pose, vw / 2, VH - 10, 104, 104);
 
       // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
       const h = hung();
