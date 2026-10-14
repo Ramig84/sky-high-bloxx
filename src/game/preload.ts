@@ -1,0 +1,63 @@
+// Loads and decodes every image/sound a screen needs before it is shown, so screens appear complete at once.
+import roofSrc from "@/assets/roof-cap.webp";
+import ambientSrc from "@/assets/ambient.webp";
+import paintedContactSrc from "@/assets/painted-contact.webp";
+import footingSrc from "@/assets/storybook-footing.png";
+import confettiSrc from "@/assets/painted-confetti.webp";
+import plaqueSrc from "@/assets/ui-plaque.webp";
+import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
+import { DISTRICTS, type DistrictId } from "./levels";
+import { DISTRICT_MUSIC, preloadSounds, type Sound } from "./audio";
+
+const cache = new Map<string, HTMLImageElement>();
+const ready = new Map<string, Promise<void>>();
+
+/** Shared decoded image; the canvas reuses the same element so it is drawable on frame one. */
+export function getImage(src: string) {
+  let i = cache.get(src);
+  if (!i) { i = new Image(); i.decoding = "async"; i.src = src; cache.set(src, i); }
+  return i;
+}
+function loadImage(src: string) {
+  if (!src) return Promise.resolve();
+  let p = ready.get(src);
+  if (!p) {
+    const i = getImage(src);
+    p = (i.decode ? i.decode() : new Promise<void>((res, rej) => { i.onload = () => res(); i.onerror = rej; })).catch(() => {});
+    ready.set(src, p);
+  }
+  return p;
+}
+
+const isTablet = () => typeof window !== "undefined" && window.matchMedia("(min-width: 600px)").matches;
+const art = () => (isTablet() ? tabletArtwork : phoneArtwork);
+
+export type ScreenAssets = { images: string[]; sounds: Sound[] };
+
+const UI_SOUNDS: Sound[] = ["tap", "birds", "music"];
+const PLAY_SOUNDS: Sound[] = ["drop", "perfect", "miss", "release", "collapse", "clear", "wind", "rain", "night", "waves", "train", "city"];
+
+export function homeAssets(): ScreenAssets {
+  const a = art();
+  return { images: [districtStreet("oldtown", isTablet()), a.cloudSrc, a.birdSrc, a.hookSrc, a.b1, a.logoSrc, plaqueSrc], sounds: UI_SOUNDS };
+}
+export function mapAssets(): ScreenAssets {
+  const a = art(), t = isTablet();
+  return { images: [a.mapSrc, a.cloudSrc, a.birdSrc, a.logoSrc, plaqueSrc, ...DISTRICTS.flatMap(d => districtFloors(d.id, t))], sounds: UI_SOUNDS };
+}
+export function levelAssets(district: DistrictId): ScreenAssets {
+  const a = art(), t = isTablet();
+  return {
+    images: [...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
+      a.birdSrc, a.rainSrc, footingSrc, paintedContactSrc, confettiSrc, roofSrc, ambientSrc],
+    sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
+  };
+}
+
+/** Resolves when every asset is decoded; reports progress 0..1. */
+export async function preload(list: ScreenAssets, onProgress?: (p: number) => void) {
+  const jobs = [...list.images.map(loadImage), ...preloadSounds(list.sounds)];
+  let done = 0;
+  onProgress?.(0);
+  await Promise.all(jobs.map(j => j.then(() => onProgress?.(++done / jobs.length))));
+}

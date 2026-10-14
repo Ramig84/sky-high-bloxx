@@ -90,10 +90,17 @@ export async function sfx(name: Sound, volume = 0.8, rate = 1) {
   src.connect(g).connect(c.destination); src.start();
 }
 
+/** Fetch + decode sounds ahead of time (decoding works before the first tap). */
+export function preloadSounds(names: Sound[]) { return names.map(n => buffer(n).then(() => {})); }
+
+// Each loop key has a generation; a pending start that was superseded (e.g. menu theme still
+// loading when a district starts) is discarded instead of grabbing the slot with the wrong track.
+const gen = new Map<string, number>();
 async function startLoop(key: string, name: Sound, volume: number) {
   if (loops.has(key)) return;
+  const my = (gen.get(key) ?? 0) + 1; gen.set(key, my);
   const c = context(), b = await buffer(name);
-  if (!c || !b || loops.has(key)) return;
+  if (!c || !b || loops.has(key) || gen.get(key) !== my) return;
   const src = c.createBufferSource(), gain = c.createGain();
   src.buffer = b; src.loop = true;
   gain.gain.setValueAtTime(0, c.currentTime); gain.gain.linearRampToValueAtTime(volume, c.currentTime + 1.5);
@@ -101,6 +108,7 @@ async function startLoop(key: string, name: Sound, volume: number) {
   loops.set(key, { src, gain });
 }
 function stopLoop(key: string) {
+  gen.set(key, (gen.get(key) ?? 0) + 1);
   const l = loops.get(key); if (!l || !ctx) return;
   loops.delete(key);
   l.gain.gain.cancelScheduledValues(ctx.currentTime);
@@ -117,6 +125,7 @@ export function setAmbience(list: Ambient[]) {
 }
 
 let currentTrack: Track = "music";
+export function currentMusic() { return currentTrack; }
 export function setMusic(on: boolean, volume = 0.3, track: Track = "music") {
   if (track !== currentTrack) { stopLoop("music"); currentTrack = track; }
   if (on && loadSettings().music) {
