@@ -3,8 +3,6 @@ import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { phoneArtwork, tabletArtwork } from "./artwork";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
-import { spectatorPose, type SpectatorMood } from "./reactions";
-import { streetSpectators } from "./scene";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 
@@ -19,7 +17,6 @@ const HOOK_GAP = 22;
 type Floor = { x: number; skin: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; hue: number };
-type Resident = { sx: number; sy: number; tx: number; ty: number; t: number };
 type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; msg: string; msgKey: number };
 
 function load(src: string) { const i = new Image(); i.src = src; return i; }
@@ -42,11 +39,11 @@ export function TowerGame() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, residentSrc, craneSrc, foundationSrc, cloudSrc, crowdSrc, birdSrc } = window.matchMedia("(min-width: 600px)").matches ? tabletArtwork : phoneArtwork;
+    const { b1, b2, b3, bg0, streetSrc, cloudsSrc, sunsetSrc, spaceSrc, hookSrc, craneSrc, cloudSrc, birdSrc } = window.matchMedia("(min-width: 600px)").matches ? tabletArtwork : phoneArtwork;
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
-    const hook = load(hookSrc), resident = load(residentSrc);
-    const crane = load(craneSrc), foundation = load(footingSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
+    const hook = load(hookSrc);
+    const crane = load(craneSrc), foundation = load(footingSrc), cloud = load(cloudSrc), bird = load(birdSrc);
     const paintedContact = load(paintedContactSrc);
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
@@ -93,13 +90,11 @@ export function TowerGame() {
     const best0 = Number(localStorage.getItem("bloxx-best") || 0);
     let s = fresh();
     function fresh() {
-      return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[], res: [] as Resident[],
+      return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[],
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
-        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0, cheer: 0,
-        mood: "idle" as SpectatorMood, reactionAt: 0, reactionUntil: 0 };
+        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
     }
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg, msgKey: h.msgKey + 1 }));
-    const react = (mood: SpectatorMood) => { s.mood = mood; s.reactionAt = s.t; s.reactionUntil = s.t + 2.4; };
 
     const chime = (freq: number, dur = 0.25) => {
       if (!audio || isMuted) return;
@@ -132,7 +127,6 @@ export function TowerGame() {
 
     const loseLife = (msg: string) => {
       s.lives--; s.combo = 0; s.shake = 10; chime(160, 0.4);
-      react("sad");
       navigator.vibrate?.(120);
       if (s.lives <= 0) {
         s.over = true;
@@ -155,11 +149,10 @@ export function TowerGame() {
         const x = (kind === "perfect" ? support : d.x) - floorSway(s.sway, n) * BW * 0.5;
         s.floors.push({ x, skin });
         if (kind === "perfect") {
-          s.cheer = 1.2; s.combo++; s.score += 25 * Math.min(s.combo, 10);
+          s.combo++; s.score += 25 * Math.min(s.combo, 10);
           chime(523 * Math.pow(1.122, Math.min(s.combo, 8))); chime(784, 0.35);
           navigator.vibrate?.(30);
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, hue: Math.random() * 360 });
-          for (let i = 0; i < 2; i++) s.res.push({ sx: x + (i ? 70 : -70), sy: topY() - BH - 12, tx: x + (i ? 22 : -22), ty: topY() - BH * 0.55, t: 0 });
         } else { s.combo = 0; s.score += 10; chime(330, 0.15); }
         s.shake = 3;
         const xs = s.floors.map(f => f.x);
@@ -172,7 +165,6 @@ export function TowerGame() {
           });
           loseLife("COLLAPSE!");
         } else {
-          react("happy");
           publish(kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
         }
       }
@@ -230,9 +222,6 @@ export function TowerGame() {
       s.fallers = s.fallers.filter(f => f.y > s.camY - 800);
       for (const p of s.parts) { integrateFall(p, dt, 700); p.life -= dt; }
       s.parts = s.parts.filter(p => p.life > 0);
-      for (const r of s.res) r.t += dt / 1.2;
-      s.res = s.res.filter(r => r.t < 1);
-      s.cheer = Math.max(0, s.cheer - dt);
 
       const target = Math.max(0, topY() - BH * 1.2);
       s.camY += (target - s.camY) * Math.min(1, dt * 3);
@@ -280,29 +269,6 @@ export function TowerGame() {
       for (let i = 0; i < n; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
-      // Spectators live on the sidewalk beside the site, and scroll away with the street.
-      if (s.t >= s.reactionUntil && !s.over) s.mood = "idle";
-      const pose = spectatorPose(s.mood, s.mood === "idle" ? s.t : s.t - s.reactionAt);
-      const spectators = streetSpectators(GROUND_SCREEN, s.camY, VH);
-      if (spectators.visible) {
-        const sx = vw / 2 + BW * 0.78;
-        if (ok(paintedContact)) {
-          ctx.globalAlpha = 0.42;
-          ctx.drawImage(paintedContact, sx - 14, spectators.feetY - 4, 28, 7);
-          ctx.globalAlpha = 1;
-        }
-        // Align the sheet's common shoe baseline (363/384) to the street.
-        const spriteBottom = spectators.feetY + spectators.height * (21 / 384);
-        drawPose(crowd, 6, pose, sx, spriteBottom, spectators.height, spectators.height);
-        // Reuse actual street paint over the lowest shoe pixels, not synthetic grass.
-        if (ok(street)) {
-          ctx.save();
-          ctx.beginPath(); ctx.rect(sx - 12, spectators.feetY - 0.5, 24, 1); ctx.clip();
-          drawCover(street, 1 - a(400, 900), alt);
-          ctx.restore();
-        }
-      }
-
       // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
       const h = hung();
       const py = toScreenY(h.p.y), px = vw / 2 + h.p.x;
@@ -326,15 +292,6 @@ export function TowerGame() {
       if (s.held && !s.over) drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th);
       if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot);
 
-      // residents
-      if (ok(resident)) for (const r of s.res) {
-        const flight = Math.max(0, Math.min(1, (r.t - 0.16) / 0.58));
-        const x = r.sx + (r.tx - r.sx) * flight;
-        const y = r.sy + (r.ty - r.sy) * flight + 4 * 45 * flight * (1 - flight);
-        const pose = r.t < 0.12 ? 0 : r.t < 0.24 ? 1 : r.t < 0.5 ? 2 : r.t < 0.74 ? 3 : r.t < 0.86 ? 4 : 5;
-        ctx.globalAlpha = r.t > 0.94 ? (1 - r.t) / 0.06 : 1;
-        drawPose(resident, 6, pose, vw / 2 + x, toScreenY(y), 15, 21, r.sx > r.tx); ctx.globalAlpha = 1;
-      }
       for (const p of s.parts) { ctx.fillStyle = `hsla(${p.hue},90%,60%,${Math.min(1, p.life)})`; ctx.fillRect(vw / 2 + p.x, toScreenY(p.y), 4, 7); }
 
       raf = requestAnimationFrame(frame);

@@ -12,9 +12,8 @@
 - Keep motion calculations in the browser-safe game motion module with regression tests, so crane attachment and falling remain consistent across frame rates.
 - Animate game transforms through refs and publish HUD changes only on gameplay events, so React commits cannot reset moving objects.
 - The game renders on a single 2D canvas using generated illustrated sprites and painted backdrops (no 3D, no vector/CSS art), so stacking stays readable and matches the art direction.
-- Character animation uses aligned, source-clipped painted poses with stable canvas dimensions and grounded takeoff/landing phases, so changing limbs does not become sprite sliding or cast flicker.
-- Keep spectator mood selection in a tested browser-safe module and clip six grounded poses from one consistent two-person sheet, so landing reactions preserve the cast.
+- Keep unused character artwork out of the active artwork manifests and canvas loop, so removed characters incur no downloads or animation work.
 - Select phone or higher-resolution tablet WebP artwork at mount while retaining source paintings, so phones avoid tablet downloads.
 - Size the canvas from its portrait-constrained container and observe container resizing; keep HUD controls larger on tablets without changing logical motion or landing rules.
-- Project street spectators through the tested browser-safe scene module and use painted contact artwork, so camera ascent leaves ground residents behind and scene joins avoid synthetic frames.
+- Use painted contact artwork at scene joins, so grounding avoids synthetic frames.
 - Derive building floors, street plate and footing from a single approved master painting and match auxiliary sprites to it, so independent asset generation cannot fragment the scene's visual language.
