@@ -142,7 +142,7 @@ function stopLoop(key: string) {
 export function setAmbience(list: Ambient[]) {
   const s = loadSettings();
   for (const k of [...loops.keys()]) if (k.startsWith("amb:") && (!s.sound || !list.includes(k.slice(4) as Ambient))) stopLoop(k);
-  if (s.sound) for (const a of list) void startLoop(`amb:${a}`, a, a === "wind" || a === "rain" ? 0.35 : 0.45);
+  if (s.sound) for (const a of list) void startLoop(`amb:${a}`, a, a === "birds" ? 0.22 : a === "wind" || a === "rain" ? 0.35 : 0.45);
 }
 
 let currentTrack: Track = "music";
