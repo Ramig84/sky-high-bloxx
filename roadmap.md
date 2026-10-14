@@ -50,3 +50,4 @@
 - [x] Separate music/SFX volume controls; quiet coins and match sprite arrivals to reward amounts
 - [x] Add live support-balance warning and verify phone-sized browser touch play (physical phone unverified)
 - [ ] Connect real rewarded ads for continue and five-level offers (blocked by publisher setup)
+- [ ] Add test-only ad placeholders at extra-life, continue and five-level reward positions, with Settings previews
