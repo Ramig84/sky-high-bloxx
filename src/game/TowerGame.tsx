@@ -176,10 +176,12 @@ export function TowerGame() {
     const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0, shadow = false) => {
       const img = skins[skin]!;
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
-      if (shadow) { ctx.fillStyle = "rgba(20,10,30,0.25)"; ctx.fillRect(-BW / 2, BH / 2 - 2, BW, 4); }
-      if (img.complete && img.naturalWidth) {
-        ctx.drawImage(img, -BW / 2, -BH / 2, BW, BH);
-        ctx.strokeStyle = "rgba(40,20,10,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(-BW / 2 + 0.5, -BH / 2 + 0.5, BW - 1, BH - 1);
+      if (ok(img)) {
+        if (shadow) { ctx.fillStyle = "rgba(40,20,10,0.18)"; ctx.fillRect(-BW / 2 + 3, -BH / 2 + 4, BW, BH); }
+        // Crop source sides so the painted facade keeps its proportions at the block's aspect.
+        const iw = img.naturalWidth, ih = img.naturalHeight, sw = Math.min(iw, ih * (BW / BH));
+        ctx.drawImage(img, (iw - sw) / 2, 0, sw, ih, -BW / 2, -BH / 2, BW, BH);
+        ctx.strokeStyle = "rgba(60,30,15,0.45)"; ctx.lineWidth = 1; ctx.strokeRect(-BW / 2 + 0.5, -BH / 2 + 0.5, BW - 1, BH - 1);
       }
       ctx.restore();
     };
@@ -209,6 +211,7 @@ export function TowerGame() {
       s.parts = s.parts.filter(p => p.life > 0);
       for (const r of s.res) r.t += dt * 1.4;
       s.res = s.res.filter(r => r.t < 1);
+      s.cheer = Math.max(0, s.cheer - dt);
 
       const target = Math.max(0, topY() - BH * 1.2);
       s.camY += (target - s.camY) * Math.min(1, dt * 3);
@@ -221,20 +224,64 @@ export function TowerGame() {
       drawCover(clouds, 1, 0);
       drawCover(sunset, a(1200, 2000), 0);
       drawCover(space, a(3000, 3800), 0);
-      if (!faded && street.complete && street.naturalWidth) buildFade();
+      if (!faded && ok(street)) buildFade();
       drawCover(faded ? streetFaded : street, 1 - a(400, 900), alt);
+
+      // drifting clouds (slower parallax than the tower) and birds
+      if (ok(cloud)) for (const c of puffs) {
+        c.x += c.sp * dt; if (c.x > vw / 2 + 140) c.x = -vw / 2 - 140;
+        const sy = GROUND_SCREEN - (c.y - alt * 0.6);
+        if (sy < -120 || sy > VH + 60) continue;
+        const w = 150 * c.sc;
+        ctx.globalAlpha = 0.85 * (1 - a(3200, 3800)); ctx.drawImage(cloud, vw / 2 + c.x - w / 2, sy, w, w * 0.56); ctx.globalAlpha = 1;
+      }
+      if (ok(bird)) for (const b of birds) {
+        b.x += b.sp * dt; if (b.x > vw / 2 + 80) { b.x = -vw / 2 - 80 - Math.random() * 300; b.y = 120 + Math.random() * 160; }
+        const flap = 0.8 + Math.abs(Math.sin(s.t * 7 + b.ph)) * 0.3;
+        ctx.globalAlpha = 1 - a(1500, 2200);
+        ctx.drawImage(bird, vw / 2 + b.x - 14, b.y + Math.sin(s.t * 2 + b.ph) * 6, 28, 19 * flap); ctx.globalAlpha = 1;
+      }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
+
+      // building site foundation with a pulsing "build here" glow before the first floor
+      const gy = toScreenY(0);
+      if (gy < VH + 200 && ok(foundation)) {
+        const fw = BW * 1.9, fh = fw * 0.5;
+        if (n === 0 && !s.drop) {
+          const pulse = 0.35 + Math.sin(s.t * 4) * 0.2;
+          const g = ctx.createRadialGradient(vw / 2, gy, 4, vw / 2, gy, BW);
+          g.addColorStop(0, `rgba(255,220,120,${pulse})`); g.addColorStop(1, "rgba(255,220,120,0)");
+          ctx.fillStyle = g; ctx.fillRect(vw / 2 - BW, gy - BW, BW * 2, BW * 2);
+        }
+        ctx.drawImage(foundation, vw / 2 - fw / 2, gy - fh * 0.42, fw, fh);
+      }
 
       for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true);
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
-      // crane
+      // cheering crowd on the sidewalk
+      const cy = toScreenY(-92);
+      if (cy < VH + 100 && ok(crowd)) {
+        const cw = 200, ch = cw * 640 / 1536, hop = s.cheer > 0 ? Math.abs(Math.sin(s.t * 14)) * 5 : Math.abs(Math.sin(s.t * 2)) * 1;
+        ctx.drawImage(crowd, vw / 2 - cw / 2, cy - ch - hop, cw, ch);
+      }
+
+      // crane: jib with trolley at the pivot, cable, hook, and slings gripping the floor
       const h = hung();
+      const py = toScreenY(h.p.y), px = vw / 2 + h.p.x;
+      if (ok(crane)) { const cw = 420, ch = cw / 3; ctx.drawImage(crane, px - cw * 0.48, py - ch * 0.46, cw, ch); }
       ctx.save();
-      ctx.translate(vw / 2 + h.p.x, toScreenY(h.p.y)); ctx.rotate(-h.th);
-      ctx.strokeStyle = "rgba(40,40,50,0.9)"; ctx.lineWidth = 2.2;
-      ctx.beginPath(); ctx.moveTo(0, -80); ctx.lineTo(0, ROPE - 20); ctx.stroke();
-      if (hook.complete) ctx.drawImage(hook, -12, ROPE - 26, 24, 35);
+      ctx.translate(px, py); ctx.rotate(-h.th);
+      ctx.strokeStyle = "rgba(55,40,30,0.95)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, ROPE - 24); ctx.stroke();
+      if (ok(hook)) ctx.drawImage(hook, -11, ROPE - 28, 22, 29);
+      if (s.held && !s.over) {
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(0, ROPE - 2); ctx.lineTo(-BW * 0.38, ROPE + HOOK_GAP);
+        ctx.moveTo(0, ROPE - 2); ctx.lineTo(BW * 0.38, ROPE + HOOK_GAP);
+        ctx.stroke();
+      }
       ctx.restore();
       if (s.held && !s.over) drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th);
       if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot);
