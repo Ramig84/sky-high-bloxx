@@ -85,12 +85,12 @@ export function TowerGame() {
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[], res: [] as Resident[],
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
-        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
+        nextSkin: 3, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0, cheer: 0 };
     }
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg: msg || h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
 
     const chime = (freq: number, dur = 0.25) => {
-      if (!audio) return;
+      if (!audio || isMuted) return;
       const o = audio.createOscillator(), g = audio.createGain();
       o.type = "triangle"; o.frequency.value = freq;
       g.gain.setValueAtTime(0.18, audio.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
@@ -109,7 +109,7 @@ export function TowerGame() {
 
     api.current.tap = () => {
       if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } }
-      if (s.over || !s.held) return;
+      if (s.over || !s.held || !isStarted) return;
       const h = hung();
       const dth = SWING * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
@@ -141,7 +141,7 @@ export function TowerGame() {
         const x = kind === "perfect" ? base : base + off;
         s.floors.push({ x, skin });
         if (kind === "perfect") {
-          s.combo++; s.score += 25 * Math.min(s.combo, 10);
+          s.cheer = 1.2; s.combo++; s.score += 25 * Math.min(s.combo, 10);
           chime(523 * Math.pow(1.122, Math.min(s.combo, 8))); chime(784, 0.35);
           navigator.vibrate?.(30);
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, hue: Math.random() * 360 });
