@@ -1,4 +1,7 @@
 # Roadmap
+- [x] Anchor spectators to the street and integrate their feet into the painted ground
+- [x] Replace framed floor edges with soft painted contact shading
+- [x] Verify ground placement and camera ascent on phones and tablets
 - [x] Diagnose and correct misleading MISS feedback after safe landings
 - [x] Replace static crowd with two painted spectators with idle, happy, and sad pose animations
 - [x] Verify feedback and spectator reactions in portrait gameplay
