@@ -52,7 +52,7 @@ export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus:
                   className={`map-pin absolute -translate-x-1/2 -translate-y-full ${i === current ? "map-pin-live" : ""} ${!open ? "map-pin-locked" : ""}`}
                   style={{ left: `${z.mapX}%`, top: `${z.mapY}%` }}>
                   {open && st > 0 && <MiniTower id={z.id} stars={st} />}
-                  <span className="map-pin-name">{i + 1}. {z.name}{!open && <Lock className="h-3 w-3" />}</span>
+                  <span className="map-pin-name plaque">{i + 1}. {z.name}{!open && <Lock className="h-3 w-3" />}</span>
                   {open && <span className="map-pin-stars"><Star className="h-3 w-3 fill-current" />{st}/30</span>}
                 </button>
               );
@@ -67,7 +67,7 @@ export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus:
           </div>
         ))}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          {onHome ? <button type="button" className="paper-btn pointer-events-auto rounded-full px-4 py-2 font-extrabold" onClick={onHome}>‹ Home</button> : <img src={a.logoSrc} alt="Sky Bloxx" className="w-28 drop-shadow-md" />}
+          {onHome ? <button type="button" className="plaque pointer-events-auto px-6 py-3 font-extrabold" onClick={onHome}>‹ Home</button> : <img src={a.logoSrc} alt="Sky Bloxx" className="w-28 drop-shadow-md" />}
           <div className="hud-pill items-center"><span className="hud-label">STARS</span><span className="hud-value flex items-center gap-1"><Star className="h-4 w-4 fill-current" />{stars.reduce((x, y) => x + (y ?? 0), 0)}</span></div>
         </div>
         {d && sel !== null && (

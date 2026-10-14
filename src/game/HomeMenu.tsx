@@ -27,7 +27,7 @@ export function HomeMenu({ onCampaign, onEndless, onReset }: { onCampaign: () =>
   );
 }
 
-const big = "paper-btn h-auto w-full justify-start gap-3 rounded-full px-6 py-4 text-xl font-extrabold";
+const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none text-xl font-extrabold";
 
 function MainButtons({ onCampaign, onEndless, setPanel }: { onCampaign: () => void; onEndless: () => void; setPanel: (p: Panel) => void }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
@@ -61,7 +61,7 @@ function Leaderboard({ onBack }: { onBack: () => void }) {
           </li>
         ))}
       </ol>
-      <Button variant="ghost" className="paper-btn mt-2 rounded-full" onClick={onBack}>Back</Button>
+      <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
     </div>
   );
 }
@@ -93,7 +93,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
           </div>
         </div>
       )}
-      <Button variant="ghost" className="paper-btn mt-2 rounded-full" onClick={onBack}>Back</Button>
+      <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
     </div>
   );
 }
