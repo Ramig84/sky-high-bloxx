@@ -5,50 +5,53 @@ The Android app is a Capacitor shell that loads the published game
 leaderboard live in the cloud, the installed app needs internet — same as
 the web version.
 
-## How builds work
+## Everything happens on GitHub — no coding needed
 
-GitHub builds everything automatically via `.github/workflows/android.yml`:
+GitHub builds the app automatically via `.github/workflows/android.yml`.
+You only click buttons in the browser.
 
-- Every push to `main` (or manually: Actions → Android build → Run workflow)
-  produces two downloadable files under the workflow run's **Artifacts**:
-  - `sky-bloxx-debug-apk` — install on a phone directly for testing.
-  - `sky-bloxx-release-aab` — the file you upload to the Play Console.
+### Step 1 — Add two password secrets (once)
 
-## One-time setup: signing key (required for Play Store)
+1. Open your repo on github.com.
+2. **Settings → Secrets and variables → Actions**.
+3. Click **New repository secret**, twice:
+   - Name: `ANDROID_KEYSTORE_PASSWORD` — Secret: any password you choose.
+   - Name: `ANDROID_KEY_PASSWORD` — Secret: the same password again.
 
-Google Play requires the AAB to be signed with your own upload key.
+### Step 2 — Run the build
 
-1. On any computer with Java installed, generate a keystore (keep it safe —
-   losing it means you can never update the app again):
+1. Go to the **Actions** tab → **Android build** → **Run workflow** → **Run workflow**.
+2. When it finishes, the run page lists these artifacts to download:
+   - `sky-bloxx-debug-apk` — install on your phone to test.
+   - `sky-bloxx-release-aab` — unsigned on this first run.
+   - `sky-bloxx-signing-key` — your signing key (created for you).
 
-   ```bash
-   keytool -genkey -v -keystore sky-bloxx.jks -keyalg RSA -keysize 2048 \
-     -validity 10000 -alias skybloxx
-   ```
+### Step 3 — Save the signing key as a secret (once)
 
-2. Convert it to base64:
+1. Download the `sky-bloxx-signing-key` artifact and unzip it.
+2. Open `keystore-base64.txt` in Notepad, select all, copy.
+3. Back on GitHub: **Settings → Secrets and variables → Actions →
+   New repository secret**.
+   - Name: `ANDROID_KEYSTORE_BASE64` — Secret: paste everything you copied.
+4. **Keep the `sky-bloxx.jks` file from the same zip safe forever.**
+   Losing it means you can never update the app on Google Play again.
 
-   ```bash
-   base64 -w 0 sky-bloxx.jks > keystore.b64
-   ```
+### Step 4 — Run the build again
 
-3. In the GitHub repo → **Settings → Secrets and variables → Actions**, add:
-   - `ANDROID_KEYSTORE_BASE64` — contents of `keystore.b64`
-   - `ANDROID_KEYSTORE_PASSWORD` — the keystore password you chose
-   - `ANDROID_KEY_ALIAS` — `skybloxx`
-   - `ANDROID_KEY_PASSWORD` — the key password
-
-4. Push any change (or re-run the workflow) — the AAB comes out signed.
+**Actions → Android build → Run workflow.** Now `sky-bloxx-release-aab`
+is signed and ready for the Play Console.
 
 ## Play Console checklist
 
-- Create the app in [Play Console](https://play.google.com/console) with
-  package name `app.lovable.skyhighbloxx`.
-- Upload the signed AAB to an internal testing track first.
-- Store listing: use `public/game-icon-512.png` as the app icon and take
-  phone screenshots from the published game.
-- Declare that the app requires internet and (once real ads are enabled)
-  that it contains ads.
+1. Create the app in [Play Console](https://play.google.com/console).
+   Package name: `app.lovable.skyhighbloxx`.
+2. **Testing → Internal testing → Create release** and upload the signed AAB.
+3. Keep **Play App Signing** turned on (the default). Your upload key only
+   proves uploads come from you.
+4. Store listing: use `public/game-icon-512.png` as the app icon and take
+   phone screenshots from the published game.
+5. Declare that the app requires internet, and (once real ads are enabled)
+   that it contains ads.
 
 ## Local builds (optional)
 

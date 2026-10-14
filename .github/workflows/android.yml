@@ -2,9 +2,18 @@ name: Android build
 
 # Builds the Sky Bloxx Android APK (testing) and AAB (Play Store upload).
 # Runs on every push to main, or manually from the Actions tab.
-# Signing secrets (Settings → Secrets and variables → Actions):
-#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-# Without them the workflow still produces a debug APK for testing.
+#
+# GitHub-only setup (no coding needed):
+#   1. Repo → Settings → Secrets and variables → Actions → New repository secret:
+#        ANDROID_KEYSTORE_PASSWORD  (any password you choose)
+#        ANDROID_KEY_PASSWORD       (same or another password you choose)
+#   2. Actions → Android build → Run workflow.
+#      The run creates your signing key and uploads an artifact named
+#      "sky-bloxx-signing-key" containing sky-bloxx.jks and keystore-base64.txt.
+#   3. Open keystore-base64.txt from that artifact, copy all of it, and save it
+#      as a third secret: ANDROID_KEYSTORE_BASE64.
+#   4. Run the workflow again — the AAB is now signed and Play Store ready.
+#   5. KEEP the downloaded sky-bloxx.jks file safe forever (never lose it).
 
 on:
   push:
@@ -67,14 +76,49 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease
 
-      - name: Sign AAB
+      - name: Use saved signing key from secrets
         if: ${{ env.KEYSTORE_B64 != '' }}
         run: |
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/keystore.jks"
+          echo "SIGNING_READY=true" >> "$GITHUB_ENV"
+
+      - name: Create signing key (first run only)
+        if: ${{ env.KEYSTORE_B64 == '' }}
+        run: |
+          if [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Add the ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_PASSWORD secrets first (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          ALIAS="${KEY_ALIAS:-skybloxx}"
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/sky-bloxx.jks" \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias "$ALIAS" \
+            -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+            -dname "CN=Sky Bloxx, OU=Games, O=Sky Bloxx, C=QA"
+          cp "$RUNNER_TEMP/sky-bloxx.jks" "$RUNNER_TEMP/keystore.jks"
+          base64 -w 0 "$RUNNER_TEMP/sky-bloxx.jks" > "$RUNNER_TEMP/keystore-base64.txt"
+          echo "SIGNING_READY=true" >> "$GITHUB_ENV"
+          echo "ALIAS=$ALIAS" >> "$GITHUB_ENV"
+
+      - name: Upload signing key backup (keep forever)
+        if: ${{ env.SIGNING_READY == 'true' && env.KEYSTORE_B64 == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sky-bloxx-signing-key
+          path: |
+            ${{ runner.temp }}/sky-bloxx.jks
+            ${{ runner.temp }}/keystore-base64.txt
+          retention-days: 90
+
+      - name: Sign AAB
+        if: ${{ env.SIGNING_READY == 'true' }}
+        run: |
+          ALIAS="${KEY_ALIAS:-skybloxx}"
           jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore "$RUNNER_TEMP/keystore.jks" \
             -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
-            android/app/build/outputs/bundle/release/app-release.aab "$KEY_ALIAS"
+            android/app/build/outputs/bundle/release/app-release.aab "$ALIAS"
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload APK (testing)
