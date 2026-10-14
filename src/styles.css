@@ -156,6 +156,7 @@
 @theme inline {
   --color-game-shell: var(--game-shell);
   --color-hud-track: var(--hud-track);
+  --color-hud-accent: var(--hud-accent);
   --color-combo: var(--combo);
   --color-overlay: var(--overlay);
   --color-overlay-foreground: var(--overlay-foreground);
