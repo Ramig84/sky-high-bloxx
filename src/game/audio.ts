@@ -26,7 +26,7 @@ import mRailyard from "@/assets/audio/music-railyard.mp3.asset.json";
 import mDowntown from "@/assets/audio/music-downtown.mp3.asset.json";
 import mSkyline from "@/assets/audio/music-skyline.mp3.asset.json";
 import mCloudpeak from "@/assets/audio/music-cloudpeak.mp3.asset.json";
-import { loadSettings } from "./settings";
+import { loadSettings, SETTINGS_EVENT } from "./settings";
 import type { DistrictId, LevelSpec } from "./levels";
 
 const SRC = { drop, perfect, miss, release, collapse, clear, tap, coins, coinDing, wind, waves, birds, train, city, night, rain, music,
@@ -58,10 +58,24 @@ export function ambienceFor(district: DistrictId, spec: Pick<LevelSpec, "wind" |
 let ctx: AudioContext | null = null;
 const buffers = new Map<Sound, Promise<AudioBuffer | null>>();
 const loops = new Map<string, { src: AudioBufferSourceNode; gain: GainNode }>();
+let musicBus: GainNode | null = null, effectsBus: GainNode | null = null;
+
+/** All ongoing recordings respond immediately, independently, to player volume changes. */
+export function applyAudioSettings() {
+  if (!ctx || !musicBus || !effectsBus) return;
+  const s = loadSettings();
+  musicBus.gain.setTargetAtTime(s.music ? s.musicVolume : 0, ctx.currentTime, 0.03);
+  effectsBus.gain.setTargetAtTime(s.sound ? s.soundVolume : 0, ctx.currentTime, 0.03);
+}
 
 function context() {
   if (typeof window === "undefined") return null;
-  if (!ctx) { try { ctx = new AudioContext(); } catch { return null; } }
+  if (!ctx) { try {
+    ctx = new AudioContext();
+    musicBus = ctx.createGain(); effectsBus = ctx.createGain();
+    musicBus.connect(ctx.destination); effectsBus.connect(ctx.destination);
+    applyAudioSettings();
+  } catch { return null; } }
   if (ctx.state === "suspended") void ctx.resume();
   return ctx;
 }
@@ -79,6 +93,7 @@ export function unlockAudio() { context(); }
 
 // Browsers (especially iOS Safari) only allow sound after a real tap; resume on every kind of first gesture.
 if (typeof window !== "undefined") {
+  window.addEventListener(SETTINGS_EVENT, applyAudioSettings);
   const unlock = () => { const c = context(); if (c && c.state === "running") for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.removeEventListener(ev, unlock, true); };
   for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.addEventListener(ev, unlock, true);
 }
@@ -88,8 +103,9 @@ export async function sfx(name: Sound, volume = 0.8, rate = 1) {
   const c = context(), b = await buffer(name);
   if (!c || !b) return;
   const src = c.createBufferSource(), g = c.createGain();
-  src.buffer = b; src.playbackRate.value = rate; g.gain.value = volume;
-  src.connect(g).connect(c.destination); src.start();
+  src.buffer = b; src.playbackRate.value = rate; g.gain.value = volume * (name === "coins" || name === "coinDing" ? 0.45 : 1);
+  if (!effectsBus) return;
+  src.connect(g).connect(effectsBus); src.start();
 }
 
 /** Fetch + decode sounds ahead of time (decoding works before the first tap). */
@@ -106,7 +122,9 @@ async function startLoop(key: string, name: Sound, volume: number) {
   const src = c.createBufferSource(), gain = c.createGain();
   src.buffer = b; src.loop = true;
   gain.gain.setValueAtTime(0, c.currentTime); gain.gain.linearRampToValueAtTime(volume, c.currentTime + 1.5);
-  src.connect(gain).connect(c.destination); src.start();
+  const bus = key === "music" ? musicBus : effectsBus;
+  if (!bus) return;
+  src.connect(gain).connect(bus); src.start();
   loops.set(key, { src, gain });
 }
 function stopLoop(key: string) {

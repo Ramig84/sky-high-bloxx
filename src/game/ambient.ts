@@ -9,7 +9,7 @@ export const AMBIENT: Record<DistrictId, AmbientLayer[]> = {
   oldtown: [{ kind: "fall", cells: [0, 6], count: 5, size: 11, alpha: 0.9 }],
   harbour: [{ kind: "boat", cells: [5], count: 2, size: 26, alpha: 0.95 }],
   market: [{ kind: "flutter", cells: [2], count: 2, size: 12, alpha: 1 }, { kind: "steam", cells: [4], count: 1, size: 34, alpha: 0.55 }],
-  riverside: [{ kind: "fall", cells: [6], count: 6, size: 10, alpha: 0.9 }, { kind: "boat", cells: [5], count: 1, size: 22, alpha: 0.9 }],
+  riverside: [{ kind: "fall", cells: [6], count: 6, size: 10, alpha: 0.9 }],
   gardens: [{ kind: "fall", cells: [1], count: 10, size: 9, alpha: 0.85 }, { kind: "flutter", cells: [2], count: 3, size: 12, alpha: 1 }],
   university: [{ kind: "fall", cells: [0], count: 8, size: 11, alpha: 0.9 }],
   railyard: [{ kind: "steam", cells: [4], count: 2, size: 48, alpha: 0.7 }],
@@ -19,6 +19,12 @@ export const AMBIENT: Record<DistrictId, AmbientLayer[]> = {
 };
 
 export interface AmbientParticle { layer: AmbientLayer; cell: number; x: number; y: number; ph: number; age: number; sp: number }
+
+/** Match an authored point on the backdrop to the exact cover transform used by the canvas. */
+export function backdropPoint(iw: number, ih: number, vw: number, vh: number, nx: number, ny: number, camera: number) {
+  const scale = Math.max(vw / iw, vh / ih);
+  return { x: (vw - iw * scale) / 2 + nx * iw * scale, y: (vh - ih * scale) / 2 + ny * ih * scale + camera };
+}
 
 /** Spawn particles. x is offset from screen centre; y is screen-space for fall/mist, height above the street for the rest. */
 export function spawnAmbient(id: DistrictId, vw: number, rand: () => number = Math.random): AmbientParticle[] {

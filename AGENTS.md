@@ -14,6 +14,9 @@
 - Judge equal-mass balance against rendered contact-overlap intervals and the fixed footing on every gameplay frame; capture each floor's landing bend so artwork and physics share coordinates without contact jumps.
 - Animate game transforms through refs and publish HUD changes only on gameplay events, so React commits cannot reset moving objects.
 - Animate painted coin collection with CoinCollector and update counter refs only on sprite arrivals; live run coins are previews and only validated finish rewards enter the wallet.
+- Coin sprite bundles are apportioned in browser-safe coinFlight logic; labelled bundle amounts sum exactly to each reward and small rewards use one sprite per coin.
+- Route recorded audio through independent music/effects gain buses; settings changes update ongoing playback immediately without creating additional audio contexts.
+- Anchor water scenery through the backdrop cover transform and derive the live balance meter from rendered contact intervals, so visual feedback shares gameplay coordinates.
 - The game renders on a single 2D canvas using generated illustrated sprites and painted backdrops (no 3D, no vector/CSS art), so stacking stays readable and matches the art direction.
 - Keep unused character artwork out of the active artwork manifests and canvas loop, so removed characters incur no downloads or animation work.
 - Select phone or higher-resolution tablet WebP artwork at mount while retaining source paintings, so phones avoid tablet downloads.

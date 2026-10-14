@@ -314,3 +314,12 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .game-wallet { position: absolute; top: max(4.7rem, calc(env(safe-area-inset-top) + 4rem)); left: 0.75rem; z-index: 20; pointer-events: none; }
 .game-wallet > div { display: flex; align-items: center; gap: 0.25rem; font-variant-numeric: tabular-nums; }
 .game-wallet strong { min-width: 4ch; }
+.volume-control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.5rem; padding: 0.5rem 0; }
+.volume-control > :last-child { grid-column: 1 / -1; height: 2rem; }
+.volume-control output { font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.coin-flight-sprite { position: absolute; width: 1.6rem; height: 1.6rem; will-change: transform, opacity; }
+.coin-flight-sprite strong { position: absolute; top: 1.2rem; left: 50%; transform: translateX(-50%); background: var(--hud-bg); color: var(--hud-fg); border-radius: 4px; padding: 0 0.2rem; font-size: 0.65rem; white-space: nowrap; }
+.tower-balance { position: absolute; right: 0.75rem; bottom: max(1.25rem, env(safe-area-inset-bottom)); width: 8.5rem; gap: 0.2rem; pointer-events: none; font-size: 0.75rem; }
+.tower-balance meter { width: 100%; height: 0.65rem; }
+.tower-balance[data-state="warning"] { color: var(--hud-accent); }
+.tower-balance[data-state="danger"] { color: var(--destructive); border-color: var(--destructive); }
