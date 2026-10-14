@@ -8,8 +8,8 @@ import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./a
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
 import { loadSettings, saveSettings, vibrate } from "./settings";
-import { ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
-import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
+import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
+import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
 import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
@@ -80,8 +80,8 @@ export function TowerGame({ level: levelIndex, endless = false, onMap, onNext, o
     };
     let isStarted = true, isMuted = localStorage.getItem("bloxx-muted") === "1";
     setMuted(isMuted);
-    api.current.mute = (m) => { isMuted = m; saveSettings({ ...loadSettings(), sound: !m }); setAmbience(m ? [] : ambienceFor(district.id, spec)); setMusic(!m, 0.18); };
-    setAmbience(ambienceFor(district.id, spec)); setMusic(true, 0.18);
+    api.current.mute = (m) => { isMuted = m; saveSettings({ ...loadSettings(), sound: !m }); setAmbience(m ? [] : ambienceFor(district.id, spec)); setMusic(!m, 0.22, DISTRICT_MUSIC[district.id]); };
+    setAmbience(ambienceFor(district.id, spec)); setMusic(true, 0.22, DISTRICT_MUSIC[district.id]);
     api.current.start = () => { if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } } isStarted = true; };
     // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
     const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
