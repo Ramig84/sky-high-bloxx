@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { coin } from "./shopArtwork";
+import { sfx } from "./audio";
 
 function useCountUp(target: number, from = 0, duration = 1100) {
   const [value, setValue] = useState(from);
