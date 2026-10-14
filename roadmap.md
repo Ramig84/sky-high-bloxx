@@ -49,6 +49,6 @@
 - [x] Correct boat grounding and replace sliding wind with painted changing poses
 - [x] Separate music/SFX volume controls; quiet coins and match sprite arrivals to reward amounts
 - [x] Add live support-balance warning and verify phone-sized browser touch play (physical phone unverified)
-- [ ] Connect real rewarded ads for continue and five-level offers (blocked by publisher setup)
-- [ ] Add test-only ad placeholders at extra-life, continue and five-level reward positions, with Settings previews
-- [ ] Make the ad break after every five campaign levels automatic, not an optional rewarded offer
+- [ ] Connect real optional extra-life/continue ads and automatic five-level ad breaks (blocked by publisher setup)
+- [x] Add test-only ad placeholders at extra-life, continue and five-level positions, with Settings previews
+- [x] Make the ad break after every five campaign levels automatic, not an optional rewarded offer
