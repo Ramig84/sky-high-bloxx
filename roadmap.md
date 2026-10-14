@@ -54,3 +54,4 @@
 - [x] Make the ad break after every five campaign levels automatic, not an optional rewarded offer
 
 - [ ] Show extra-life offers only at zero lives, soften coin sounds and verify tidy phone gameplay
+- [ ] Consolidate the gameplay top bar and verify readable phone layout
