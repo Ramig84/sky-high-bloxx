@@ -54,7 +54,7 @@ jobs:
           AAB=$(ls android/app/build/outputs/bundle/release/app-release.aab)
           jarsigner -keystore $RUNNER_TEMP/keystore.jks \
             -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -keypass "${{ ANDROID_KEY_PASSWORD }}" \
+            -keypass "${{ secrets.ANDROID_KEY_PASSWORD }}" \
             "$AAB" "${{ secrets.ANDROID_KEY_ALIAS }}"
 
       - name: Upload APK (testing)
