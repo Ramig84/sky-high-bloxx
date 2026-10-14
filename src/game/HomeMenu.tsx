@@ -79,7 +79,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
     <div className="hud-pill w-full max-w-sm gap-2 p-4">
       <span className="text-2xl font-extrabold">Settings</span>
       <label className="flex flex-col gap-1 text-lg">Player name
-        <input className="rounded border border-hud-edge bg-transparent px-3 py-2 text-base" maxLength={16} value={s.name}
+        <input className="rounded border border-current/30 bg-transparent px-3 py-2 text-base" maxLength={16} value={s.name}
           onChange={e => update({ name: e.target.value })} onBlur={e => { if (!e.target.value.trim()) update({ name: "Builder" }); }} />
       </label>
       <Toggle label="Sound" on={s.sound} set={v => update({ sound: v })} />
