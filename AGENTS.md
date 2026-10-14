@@ -19,3 +19,4 @@
 - Use painted contact artwork at scene joins, so grounding avoids synthetic frames.
 - Derive building floors, street plate and footing from a single approved master painting and match auxiliary sprites to it, so independent asset generation cannot fragment the scene's visual language.
 - Render celebration particles from a compact painted-paper sprite sheet rather than synthetic colored rectangles, so effects share the scene's material language.
+- Endless-mode rules live in the browser-safe src/game/endless.ts with tests; leaderboard scores go to the endless_scores table (public read/insert, score capped per floor) so no sign-in is needed.
