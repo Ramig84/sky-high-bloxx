@@ -27,6 +27,7 @@ import mDowntown from "@/assets/audio/music-downtown.mp3.asset.json";
 import mSkyline from "@/assets/audio/music-skyline.mp3.asset.json";
 import mCloudpeak from "@/assets/audio/music-cloudpeak.mp3.asset.json";
 import { loadSettings, SETTINGS_EVENT } from "./settings";
+import { effectGain } from "./audioMix";
 import type { DistrictId, LevelSpec } from "./levels";
 
 const SRC = { drop, perfect, miss, release, collapse, clear, tap, coins, coinDing, wind, waves, birds, train, city, night, rain, music,
@@ -103,7 +104,7 @@ export async function sfx(name: Sound, volume = 0.8, rate = 1) {
   const c = context(), b = await buffer(name);
   if (!c || !b) return;
   const src = c.createBufferSource(), g = c.createGain();
-  src.buffer = b; src.playbackRate.value = rate; g.gain.value = volume * (name === "coins" || name === "coinDing" ? 0.45 : 1);
+  src.buffer = b; src.playbackRate.value = rate; g.gain.value = effectGain(name, volume);
   if (!effectsBus) return;
   src.connect(g).connect(effectsBus); src.start();
 }
