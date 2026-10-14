@@ -41,7 +41,7 @@ export function levelSpec(index: number): LevelSpec {
     goal: 10 + Math.round(n * 0.25),
     perfectGoal: 3 + Math.floor(n / 12),
     lives: l === LEVELS_PER_DISTRICT - 1 && d > 0 ? 2 : 3,
-    speed: d >= 1 ? n * 0.25 : 0,
+    speed: n * 0.45, // crane swings faster every level: Old Town 1 → Cloud Peak 10
     wind: d >= 2 ? Math.round(60 + (n - 20) * 1.5) : 0,
     slide: d >= 4 ? Math.round(20 + (n - 40) * 0.6) : 0,
     slip: d >= 6 ? 3 + (n - 60) * 0.1 : 0,

@@ -357,8 +357,15 @@ export function TowerGame({ level: levelIndex, onMap, onNext, onComplete }: { le
         ctx.stroke();
       }
       ctx.restore();
-      if (s.held && !s.over) drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th);
-      if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot);
+      // the final floor of a level carries its painted roof
+      const lastFloor = !s.won && s.floors.length === spec.goal - 1;
+      const roofOn = (x: number, y: number, rot: number) => {
+        if (!lastFloor || !ok(roof)) return;
+        const rw = bw * 1.12, rh = rw * roof.naturalHeight / roof.naturalWidth;
+        ctx.save(); ctx.translate(vw / 2 + x, y); ctx.rotate(rot); ctx.drawImage(roof, -rw / 2, -BH / 2 - rh + 2, rw, rh); ctx.restore();
+      };
+      if (s.held && !s.over) { drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th); roofOn(h.x, toScreenY(h.y), -h.th); }
+      if (s.drop) { drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot); roofOn(s.drop.x, toScreenY(s.drop.y), s.drop.rot); }
 
       if (ok(confetti)) for (const p of s.parts) {
         ctx.save(); ctx.translate(vw / 2 + p.x, toScreenY(p.y)); ctx.rotate(p.rot + (1.4 - p.life) * p.vx * 0.025);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Lock, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
-import { DISTRICTS, LEVELS_PER_DISTRICT, districtCleared, districtStars, isDistrictUnlocked, isLevelUnlocked, levelSpec, type DistrictId, type Stars } from "./levels";
+import { DISTRICTS, LEVELS_PER_DISTRICT, districtCleared, districtStars, isDistrictUnlocked as lockedDistrict, isLevelUnlocked as lockedLevel, levelSpec, type DistrictId, type Stars } from "./levels";
 
 const isTablet = () => typeof window !== "undefined" && window.matchMedia("(min-width: 600px)").matches;
 
@@ -18,6 +18,11 @@ function MiniTower({ id, stars }: { id: DistrictId; stars: number }) {
     </div>
   );
 }
+
+// TESTING: every district and level open so the owner can review them; set to false to restore the unlock chain.
+const OPEN_ALL_FOR_TESTING = true;
+const isDistrictUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedDistrict(st, i);
+const isLevelUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedLevel(st, i);
 
 export function CityMap({ stars, focus, onPlay }: { stars: Stars; focus: number; onPlay: (level: number) => void }) {
   const [sel, setSel] = useState<number | null>(null);
