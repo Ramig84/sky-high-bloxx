@@ -35,3 +35,4 @@
 - [x] 10 districts x 10 levels, stars, obstacles (wind, sliding crane, rain, fog, night, narrower floors)
 - [x] Per-district backdrops (sea for Harbour, towers for Downtown) and a painted roof cap
 - [x] Check every district's floors match its backdrop and nature; repaint any that look out of place
+- [x] District scenery truly animated (tumbling, flapping, rocking), never sliding stills
