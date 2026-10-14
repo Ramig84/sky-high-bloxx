@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import b1 from "@/assets/floor-1.jpg";
 import b2 from "@/assets/floor-2.jpg";
 import b3 from "@/assets/floor-3.jpg";
@@ -9,15 +10,21 @@ import sunsetSrc from "@/assets/bg-sunset.jpg";
 import spaceSrc from "@/assets/bg-space.jpg";
 import hookSrc from "@/assets/hook.png";
 import residentSrc from "@/assets/resident.png";
+import craneSrc from "@/assets/crane.png";
+import foundationSrc from "@/assets/foundation.png";
+import cloudSrc from "@/assets/cloud.png";
+import crowdSrc from "@/assets/crowd.png";
+import birdSrc from "@/assets/bird.png";
+import logoSrc from "@/assets/logo.png";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, classifyLanding, collapseIndex, floorSway, integrateFall } from "./motion";
 
 const VH = 640; // logical height
 const GROUND_SCREEN = 488; // screen y of plot at camera 0
-const PIVOT_SCREEN = 36;
-const ROPE = 150;
+const PIVOT_SCREEN = 96;
+const ROPE = 120;
 const GRAVITY = 1500;
 const SWING = 0.42; // max swing angle (rad)
-const HOOK_GAP = 16;
+const HOOK_GAP = 22;
 
 type Floor = { x: number; skin: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
@@ -26,11 +33,14 @@ type Resident = { sx: number; sy: number; tx: number; ty: number; t: number };
 type Hud = { score: number; floors: number; lives: number; combo: number; best: number; over: boolean; msg: string; msgKey: number };
 
 function load(src: string) { const i = new Image(); i.src = src; return i; }
+const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
 export function TowerGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, msg: "", msgKey: 0 });
-  const api = useRef<{ tap: () => void; restart: () => void }>({ tap: () => {}, restart: () => {} });
+  const [started, setStarted] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -38,6 +48,14 @@ export function TowerGame() {
     const skins = [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc), resident = load(residentSrc);
+    const crane = load(craneSrc), foundation = load(foundationSrc), cloud = load(cloudSrc), crowd = load(crowdSrc), bird = load(birdSrc);
+    let isStarted = false, isMuted = localStorage.getItem("bloxx-muted") === "1";
+    setMuted(isMuted);
+    api.current.mute = (m) => { isMuted = m; localStorage.setItem("bloxx-muted", m ? "1" : "0"); };
+    api.current.start = () => { if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } } isStarted = true; };
+    // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
+    const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
+    const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
     let audio: AudioContext | null = null;
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
