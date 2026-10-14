@@ -55,3 +55,6 @@
 
 - [x] Show extra-life offers only at zero lives, soften coin sounds and verify tidy phone gameplay
 - [x] Consolidate the gameplay top bar and verify readable phone layout
+
+- [ ] Discard unfinished campaign coins on retry; preserve completed rewards
+- [ ] Add pause/resume and a leave-game confirmation; verify touch flow
