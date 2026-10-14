@@ -56,7 +56,8 @@
 - [x] Show extra-life offers only at zero lives, soften coin sounds and verify tidy phone gameplay
 - [x] Consolidate the gameplay top bar and verify readable phone layout
 
-- [ ] Discard unfinished campaign coins on retry; preserve completed rewards
-- [ ] Add pause/resume and a leave-game confirmation; verify touch flow
-- [ ] Create and integrate a painted game icon reflecting tower-stacking gameplay
+- [x] Discard unfinished campaign coins on retry; preserve completed rewards
+- [x] Add pause/resume and a leave-game confirmation; verify touch flow
+- [x] Create and integrate a painted game icon reflecting tower-stacking gameplay
+- [ ] Verify signed-in unfinished-level payout end-to-end (blocked: requesting player has no account session; sign in in preview)
 - [x] Recommend a modest camera zoom-out without changing landing rules; no size change requested yet
