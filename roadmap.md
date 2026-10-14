@@ -60,4 +60,4 @@
 - [x] Add pause/resume and a leave-game confirmation; verify touch flow
 - [x] Create and integrate a painted game icon reflecting tower-stacking gameplay
 - [ ] Verify signed-in unfinished-level payout end-to-end (blocked: requesting player has no account session; sign in in preview)
-- [x] Recommend a modest camera zoom-out without changing landing rules; no size change requested yet
+- [x] Push the tower back ~9% (VH 640→700, ground 488→534) so it sits smaller with more room for crane, wind and falls; landing rules untouched
