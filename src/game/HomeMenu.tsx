@@ -8,6 +8,7 @@ import { ENDLESS_STAGES } from "./endless";
 import { coin } from "./shopArtwork";
 import { GIFT_KEY, claimDailyGift, claimDailyStreak, coins, giftAvailable } from "./wallet";
 import { CoinTotal } from "./CoinReward";
+import { sfx } from "./audio";
 import { ACCOUNT_EVENT, claimGift, claimStreak, isSignedIn, signIn, signOut } from "./account";
 
 type Panel = "home" | "leaderboard" | "settings";
