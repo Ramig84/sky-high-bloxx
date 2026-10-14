@@ -326,7 +326,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.parts = s.parts.filter(p => p.life > 0);
 
       const target = Math.max(0, topY() - BH * 1.2);
-      s.camY += (target - s.camY) * Math.min(1, dt * 3);
+      s.camY += (target - s.camY) * (1 - Math.exp(-dt * 3));
       s.shake *= Math.exp(-dt * 7.67);
 
       // render
@@ -386,7 +386,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.drawImage(foundation, vw / 2 - fw / 2, gy, fw, fh);
       }
 
-      for (let i = 0; i < s.floors.length; i++) { const floor = s.floors[i]; if (floor) drawBlock(floor.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true); }
+      for (let i = 0; i < s.floors.length; i++) {
+        const floor = s.floors[i], y = toScreenY(i * BH + BH / 2);
+        if (floor && y > -BH && y < VH + BH) drawBlock(floor.skin, displayX(i), y, 0, true);
+      }
       if (s.won && ok(roof) && s.floors.length) {
         // Painted roof caps the finished tower.
         const rw = bw * 1.12, rh = rw * roof.naturalHeight / roof.naturalWidth;
