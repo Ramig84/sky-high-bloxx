@@ -68,7 +68,7 @@ function Home() {
   const level = screen.level;
   return (
     <Preloader key={`${level}-${screen.daily ? "daily" : "city"}`} assets={() => levelAssets(DISTRICTS[levelSpec(level).district]!.id, loadoutAssets())}>
-      <TowerGame level={level} daily={screen.daily}
+      <TowerGame level={level} daily={screen.daily === true}
         onMap={() => { if (screen.daily) home(); else { setLastDistrict(Math.floor(level / LEVELS_PER_DISTRICT)); setScreen({ kind: "map" }); } }}
         onNext={!screen.daily && level + 1 < TOTAL_LEVELS ? () => setScreen({ kind: "level", level: level + 1 }) : undefined}
         onComplete={n => { if (!screen.daily) setStars(p => { const next = recordStars(p, level, n); if (next !== p) { saveStars(next); void pushProgress(next); } return next; }); }} />
