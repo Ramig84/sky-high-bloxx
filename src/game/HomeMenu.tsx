@@ -83,6 +83,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
           onChange={e => update({ name: e.target.value })} onBlur={e => { if (!e.target.value.trim()) update({ name: "Builder" }); }} />
       </label>
       <Toggle label="Sound" on={s.sound} set={v => update({ sound: v })} />
+      <Toggle label="Music" on={s.music} set={v => update({ music: v })} />
       <Toggle label="Vibration" on={s.vibrate} set={v => update({ vibrate: v })} />
       {!confirm ? <Button variant="ghost" className="paper-btn rounded-full" onClick={() => setConfirm(true)}>Reset progress</Button> : (
         <div className="flex flex-col gap-2"><span>Erase all stars and best scores?</span>
