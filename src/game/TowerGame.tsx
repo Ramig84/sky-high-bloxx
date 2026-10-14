@@ -38,7 +38,9 @@ export function TowerGame() {
     let audio: AudioContext | null = null;
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
+    let faded = false;
     const buildFade = () => {
+      faded = true;
       streetFaded.width = street.naturalWidth; streetFaded.height = street.naturalHeight;
       const c = streetFaded.getContext("2d")!;
       c.drawImage(street, 0, 0);
@@ -193,8 +195,8 @@ export function TowerGame() {
       drawCover(clouds, 1, 0);
       drawCover(sunset, a(1200, 2000), 0);
       drawCover(space, a(3000, 3800), 0);
-      if (!streetFaded.width && street.complete && street.naturalWidth) buildFade();
-      drawCover(streetFaded.width ? streetFaded : street, 1 - a(400, 900), alt * 0.9);
+      if (!faded && street.complete && street.naturalWidth) buildFade();
+      drawCover(faded ? streetFaded : street, 1 - a(400, 900), alt * 0.9);
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
       for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2));
