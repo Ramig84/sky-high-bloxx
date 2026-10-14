@@ -15,6 +15,8 @@ const GROUND_SCREEN = 400; // screen y of plot at camera 0
 const PIVOT_SCREEN = 36;
 const ROPE = 150;
 const GRAVITY = 1500;
+const SWING = 0.42; // max swing angle (rad)
+const HOOK_GAP = 16;
 
 type Floor = { x: number; skin: number };
 type Faller = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; skin: number };
@@ -63,7 +65,7 @@ export function TowerGame() {
     let s = fresh();
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[], res: [] as Resident[],
-        phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number },
+        phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
         nextSkin: 0, score: 0, lives: 3, combo: 0, best: best0, over: false, sway: 0, shake: 0 };
     }
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, msg: msg || h.msg, msgKey: msg ? h.msgKey + 1 : h.msgKey }));
@@ -81,16 +83,17 @@ export function TowerGame() {
     const level = () => s.floors.length;
     const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(level() * 3, 70), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN });
     const hung = () => {
-      const th = 0.62 * Math.sin(s.phase), p = pivot();
-      return { x: p.x + Math.sin(th) * ROPE, y: p.y - Math.cos(th) * ROPE - 14 - BH / 2, th, p };
+      // Rope, hook and block swing as one rigid pendulum so the block never detaches from the hook.
+      const th = SWING * Math.sin(s.phase), p = pivot(), dist = ROPE + HOOK_GAP + BH / 2;
+      return { x: p.x + Math.sin(th) * dist, y: p.y - Math.cos(th) * dist, th, p };
     };
 
     api.current.tap = () => {
       if (!audio) { try { audio = new AudioContext(); } catch { /* no audio */ } }
       if (s.over || !s.held) return;
       const h = hung();
-      const dth = 0.62 * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
-      s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0 };
+      const dth = SWING * Math.cos(s.phase) * Math.min(1.9 + level() * 0.03, 3.2);
+      s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
     api.current.restart = () => { s = fresh(); publish(" "); };
@@ -151,10 +154,10 @@ export function TowerGame() {
       const w = iw * sc, h = ih * sc;
       ctx.globalAlpha = alpha; ctx.drawImage(img, (vw - w) / 2, (VH - h) / 2 + yOff, w, h); ctx.globalAlpha = 1;
     };
-    const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0) => {
+    const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0, shadow = false) => {
       const img = skins[skin]!;
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
-      ctx.fillStyle = "rgba(20,10,30,0.28)"; ctx.fillRect(-BW / 2 + 3, -BH / 2 + 4, BW, BH);
+      if (shadow) { ctx.fillStyle = "rgba(20,10,30,0.25)"; ctx.fillRect(-BW / 2, BH / 2 - 2, BW, 4); }
       if (img.complete && img.naturalWidth) ctx.drawImage(img, -BW / 2, -BH / 2, BW, BH);
       ctx.restore();
     };
@@ -175,6 +178,7 @@ export function TowerGame() {
       if (s.drop) {
         const prevBottom = s.drop.y - BH / 2;
         integrateFall(s.drop, dt, GRAVITY);
+        s.drop.rot *= Math.exp(-dt * 14); // settle level while falling
         if (prevBottom >= topY() && s.drop.y - BH / 2 <= topY()) { const d = s.drop; s.drop = null; land(d); }
       }
       for (const f of s.fallers) { integrateFall(f, dt, GRAVITY); f.rot += f.vr * dt; }
@@ -199,18 +203,19 @@ export function TowerGame() {
       drawCover(faded ? streetFaded : street, 1 - a(400, 900), alt * 0.9);
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
-      for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2));
+      for (let i = 0; i < n; i++) drawBlock(s.floors[i]!.skin, displayX(i), toScreenY(i * BH + BH / 2), 0, true);
       for (const f of s.fallers) drawBlock(f.skin, f.x, toScreenY(f.y), f.rot);
 
       // crane
       const h = hung();
-      const px = vw / 2 + h.p.x, py = toScreenY(h.p.y);
-      const hx = vw / 2 + h.x, hy = toScreenY(h.y + BH / 2 + 14);
+      ctx.save();
+      ctx.translate(vw / 2 + h.p.x, toScreenY(h.p.y)); ctx.rotate(-h.th);
       ctx.strokeStyle = "rgba(40,40,50,0.9)"; ctx.lineWidth = 2.2;
-      ctx.beginPath(); ctx.moveTo(px, py - 60); ctx.lineTo(hx, hy - 20); ctx.stroke();
-      if (hook.complete) { ctx.save(); ctx.translate(hx, hy - 6); ctx.rotate(-h.th); ctx.drawImage(hook, -11, -26, 22, 32); ctx.restore(); }
+      ctx.beginPath(); ctx.moveTo(0, -80); ctx.lineTo(0, ROPE - 20); ctx.stroke();
+      if (hook.complete) ctx.drawImage(hook, -12, ROPE - 26, 24, 35);
+      ctx.restore();
       if (s.held && !s.over) drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th);
-      if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y));
+      if (s.drop) drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot);
 
       // residents
       if (resident.complete) for (const r of s.res) {
