@@ -192,6 +192,7 @@ export type Database = {
         }
       }
       claim_daily_gift: { Args: never; Returns: Json }
+      claim_daily_reward: { Args: never; Returns: Json }
       claim_daily_streak: { Args: never; Returns: Json }
       daily_level_for: { Args: { _day: string }; Returns: number }
       ensure_player_profile: {
