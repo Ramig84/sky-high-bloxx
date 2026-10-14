@@ -5,7 +5,7 @@ import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
 import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
-import { coin } from "./shopArtwork";
+import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinTotal } from "./CoinReward";
 import { sfx } from "./audio";
@@ -18,6 +18,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
   const [tablet, setTablet] = useState(false);
   const [, refresh] = useState(0);
   const [gift, setGift] = useState({ available: false, day: 1, reward: 0, crane: false });
+  const [showMap, setShowMap] = useState(false);
   const claimGiftNow = () => {
     if (!giftAvailable()) return;
     const done = (r: { day: number; reward: number; crane: boolean; claimed: boolean } | null) => {
@@ -58,7 +59,8 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
         <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
           <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
           {!woke && panel === "home" && <span className="home-hint">Tap anywhere to start</span>}
-          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} onGift={claimGiftNow} />}
+          {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} onGift={() => setShowMap(true)} />}
+          {showMap && <RewardMap gift={gift} onClaim={claimGiftNow} onClose={() => setShowMap(false)} />}
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
         </div>
@@ -78,7 +80,7 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, o
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
       <div className="home-topline">
         <div className="home-wallet"><img src={coin} alt="" /><strong><CoinTotal value={coins()} from={gift.reward ? coins() - gift.reward : undefined} /></strong></div>
-        <button type="button" className={`home-gift ${gift.available ? "is-ready" : ""}`} onClick={onGift} disabled={!gift.available} aria-label={`Daily reward, day ${gift.day} of 7`}>
+        <button type="button" className={`home-gift ${gift.available ? "is-ready" : ""}`} onClick={onGift} aria-label={`Daily reward, day ${gift.day} of 7`}>
           <Gift className="h-4 w-4" /> Day {gift.day}/7 · {gift.crane ? "crane won!" : gift.available ? label : "claimed"}
         </button>
       </div>
@@ -150,6 +152,34 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
         </div>
       )}
       <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
+    </div>
+  );
+}
+
+function RewardMap({ gift, onClaim, onClose }: { gift: { available: boolean; day: number; reward: number; crane: boolean }; onClaim: () => void; onClose: () => void }) {
+  return (
+    <div className="reward-backdrop" role="dialog" aria-label="Daily rewards" onClick={onClose}>
+      <div className="reward-map hud-pill" onClick={e => e.stopPropagation()}>
+        <strong className="text-lg">Daily rewards</strong>
+        <p className="text-xs opacity-75">Come back every day. Miss a day and it starts again at day 1.</p>
+        <div className="reward-grid">
+          {[1, 2, 3, 4, 5, 6, 7].map(n => {
+            const done = n < gift.day || (n === gift.day && !gift.available), today = n === gift.day;
+            return (
+              <div key={n} className={`reward-tile ${n === 7 ? "is-big" : ""} ${done ? "is-done" : ""} ${today && gift.available ? "is-today" : ""}`}>
+                <span>Day {n}</span>
+                <img src={n === 7 ? craneSource("weekly") : coin} alt="" className={n === 7 ? "reward-crane" : ""} />
+                <b>{n === 7 ? "Festival Crane" : `+${DAILY_REWARDS[n - 1]}`}</b>
+                {done && <i>✓</i>}
+              </div>
+            );
+          })}
+          <div className="reward-tile is-mystery"><span>Next week</span><b className="text-2xl">?</b><b>Mystery</b></div>
+        </div>
+        {gift.available
+          ? <Button variant="ghost" className="plaque h-14 w-full rounded-none text-lg font-extrabold" onClick={onClaim}>Claim day {gift.day}</Button>
+          : <Button variant="ghost" className="plaque h-12 w-full rounded-none font-extrabold" onClick={onClose}>{gift.crane ? "Festival Crane won!" : gift.reward ? `+${gift.reward} coins!` : "Come back tomorrow"}</Button>}
+      </div>
     </div>
   );
 }
