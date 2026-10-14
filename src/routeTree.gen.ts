@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as ZzCelebratePreviewRouteImport } from './routes/zz-celebrate-preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -35,25 +34,18 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ZzCelebratePreviewRoute = ZzCelebratePreviewRouteImport.update({
-  id: '/zz-celebrate-preview',
-  path: '/zz-celebrate-preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/delete-account': typeof DeleteAccountRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/zz-celebrate-preview': typeof ZzCelebratePreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/delete-account': typeof DeleteAccountRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/zz-celebrate-preview': typeof ZzCelebratePreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,21 +53,13 @@ export interface FileRoutesById {
   '/delete-account': typeof DeleteAccountRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/zz-celebrate-preview': typeof ZzCelebratePreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    '/' | '/delete-account' | '/privacy' | '/terms' | '/zz-celebrate-preview'
+  fullPaths: '/' | '/delete-account' | '/privacy' | '/terms'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/delete-account' | '/privacy' | '/terms' | '/zz-celebrate-preview'
-  id:
-    | '__root__'
-    | '/'
-    | '/delete-account'
-    | '/privacy'
-    | '/terms'
-    | '/zz-celebrate-preview'
+  to: '/' | '/delete-account' | '/privacy' | '/terms'
+  id: '__root__' | '/' | '/delete-account' | '/privacy' | '/terms'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,7 +67,6 @@ export interface RootRouteChildren {
   DeleteAccountRoute: typeof DeleteAccountRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
-  ZzCelebratePreviewRoute: typeof ZzCelebratePreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,13 +99,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/zz-celebrate-preview': {
-      id: '/zz-celebrate-preview'
-      path: '/zz-celebrate-preview'
-      fullPath: '/zz-celebrate-preview'
-      preLoaderRoute: typeof ZzCelebratePreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -131,7 +107,6 @@ const rootRouteChildren: RootRouteChildren = {
   DeleteAccountRoute: DeleteAccountRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
-  ZzCelebratePreviewRoute: ZzCelebratePreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
