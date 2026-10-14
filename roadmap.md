@@ -1,4 +1,4 @@
-- [x] Correct crane, block and landing synchronization without changing balance rules.
-- [x] Reduce movement-time allocations and unnecessary rendering while preserving the artwork.
-- [x] Verify stacking, missed drops and replay in portrait gameplay; run motion regression checks.
-- [x] Analyze smaller-block difficulty and 2D versus 3D with sourced evidence; recommend a direction without changing the art yet.
+# Roadmap
+- [x] Save agreed 2D conclusions to memory
+- [x] Stacking rules + regression tests (small blocks, ±4% perfect, collapse)
+- [ ] Illustrated 2D canvas rebuild of the game
