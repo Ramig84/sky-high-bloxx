@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Review and correct remaining floor seams, celebration art and overlapping labels
+- [x] Visually verify revised phone/tablet play without changing gameplay rules
 - [x] Repaint cohesive floor sections with readable painted thickness and varied windows
 - [x] Correct and regression-test leaning, support balance, collapse and replay
 - [x] Verify real touch runs and visually review phone/tablet artwork
