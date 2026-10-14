@@ -52,3 +52,5 @@
 - [ ] Connect real optional extra-life/continue ads and automatic five-level ad breaks (blocked by publisher setup)
 - [x] Add test-only ad placeholders at extra-life, continue and five-level positions, with Settings previews
 - [x] Make the ad break after every five campaign levels automatic, not an optional rewarded offer
+
+- [ ] Show extra-life offers only at zero lives, soften coin sounds and verify tidy phone gameplay
