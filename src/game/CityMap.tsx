@@ -19,8 +19,8 @@ function MiniTower({ id, stars }: { id: DistrictId; stars: number }) {
   );
 }
 
-// TESTING: every district and level open so the owner can review them; set to false to restore the unlock chain.
-const OPEN_ALL_FOR_TESTING = true;
+// Set true only to review every district; false keeps the release unlock chain.
+const OPEN_ALL_FOR_TESTING = false;
 const isDistrictUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedDistrict(st, i);
 const isLevelUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedLevel(st, i);
 

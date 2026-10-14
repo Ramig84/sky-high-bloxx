@@ -68,7 +68,7 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
       </div>
 
       <div className="pointer-events-none absolute inset-0 z-20" aria-hidden>
-        {chips.map((c, i) => <span key={i} className="celebrate-chip" style={{ left: `${c.left}%`, animationDelay: `${c.delay}s`, animationDuration: `${c.dur}s`, backgroundImage: `url(${confettiSrc})`, backgroundPosition: `${-c.chip * 100}% 0`, ["--spin" as string]: c.spin }} />)}
+        {chips.map((c, i) => <span key={i} className="celebrate-chip" style={{ left: `${c.left}%`, animationDelay: `${c.delay}s`, animationDuration: `${c.dur}s`, backgroundImage: `url(${confettiSrc})`, backgroundPosition: `${c.chip * 20}% 0`, ["--spin" as string]: c.spin }} />)}
       </div>
     </main>
   );
