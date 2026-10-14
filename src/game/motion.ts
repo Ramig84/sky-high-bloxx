@@ -29,8 +29,8 @@ export function advanceToLanding(f: { x: number; y: number; vx: number; vy: numb
 }
 
 export function floorSway(sway: number, index: number) {
-  // Existing floors must not jump sideways whenever the floor count changes.
-  return sway * Math.pow(Math.max(0, index + 1) / 6, 1.6) / (1 + Math.pow(Math.max(0, index + 1) / 9, 1.6));
+  // The ground floor is fixed; height, not changing floor count, determines bending.
+  return sway * Math.pow(Math.max(0, index) / 6, 1.6) / (1 + Math.pow(Math.max(0, index) / 9, 1.6));
 }
 // ---- 2D rules (illustrated canvas game) ----
 export const BLOCK_W = 84;
@@ -48,13 +48,31 @@ export function classifyLanding(offset: number, width: number, firstFloor = fals
   return "ok";
 }
 
-/** Index of the lowest floor whose upper stack's centre of mass overhangs it; -1 if stable. */
-export function collapseIndex(xs: number[], width: number): number {
-  for (let i = 0; i < xs.length - 1; i++) {
-    let sum = 0;
-    for (let j = i + 1; j < xs.length; j++) sum += xs[j] ?? 0;
+export function floorPosition(x: number, swayAtLanding: number, sway: number, index: number, width: number) {
+  return x + (floorSway(sway, index) - floorSway(swayAtLanding, index)) * width / 2;
+}
+
+/** Equal-mass stack balance at the actual contact overlap, including the footing.
+ * -2 means foundation failure, -1 stable, otherwise the supporting floor index.
+ */
+export function collapseIndex(xs: number[], width: number, foundationWidth = width * 1.12): number {
+  let sum = xs.reduce((total, x) => total + x, 0);
+  for (let i = -1; i < xs.length - 1; i++) {
+    const lowerX = i < 0 ? 0 : (xs[i] ?? 0);
+    const lowerHalf = i < 0 ? foundationWidth / 2 : width / 2;
+    const upperX = xs[i + 1] ?? 0;
+    const left = Math.max(lowerX - lowerHalf, upperX - width / 2);
+    const right = Math.min(lowerX + lowerHalf, upperX + width / 2);
     const com = sum / (xs.length - i - 1);
-    if (Math.abs(com - (xs[i] ?? 0)) > width / 2) return i;
+    if (left > right || com < left - 1e-7 || com > right + 1e-7) return i < 0 ? -2 : i;
+    sum -= upperX;
   }
   return -1;
+}
+
+export function landingReward(kind: Landing, combo: number) {
+  if (kind === "miss") return { combo: 0, points: 0 };
+  if (kind === "ok") return { combo: 0, points: 10 };
+  const next = combo + 1;
+  return { combo: next, points: 25 * Math.min(next, 10) };
 }
