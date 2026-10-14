@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { BLOCK_PRICES, CRANE_PRICES, addCoins, claimDailyStreak, coins, dailyLevel, runReward, spendCoins } from "./wallet";
+import { BLOCK_PRICES, CRANE_PRICES, DAILY_GIFT, addCoins, claimDailyGift, claimDailyStreak, coins, dailyLevel, giftAvailable, runReward, spendCoins } from "./wallet";
 
 beforeEach(() => localStorage.clear());
 describe("premium coin economy", () => {
