@@ -89,6 +89,7 @@ export type Database = {
           endless_best: number
           guest_imported: boolean
           last_award_at: string | null
+          last_gift_day: string | null
           name: string
           owned_blocks: string[]
           owned_cranes: string[]
@@ -105,6 +106,7 @@ export type Database = {
           endless_best?: number
           guest_imported?: boolean
           last_award_at?: string | null
+          last_gift_day?: string | null
           name?: string
           owned_blocks?: string[]
           owned_cranes?: string[]
@@ -121,6 +123,7 @@ export type Database = {
           endless_best?: number
           guest_imported?: boolean
           last_award_at?: string | null
+          last_gift_day?: string | null
           name?: string
           owned_blocks?: string[]
           owned_cranes?: string[]
@@ -146,6 +149,7 @@ export type Database = {
           endless_best: number
           guest_imported: boolean
           last_award_at: string | null
+          last_gift_day: string | null
           name: string
           owned_blocks: string[]
           owned_cranes: string[]
@@ -171,6 +175,7 @@ export type Database = {
           endless_best: number
           guest_imported: boolean
           last_award_at: string | null
+          last_gift_day: string | null
           name: string
           owned_blocks: string[]
           owned_cranes: string[]
@@ -186,6 +191,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_daily_gift: { Args: never; Returns: Json }
       claim_daily_streak: { Args: never; Returns: Json }
       daily_level_for: { Args: { _day: string }; Returns: number }
       ensure_player_profile: {
@@ -198,6 +204,7 @@ export type Database = {
           endless_best: number
           guest_imported: boolean
           last_award_at: string | null
+          last_gift_day: string | null
           name: string
           owned_blocks: string[]
           owned_cranes: string[]
@@ -232,6 +239,7 @@ export type Database = {
           endless_best: number
           guest_imported: boolean
           last_award_at: string | null
+          last_gift_day: string | null
           name: string
           owned_blocks: string[]
           owned_cranes: string[]

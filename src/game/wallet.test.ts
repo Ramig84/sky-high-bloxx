@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { BLOCK_PRICES, CRANE_PRICES, addCoins, claimDailyStreak, coins, dailyLevel, runReward, spendCoins } from "./wallet";
+import { BLOCK_PRICES, CRANE_PRICES, DAILY_GIFT, addCoins, claimDailyGift, claimDailyStreak, coins, dailyLevel, giftAvailable, runReward, spendCoins } from "./wallet";
 
 beforeEach(() => localStorage.clear());
 describe("premium coin economy", () => {
@@ -22,5 +22,17 @@ describe("premium coin economy", () => {
   });
   it("gives every UTC date one shared deterministic level", () => {
     expect(dailyLevel(new Date("2026-03-01T01:00:00Z"))).toBe(dailyLevel(new Date("2026-03-01T23:00:00Z")));
+  });
+});
+
+describe("daily gift", () => {
+  beforeEach(() => localStorage.clear());
+  it("pays 500 coins once per day", () => {
+    const day = new Date("2026-03-05T12:00:00Z");
+    expect(giftAvailable(day)).toBe(true);
+    expect(claimDailyGift(day)).toBe(DAILY_GIFT);
+    expect(claimDailyGift(day)).toBe(0);
+    expect(coins()).toBe(DAILY_GIFT);
+    expect(giftAvailable(new Date("2026-03-06T12:00:00Z"))).toBe(true);
   });
 });

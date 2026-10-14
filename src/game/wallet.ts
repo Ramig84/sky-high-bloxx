@@ -44,6 +44,19 @@ export function claimDailyStreak(now = new Date()) {
   return { count, reward };
 }
 
+export const GIFT_KEY = "bloxx-gift";
+export const DAILY_GIFT = 500;
+export function giftAvailable(now = new Date()) {
+  return canStore() ? localStorage.getItem(GIFT_KEY) !== dayKey(now) : false;
+}
+/** Guest daily gift; signed-in players claim on the server via account.claimGift. */
+export function claimDailyGift(now = new Date()) {
+  if (!giftAvailable(now)) return 0;
+  if (canStore()) localStorage.setItem(GIFT_KEY, dayKey(now));
+  addCoins(DAILY_GIFT);
+  return DAILY_GIFT;
+}
+
 export function dailyLevel(now = new Date()) {
   const key = dayKey(now).replaceAll("-", "");
   let hash = 0; for (const c of key) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
