@@ -407,8 +407,12 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // plank pasted across the street, so it is gone.
       const gy = toScreenY(0);
       if (gy < VH + 200 && ok(paintedContact)) {
+        // Only the sprite's dark core is painted: its outer rim carries a pale
+        // fringe that reads as a bright slit when the shadow is drawn thin.
+        const cw = paintedContact.naturalWidth, ch = paintedContact.naturalHeight;
         ctx.globalAlpha = 0.4;
-        ctx.drawImage(paintedContact, vw / 2 - bw * 0.8, gy - 4, bw * 1.6, 14);
+        ctx.drawImage(paintedContact, cw * 0.1, ch * 0.42, cw * 0.8, ch * 0.3,
+                      vw / 2 - bw * 0.8, gy - 4, bw * 1.6, 12);
         ctx.globalAlpha = 1;
       }
 
