@@ -39,6 +39,24 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
+// A contact shadow painted from the scene's own palette. The old contact sprite
+// measured as a pale tan smudge (mean rgb ~137,131,113), so drawing it thin left
+// a bright halo under the building instead of a shadow.
+function paintSoftShadow(ctx: CanvasRenderingContext2D, cx: number, cy: number, halfW: number, halfH: number, strength: number) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(1, halfH / halfW);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, halfW);
+  g.addColorStop(0, `rgba(41,29,21,${strength})`);
+  g.addColorStop(0.55, `rgba(41,29,21,${strength * 0.55})`);
+  g.addColorStop(1, "rgba(41,29,21,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, halfW, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
   const goal = baseSpec.goal;
@@ -304,13 +322,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
       if (ok(img)) {
         // Painted pigment at the join grounds the facade without a picture-frame outline.
-        if (shadow && ok(paintedContact)) {
-          // the sprite's pale outer rim is skipped here too, for the same reason
-          const cw = paintedContact.naturalWidth, ch = paintedContact.naturalHeight;
-          ctx.globalAlpha = 0.18;
-          ctx.drawImage(paintedContact, cw * 0.1, ch * 0.42, cw * 0.8, ch * 0.3, -bw / 2, BH / 2 - 2, bw, 4);
-          ctx.globalAlpha = 1;
-        }
+        if (shadow) paintSoftShadow(ctx, 0, BH / 2 - 1, bw * 0.52, 3.5, 0.16);
         // The sprite is authored for this exact rectangle, including its painted side return.
         ctx.drawImage(img, -bw / 2, -BH / 2, bw, BH);
       }
@@ -405,18 +417,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
       // The ground floor sits straight on the painted pavement, held down by a soft
-      // contact shadow. A separate masonry plinth was tried and always read as a
-      // plank pasted across the street, so it is gone.
+      // shadow painted from the scene's own palette. Both the separate masonry
+      // plinth and the old contact sprite (a pale smudge, not a shadow) were tried
+      // and both read as pasted-on marks, so they are gone.
       const gy = toScreenY(0);
-      if (gy < VH + 200 && ok(paintedContact)) {
-        // Only the sprite's dark core is painted: its outer rim carries a pale
-        // fringe that reads as a bright slit when the shadow is drawn thin.
-        const cw = paintedContact.naturalWidth, ch = paintedContact.naturalHeight;
-        ctx.globalAlpha = 0.4;
-        ctx.drawImage(paintedContact, cw * 0.1, ch * 0.42, cw * 0.8, ch * 0.3,
-                      vw / 2 - bw * 0.8, gy - 4, bw * 1.6, 12);
-        ctx.globalAlpha = 1;
-      }
+      if (gy < VH + 200) paintSoftShadow(ctx, vw / 2, gy + 3, bw * 0.86, 9, 0.42);
 
       for (let i = 0; i < s.floors.length; i++) {
         const floor = s.floors[i], y = toScreenY(i * BH + BH / 2);
