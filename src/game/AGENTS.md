@@ -14,3 +14,4 @@
 - Use cropped painted-contact pigment with multiply compositing at scene joins and painted-paper textures for interface surfaces, so grounding and controls avoid synthetic scenery.
 - Derive building floors, street plate and footing from a single approved master painting and match auxiliary sprites to it, so independent asset generation cannot fragment the scene's visual language.
 - Render celebration particles from a compact painted-paper sprite sheet rather than synthetic colored rectangles, so effects share the scene's material language.
+- Render district celebrations as one portrait canvas using predecoded district streets, floors, roof and footing; crossfade to the next district before navigation so the transition stays cohesive and never streams artwork mid-scene.

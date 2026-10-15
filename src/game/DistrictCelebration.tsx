@@ -1,76 +1,113 @@
-// Painted district-complete celebration: the cleared district's tower rises, paper confetti falls, the next district unlocks.
-import { useEffect, useMemo } from "react";
-import { Lock, LockOpen, Star } from "lucide-react";
-import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
-import { DISTRICTS, districtGoal, districtStars, LEVELS_PER_DISTRICT, type Stars } from "./levels";
-import { confettiSrc, roofSrc } from "./preload";
+// A continuous painted scene: finish the roof, then reveal the next district.
+import { useEffect, useRef } from "react";
+import { ArrowRight, Map, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { districtFloors, districtStreet } from "./artwork";
+import { DISTRICTS, districtStars, LEVELS_PER_DISTRICT, type Stars } from "./levels";
+import { confettiSrc, getImage, roofSrc } from "./preload";
 import { sfx } from "./audio";
 import contactSrc from "@/assets/painted-ground-contact.webp";
+import footingSrc from "@/assets/storybook-footing.webp";
 
-const isTablet = () => window.matchMedia("(min-width: 600px)").matches;
+const ease = (t: number) => { const n = Math.max(0, Math.min(1, t)); return n * n * (3 - 2 * n); };
 
 export function DistrictCelebration({ district, stars, onNext, onMap }: { district: number; stars: Stars; onNext?: (() => void) | undefined; onMap: () => void }) {
-  const a = isTablet() ? tabletArtwork : phoneArtwork;
+  const canvas = useRef<HTMLCanvasElement>(null);
   const done = DISTRICTS[district], next = DISTRICTS[district + 1] ?? null;
-  if (!done) throw new Error("Unknown celebration district");
-  const tiles = districtFloors(done.id, isTablet());
-  const nextTiles = next ? districtFloors(next.id, isTablet()) : null;
-  const st = districtStars(stars, district);
-  const chips = useMemo(() => Array.from({ length: 36 }, (_, i) => ({ left: (i * 37) % 100, delay: (i * 0.23) % 4, dur: 3.4 + ((i * 13) % 10) / 4, chip: i % 6, spin: i % 2 ? 1 : -1 })), []);
+
+  useEffect(() => {
+    const el = canvas.current;
+    if (!el || !done) return;
+    const ctx = el.getContext("2d");
+    if (!ctx) return;
+    const tablet = window.matchMedia("(min-width: 600px)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const from = { street: getImage(districtStreet(done.id, tablet)), floors: districtFloors(done.id, tablet).map(getImage) };
+    const to = next ? { street: getImage(districtStreet(next.id, tablet)), floors: districtFloors(next.id, tablet).map(getImage) } : null;
+    const roof = getImage(roofSrc), contact = getImage(contactSrc), footing = getImage(footingSrc), confetti = getImage(confettiSrc);
+    let frame = 0, start = 0, width = 394;
+    const resize = () => {
+      const bounds = el.getBoundingClientRect(), ratio = Math.min(window.devicePixelRatio || 1, 2);
+      el.width = Math.round(bounds.width * ratio); el.height = Math.round(bounds.height * ratio);
+      width = bounds.width / Math.max(1, bounds.height) * 700;
+    };
+    const observer = new ResizeObserver(resize); observer.observe(el); resize();
+    const paint = (scene: typeof from, count: number, roofDrop: number, alpha: number) => {
+      ctx.save(); ctx.globalAlpha = alpha;
+      const street = scene.street;
+      const scale = Math.max(width / street.naturalWidth, 700 / street.naturalHeight);
+      ctx.drawImage(street, (width - street.naturalWidth * scale) / 2, (700 - street.naturalHeight * scale) / 2, street.naturalWidth * scale, street.naturalHeight * scale);
+      const bw = 90, bh = bw * 250 / 420, ground = 534;
+      // Same stone footing, pigment joins and painted proportions as gameplay.
+      ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha *= 0.35;
+      ctx.drawImage(contact, width / 2 - 74, ground + 14, 148, 9); ctx.restore();
+      ctx.drawImage(footing, width / 2 - 56, ground - 1, 112, 25);
+      for (let i = 0; i < count; i++) {
+        const tile = scene.floors[i === 0 ? 3 : (i - 1) % 3];
+        if (!tile) continue;
+        ctx.drawImage(tile, width / 2 - bw / 2, ground - (i + 1) * bh, bw, bh);
+        if (i > 0) {
+          ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha *= 0.15;
+          ctx.drawImage(contact, width / 2 - bw / 2, ground - i * bh - 2, bw, 4); ctx.restore();
+        }
+      }
+      const rw = bw * 1.06, rh = rw * roof.naturalHeight / roof.naturalWidth;
+      ctx.drawImage(roof, width / 2 - rw / 2, ground - count * bh - rh + 2 - roofDrop, rw, rh);
+      ctx.restore();
+    };
+    const draw = (now: number) => {
+      if (!start) start = now;
+      const t = reduce ? 6 : (now - start) / 1000;
+      ctx.setTransform(el.width / width, 0, 0, el.height / 700, 0, 0);
+      ctx.clearRect(0, 0, width, 700);
+      const reveal = to ? ease((t - 3.1) / 1.6) : 0;
+      paint(from, 5, (1 - ease((t - 0.25) / 1.1)) * 85, 1);
+      if (to && reveal > 0) paint(to, 3, 0, reveal);
+      // One restrained celebratory burst, not an endless confetti curtain.
+      if (!reduce && t > 1.25 && t < 4.8) {
+        for (let i = 0; i < 24; i++) {
+          const age = t - 1.25 - (i % 6) * 0.055;
+          if (age < 0) continue;
+          const side = i % 2 ? 1 : -1, velocity = 24 + (i * 17) % 70;
+          const x = width / 2 + side * (12 + velocity * age);
+          const y = 252 - (75 + (i * 11) % 60) * age + 65 * age * age;
+          ctx.save(); ctx.globalAlpha = Math.max(0, 1 - age / 3.2);
+          ctx.translate(x, y); ctx.rotate(side * age * 2);
+          ctx.drawImage(confetti, (i % 6) * confetti.naturalWidth / 6, 0, confetti.naturalWidth / 6, confetti.naturalHeight, -3, -4.5, 6, 9);
+          ctx.restore();
+        }
+      }
+      if (t < 6 && !document.hidden) frame = requestAnimationFrame(draw);
+    };
+    frame = requestAnimationFrame(draw);
+    const resume = () => { if (!document.hidden) { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); } };
+    document.addEventListener("visibilitychange", resume);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); document.removeEventListener("visibilitychange", resume); };
+  }, [done, next]);
 
   useEffect(() => {
     void sfx("clear", 0.8);
-    const t = [window.setTimeout(() => void sfx("perfect", 0.6, 1.2), 1700), window.setTimeout(() => void sfx("perfect", 0.6, 1.5), 2600)];
-    return () => t.forEach(window.clearTimeout);
+    const timers = [window.setTimeout(() => void sfx("perfect", 0.6, 1.2), 1700), window.setTimeout(() => void sfx("perfect", 0.6, 1.5), 2600)];
+    return () => timers.forEach(window.clearTimeout);
   }, []);
 
+  if (!done) return null;
   return (
-    <main className="celebrate fixed inset-0 overflow-hidden bg-game-shell">
-      <img src={districtStreet(done.id, isTablet())} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
-      {[0, 1].map(i => <img key={i} src={a.cloudSrc} alt="" aria-hidden className="map-cloud" style={{ top: `${12 + i * 46}%`, animationDelay: `${-i * 15}s`, animationDuration: `${34 + i * 8}s` }} />)}
-      <div className="map-bird-path" style={{ top: "22%" }} aria-hidden><div className="map-bird" style={{ backgroundImage: `url(${a.birdSrc})` }} /></div>
-
-      <div className="relative z-10 mx-auto flex h-full max-w-md flex-col items-center px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
-        <div className="plaque celebrate-banner px-8 py-3 text-center">
-          <span className="block text-xs font-bold tracking-widest">{next ? `DISTRICT ${district + 1} CLEARED` : "CITY COMPLETE"}</span>
-          <h1 className="text-3xl font-extrabold leading-tight">{done.name}</h1>
+    <main className="celebrate fixed inset-0 flex justify-center overflow-hidden bg-game-shell">
+      <div className="game-viewport celebrate-stage relative h-full overflow-hidden">
+        <canvas ref={canvas} className="absolute inset-0 h-full w-full" role="img" aria-label={`${done.name} tower completed${next ? `, revealing ${next.name}` : ", city complete"}`} />
+        <header className={`celebrate-heading ${next ? "has-next" : ""}`}>
+          <div className="celebrate-completed">
+            <span className="celebrate-eyebrow">{next ? "DISTRICT COMPLETE" : "CITY COMPLETE"}</span>
+            <h1>{done.name}</h1>
+            <div className="celebrate-rating"><Star className="h-4 w-4 fill-current" /><strong>{districtStars(stars, district)}</strong><span>/ {LEVELS_PER_DISTRICT * 3}</span></div>
+          </div>
+          {next && <div className="celebrate-destination"><span className="celebrate-eyebrow">NEXT DISTRICT UNLOCKED</span><h2>{next.name}</h2><p>{next.obstacle}</p></div>}
+        </header>
+        <div className="celebrate-actions">
+          {next && onNext ? <Button variant="ghost" className="plaque celebrate-primary" onClick={onNext}>Build in {next.name}<ArrowRight /></Button> : <p className="celebrate-finale">All ten districts. One city in the clouds.</p>}
+          <Button variant="ghost" className="plaque celebrate-map-button" onClick={onMap}><Map />City map</Button>
         </div>
-        <div className="celebrate-stars hud-pill mt-3 items-center gap-1 px-4" style={{ flexDirection: "row" }}>
-          <Star className="h-5 w-5 fill-current" /><span className="hud-value">{st}/{LEVELS_PER_DISTRICT * 3}</span>
-        </div>
-
-        <div className="celebrate-tower mt-auto" aria-label={`${done.name} tower`}>
-          <img src={roofSrc} alt="" className="celebrate-floor celebrate-roof" style={{ animationDelay: `${0.25 + 5 * 0.18}s` }} />
-          {Array.from({ length: 5 }, (_, k) => 4 - k).map(k => (
-            <img key={k} src={k === 0 ? tiles[3] : tiles[(k - 1) % 3]} alt="" className="celebrate-floor" style={{ animationDelay: `${0.25 + k * 0.18}s` }} />
-          ))}
-          <img src={contactSrc} alt="" className="celebrate-contact" />
-        </div>
-
-        <div className="hud-pill celebrate-card mt-6 w-full gap-2 p-4">
-          {next && nextTiles ? (
-            <>
-              <div className="flex items-center gap-3">
-                <span className="celebrate-lock relative h-10 w-10 shrink-0"><Lock className="celebrate-lock-closed absolute inset-0 h-10 w-10" /><LockOpen className="celebrate-lock-open absolute inset-0 h-10 w-10" /></span>
-                <div><span className="hud-label">NEXT DISTRICT UNLOCKED</span><h2 className="text-2xl font-semibold leading-tight">{next.name}</h2></div>
-              </div>
-              <div className="grid grid-cols-4 gap-1 overflow-hidden rounded-md">{nextTiles.map((s, i) => <img key={i} src={s} alt="" className="h-10 w-full object-cover" />)}</div>
-              <p className="text-sm">{next.blurb}</p>
-              <p className="hud-label">New challenge: {next.obstacle} · {districtGoal(district + 1, 0)}→{districtGoal(district + 1, LEVELS_PER_DISTRICT - 1)} floors</p>
-            </>
-          ) : (
-            <p className="text-center text-base">You built all ten districts up to the clouds. Keep climbing in Endless mode and chase the leaderboard.</p>
-          )}
-        </div>
-
-        <div className="mt-4 flex w-full flex-col gap-2">
-          {next && onNext && <button type="button" className="plaque celebrate-cta py-4 text-xl font-extrabold" onClick={onNext}>Build in {next.name} ›</button>}
-          <button type="button" className="plaque py-3 text-base font-bold" onClick={onMap}>City map</button>
-        </div>
-      </div>
-
-      <div className="pointer-events-none absolute inset-0 z-20" aria-hidden>
-        {chips.map((c, i) => <span key={i} className="celebrate-chip" style={{ left: `${c.left}%`, animationDelay: `${c.delay}s`, animationDuration: `${c.dur}s`, backgroundImage: `url(${confettiSrc})`, backgroundPosition: `${c.chip * 20}% 0`, ["--spin" as string]: c.spin }} />)}
       </div>
     </main>
   );
