@@ -63,7 +63,7 @@ function Home() {
   if (screen.kind === "endless") return (
     <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id, loadoutAssets())}>
       <TowerGame level={0} endless onMap={home} onComplete={() => {}}
-        onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); void pushProgress(); }} />
+        onEndlessOver={(score, floors) => { void floors; submitScore(score).catch(() => {}); void pushProgress(); }} />
     </Preloader>
   );
   if (screen.kind === "celebrate") {
