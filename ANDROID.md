@@ -43,6 +43,11 @@ is signed and ready for the Play Console.
 
 ## Play Console checklist
 
+The workflow applies the painted game icon to every Android launcher size,
+adaptive icon and launch screen before building. If an installed APK shows the
+Capacitor default icon, download and install the APK from a new build after
+this change; updating the website alone cannot change an installed launcher icon.
+
 1. Create the app in [Play Console](https://play.google.com/console).
    Package name: `app.lovable.skyhighbloxx`.
 2. **Testing → Internal testing → Create release** and upload the signed AAB.

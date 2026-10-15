@@ -1,4 +1,7 @@
 # Roadmap
+- [ ] Replace default Android launcher/splash artwork and verify generated resources
+- [ ] Audit active game images, sounds and screen preloading; fix concrete failures
+- [ ] Bundle game assets inside Android instead of loading the hosted game (awaiting confirmation of local/offline packaging scope)
 - [x] Review and correct remaining floor seams, celebration art and overlapping labels
 - [x] Visually verify revised phone/tablet play without changing gameplay rules
 - [x] Repaint cohesive floor sections with readable painted thickness and varied windows
