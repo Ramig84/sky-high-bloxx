@@ -71,6 +71,20 @@ export async function claimGift(): Promise<DailyReward | null> {
   return data as DailyReward | null;
 }
 
+export type MissionStatus = { kind: "perfects" | "floors" | "wins"; goal: number; reward: number; progress: number; claimed: boolean };
+/** Signed-in daily missions: the server judges progress from the player's recorded runs. */
+export async function missionStatus(): Promise<MissionStatus[] | null> {
+  if (!signedIn) return null;
+  const { data } = await supabase.rpc("mission_status");
+  return (data as MissionStatus[] | null) ?? null;
+}
+export async function claimMission(kind: MissionStatus["kind"]): Promise<MissionStatus | null> {
+  if (!signedIn) return null;
+  const { data } = await supabase.rpc("claim_mission", { _kind: kind });
+  await syncAccount();
+  return data as MissionStatus | null;
+}
+
 export async function buyOrEquip(kind: "crane" | "block", item: string) {
   const { data, error } = await supabase.rpc("buy_or_equip", { _kind: kind, _item: item });
   if (error) throw error;

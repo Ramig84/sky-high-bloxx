@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store } from "lucide-react";
+import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { sfx, setMusic, currentMusic } from "./audio";
@@ -10,11 +10,12 @@ import { ENDLESS_STAGES } from "./endless";
 import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
-import { ACCOUNT_EVENT, claimGift, isSignedIn, signIn, signOut } from "./account";
+import { ACCOUNT_EVENT, claimGift, claimMission, isSignedIn, missionStatus, signIn, signOut, type MissionStatus } from "./account";
+import { MISSION_LABELS, claimGuestMission, missionProgress, missionsClaimed, missionsForDay, type MissionKind } from "./missions";
 import { AdPlacementTests } from "./AdPlaceholder";
 import { deleteMyAccount } from "./account.functions";
 
-type Panel = "home" | "leaderboard" | "settings";
+type Panel = "home" | "leaderboard" | "settings" | "missions";
 
 export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; onReset: () => void }) {
   const [panel, setPanel] = useState<Panel>("home");
@@ -77,6 +78,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
           {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} balance={balance} onGift={() => setShowMap(true)} />}
           {showMap && <RewardMap gift={gift} balance={balance} targetRef={rewardTarget} counterRef={rewardCounter} onClaim={claimGiftNow} onClose={() => { collector.current?.clear(); collecting.current = false; setBalance(coins()); setShowMap(false); }} />}
           <CoinCollector ref={collector} />
+          {panel === "missions" && <MissionsPanel collector={collector} onBack={() => { setBalance(coins()); setPanel("home"); }} />}
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
         </div>
@@ -103,7 +105,8 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /> Daily challenge<span className="ml-auto text-sm font-semibold">3× coins</span></Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="ghost" className={small} onClick={() => setPanel("missions")}><ScrollText /> Missions</Button>
         <Button variant="ghost" className={small} onClick={onShop}><Store /> Market</Button>
         <Button variant="ghost" className={small} onClick={() => setPanel("leaderboard")}><Trophy /> Scores</Button>
         <Button variant="ghost" className={small} onClick={() => setPanel("settings")}><Cog /> Settings</Button>
@@ -111,6 +114,73 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
       {isSignedIn()
         ? <button type="button" className="home-account" onClick={() => void signOut()}>{loadSettings().name} · Sign out</button>
         : <button type="button" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins</button>}
+    </div>
+  );
+}
+
+function MissionsPanel({ collector, onBack }: { collector: RefObject<CoinCollectorHandle | null>; onBack: () => void }) {
+  const [rows, setRows] = useState<MissionStatus[]>([]);
+  const [busy, setBusy] = useState<MissionKind | null>(null);
+  const target = useRef<HTMLImageElement>(null);
+  const counter = useRef<HTMLElement>(null);
+  const load = () => {
+    if (isSignedIn()) {
+      void missionStatus().then(server => {
+        if (server) setRows(server);
+        else setRows(guestRows());
+      }).catch(() => setRows(guestRows()));
+    } else setRows(guestRows());
+  };
+  const guestRows = (): MissionStatus[] => {
+    const progress = missionProgress(), claimed = missionsClaimed();
+    return missionsForDay().map(m => ({ kind: m.kind, goal: m.goal, reward: m.reward, progress: progress[m.kind], claimed: claimed.includes(m.kind) }));
+  };
+  useEffect(load, []);
+  const claim = (kind: MissionKind, e: React.MouseEvent) => {
+    if (busy) return;
+    setBusy(kind);
+    const before = coins();
+    const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const source = { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+    const done = (reward: number) => {
+      setBusy(null);
+      load();
+      const t = target.current, c = counter.current;
+      if (reward > 0 && t && c && collector.current) collector.current.collect({ source, target: t, counter: c, from: before, to: coins() });
+    };
+    if (isSignedIn()) void claimMission(kind).then(r => done(r && !r.claimed ? r.reward : 0)).catch(() => setBusy(null));
+    else done(claimGuestMission(kind));
+  };
+  return (
+    <div className="hud-pill w-full max-w-sm gap-2 p-4">
+      <span className="text-2xl font-extrabold">Daily missions</span>
+      <span className="hud-label">New missions every day — same for every builder.</span>
+      <div className="reward-wallet self-center" aria-label="Coin balance"><img ref={target} src={coin} alt="" /><strong ref={counter}>{coins().toLocaleString()}</strong></div>
+      <ul className="mt-1 flex w-full flex-col gap-2">
+        {rows.map(m => {
+          const ready = !m.claimed && m.progress >= m.goal;
+          return (
+            <li key={m.kind} className="reward-tile w-full flex-col items-stretch gap-1 p-3 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-extrabold">{MISSION_LABELS[m.kind](m.goal)}</span>
+                <span className="flex items-center gap-1 text-sm font-extrabold"><img src={coin} alt="" className="h-4 w-4" />+{m.reward}</span>
+              </div>
+              <div className="mission-bar" aria-label={`${Math.min(m.progress, m.goal)} of ${m.goal}`}>
+                <i style={{ width: `${Math.min(100, (m.progress / m.goal) * 100)}%` }} />
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="opacity-75">{Math.min(m.progress, m.goal)}/{m.goal}</span>
+                {m.claimed
+                  ? <span className="font-extrabold">✓ Claimed</span>
+                  : ready
+                    ? <Button variant="ghost" className="paper-btn h-8 rounded-full px-4 text-sm font-extrabold" disabled={busy === m.kind} onClick={e => claim(m.kind, e)}>Claim</Button>
+                    : <span className="opacity-60">Keep building</span>}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
     </div>
   );
 }
