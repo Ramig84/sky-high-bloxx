@@ -21,7 +21,7 @@
 - Keep unused character artwork out of the active artwork manifests and canvas loop, so removed characters incur no downloads or animation work.
 - Select phone or higher-resolution tablet WebP artwork at mount while retaining source paintings, so phones avoid tablet downloads.
 - Size the canvas from its portrait-constrained container and observe container resizing; keep HUD controls larger on tablets without changing logical motion or landing rules.
-- Use painted contact artwork at scene joins, so grounding avoids synthetic frames.
+- Use cropped painted-contact pigment with multiply compositing at scene joins and painted-paper textures for interface surfaces, so grounding and controls avoid synthetic scenery.
 - Derive building floors, street plate and footing from a single approved master painting and match auxiliary sprites to it, so independent asset generation cannot fragment the scene's visual language.
 - Render celebration particles from a compact painted-paper sprite sheet rather than synthetic colored rectangles, so effects share the scene's material language.
 - Endless-mode rules live in the browser-safe src/game/endless.ts with tests; leaderboard scores go to the endless_scores table (public read/insert, score capped per floor) so no sign-in is needed.
