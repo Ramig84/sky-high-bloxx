@@ -420,9 +420,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // and both read as pasted-on marks, so they are gone.
       const gy = toScreenY(0);
       if (gy < VH + 200) {
-        // tight occlusion right at the contact line, then a wider painted spread
-        paintSoftShadow(ctx, vw / 2, gy + 1, bw * 0.62, 3, 0.5);
-        paintSoftShadow(ctx, vw / 2, gy + 4, bw * 0.9, 10, 0.28);
+        // The dark core has to fall on the pavement *below* the base line, so the
+        // ellipse centres sit just under it instead of hiding behind the block.
+        paintSoftShadow(ctx, vw / 2, gy + 3, bw * 0.55, 7, 0.55);
+        paintSoftShadow(ctx, vw / 2, gy + 6, bw * 0.95, 16, 0.3);
       }
 
       for (let i = 0; i < s.floors.length; i++) {
