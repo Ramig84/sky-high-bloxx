@@ -78,6 +78,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
           {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} balance={balance} onGift={() => setShowMap(true)} />}
           {showMap && <RewardMap gift={gift} balance={balance} targetRef={rewardTarget} counterRef={rewardCounter} onClaim={claimGiftNow} onClose={() => { collector.current?.clear(); collecting.current = false; setBalance(coins()); setShowMap(false); }} />}
           <CoinCollector ref={collector} />
+          {panel === "missions" && <MissionsPanel collector={collector} onBack={() => { setBalance(coins()); setPanel("home"); }} />}
           {panel === "leaderboard" && <Leaderboard onBack={() => setPanel("home")} />}
           {panel === "settings" && <SettingsPanel onBack={() => setPanel("home")} onReset={onReset} />}
         </div>
@@ -104,7 +105,8 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /> Daily challenge<span className="ml-auto text-sm font-semibold">3× coins</span></Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="ghost" className={small} onClick={() => setPanel("missions")}><ScrollText /> Missions</Button>
         <Button variant="ghost" className={small} onClick={onShop}><Store /> Market</Button>
         <Button variant="ghost" className={small} onClick={() => setPanel("leaderboard")}><Trophy /> Scores</Button>
         <Button variant="ghost" className={small} onClick={() => setPanel("settings")}><Cog /> Settings</Button>
