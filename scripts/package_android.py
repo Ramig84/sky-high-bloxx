@@ -16,7 +16,15 @@ from concurrent.futures import ThreadPoolExecutor
 ORIGIN = "https://sky-high-bloxx.lovable.app"
 
 
-def package(client=Path("dist/client"), android=Path("android")):
+def package(client=None, android=Path("android")):
+    if client is None:
+        # Local builds emit dist/client; CI (Nitro preset) emits .output/public.
+        for candidate in (ROOT / "dist/client", ROOT / ".output/public"):
+            if (candidate / "index.html").is_file():
+                client = candidate
+                break
+        else:
+            client = ROOT / "dist/client"
     if not (client / "index.html").is_file():
         raise RuntimeError("Client prerender index.html missing; cannot ship an online-only wrapper")
     target = android / "app/src/main/assets/public"
