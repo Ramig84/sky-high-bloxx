@@ -13,7 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN_ACTIVITY = Path(__file__).resolve().parent / "android/MainActivity.java"
 from concurrent.futures import ThreadPoolExecutor
 
+import time
+
 ORIGIN = "https://sky-high-bloxx.lovable.app"
+RETRIES = 5
+BACKOFF = 3  # seconds, multiplied by the attempt number
 
 
 def package(client=None, android=Path("android")):
@@ -39,14 +43,24 @@ def package(client=None, android=Path("android")):
             raise RuntimeError("Unsafe media path")
         output = target / relative
         output.parent.mkdir(parents=True, exist_ok=True)
-        with urlopen(Request(ORIGIN + asset["url"], headers={"User-Agent": USER_AGENT}), timeout=60) as response:
-            data = response.read()
-            if response.status != 200 or not data:
-                raise RuntimeError(f"Media download failed: {pointer.name}")
-            if len(data) != asset["size"]:
-                raise RuntimeError(f"Media size mismatch: {pointer.name}")
-        output.write_bytes(data)
-        return len(data)
+        # CDN reads on CI runners occasionally stall; retry with backoff so one
+        # slow transfer cannot fail the whole Android build.
+        last_error = None
+        for attempt in range(RETRIES):
+            try:
+                with urlopen(Request(ORIGIN + asset["url"], headers={"User-Agent": USER_AGENT}), timeout=90) as response:
+                    data = response.read()
+                    if response.status != 200 or not data:
+                        raise RuntimeError(f"Media download failed: {pointer.name}")
+                    if len(data) != asset["size"]:
+                        raise RuntimeError(f"Media size mismatch: {pointer.name}")
+                output.write_bytes(data)
+                return len(data)
+            except Exception as error:  # timeouts, resets, short reads
+                last_error = error
+                print(f"Retrying {pointer.name} after attempt {attempt + 1}: {error}")
+                time.sleep(BACKOFF * (attempt + 1))
+        raise RuntimeError(f"Media download failed after {RETRIES} attempts: {pointer.name}") from last_error
 
     pointers = list((ROOT / "src/assets").rglob("*.asset.json"))
     with ThreadPoolExecutor(max_workers=6) as pool:
