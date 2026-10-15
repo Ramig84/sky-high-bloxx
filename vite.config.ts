@@ -8,6 +8,10 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   tanstackStart: {
+    // Android packages these public documents and the client bundle; online
+    // server functions remain on the published same-origin service.
+    pages: ["/", "/privacy", "/terms", "/delete-account"].map(path => ({ path, prerender: { enabled: true } })),
+    prerender: { enabled: true, autoStaticPathsDiscovery: false, crawlLinks: false, failOnError: true },
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
