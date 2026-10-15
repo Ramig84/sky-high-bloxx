@@ -56,7 +56,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
   }, []);
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
   useEffect(() => setGift(g => ({ ...g, available: giftAvailable(), day: nextRewardDay() })), []);
-  const [woke, setWoke] = useState(false);
+  const [, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none" onPointerUp={() => setWoke(true)}>
@@ -75,9 +75,8 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
             <img src={art.b1} alt="" className="home-block" />
           </div>
         </div>
-        <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
+        <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(3.75rem,calc(env(safe-area-inset-top)+3rem))]">
           <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
-          {!woke && panel === "home" && <span className="home-hint">Tap anywhere to start</span>}
           {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} balance={balance} onGift={() => setShowMap(true)} />}
           {showMap && <RewardMap gift={gift} balance={balance} targetRef={rewardTarget} counterRef={rewardCounter} onClaim={claimGiftNow} onClose={() => { collector.current?.clear(); collecting.current = false; setBalance(coins()); setShowMap(false); }} />}
           <CoinCollector ref={collector} />
@@ -106,15 +105,14 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
   const label = gift.day === 7 ? "crane!" : `+${DAILY_REWARDS[gift.day - 1] ?? 100}`;
   return (
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
-      <div className="home-topline">
+      <div className="home-topline home-topbar">
         <div className="home-wallet"><img src={coin} alt="" /><strong>{balance.toLocaleString()}</strong></div>
         <button type="button" className={`home-gift ${gift.available ? "is-ready" : ""}`} onClick={onGift} aria-label={`Daily reward, day ${gift.day} of 7`}>
           <Gift className="h-4 w-4" /> Day {gift.day}/7 · {gift.crane ? "crane won!" : gift.available ? label : "claimed"}
         </button>
       </div>
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
-      <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /><span className="flex flex-col items-start leading-tight">District tour<span className="text-xs font-semibold opacity-80">{tour.name}{tour.preview ? " · preview" : ""}</span></span><span className="ml-auto text-sm font-semibold">3× coins</span></Button>
-      <span className="hud-label -mt-1 text-center">Tomorrow: {tour.tomorrow}</span>
+      <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /><span className="flex flex-col items-start leading-tight">District tour<span className="text-xs font-semibold opacity-80">{tour.name}{tour.preview ? " preview" : ""} · next {tour.tomorrow}</span></span><span className="ml-auto text-sm font-semibold">3× coins</span></Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
       <div className="grid grid-cols-2 gap-2">
         <Button variant="ghost" className={small} onClick={() => setPanel("missions")}><ScrollText /> Missions</Button>
