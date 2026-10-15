@@ -77,7 +77,7 @@ function context() {
     musicBus.connect(ctx.destination); effectsBus.connect(ctx.destination);
     applyAudioSettings();
   } catch { return null; } }
-  if (ctx.state === "suspended") void ctx.resume();
+  if (ctx.state === "suspended" && document.visibilityState === "visible") void ctx.resume();
   return ctx;
 }
 function buffer(name: Sound) {
@@ -95,6 +95,15 @@ export function unlockAudio() { context(); }
 // Browsers (especially iOS Safari) only allow sound after a real tap; resume on every kind of first gesture.
 if (typeof window !== "undefined") {
   window.addEventListener(SETTINGS_EVENT, applyAudioSettings);
+  // Silence everything when the app is minimized, the screen locks, or another app covers it.
+  const syncVisibility = () => {
+    if (!ctx) return;
+    if (document.visibilityState === "hidden") void ctx.suspend();
+    else void ctx.resume();
+  };
+  document.addEventListener("visibilitychange", syncVisibility);
+  window.addEventListener("pagehide", () => { if (ctx) void ctx.suspend(); });
+  window.addEventListener("blur", () => { if (ctx && document.hidden) void ctx.suspend(); });
   const unlock = () => { const c = context(); if (c && c.state === "running") for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.removeEventListener(ev, unlock, true); };
   for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.addEventListener(ev, unlock, true);
 }
