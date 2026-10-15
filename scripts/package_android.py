@@ -3,7 +3,10 @@ import json
 import mimetypes
 import shutil
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
+
+# The media CDN rejects Python's default "Python-urllib/3.x" user agent with 403.
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
 from concurrent.futures import ThreadPoolExecutor
 
 ORIGIN = "https://sky-high-bloxx.lovable.app"
