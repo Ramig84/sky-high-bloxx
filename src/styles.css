@@ -220,7 +220,12 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .map-card { pointer-events: auto; }
 @media (min-width: 600px) { .map-tower-floor { width: 48px; height: 28px; } .map-pin-name { font-size: 1.1rem; } }
 @media (prefers-reduced-motion: reduce) { .map-pan, .map-cloud, .map-bird-path, .map-bird, .map-pin-live .map-pin-name { animation: none; } }
-.map-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+/* The map auto-scrolls to the district you're playing, so a neighbouring sign can
+   end up sliced in half at the top edge. Fading the first few rem into the shell
+   colour turns that hard cut into a soft painted frame edge. */
+.map-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.4) 1.2rem, #000 3.2rem);
+  mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.4) 1.2rem, #000 3.2rem); }
 .map-scroll::-webkit-scrollbar { display: none; }
 .map-canvas { position: relative; height: 210%; aspect-ratio: 1024 / 1920; left: 50%; transform: translateX(-50%); }
 .map-pin-stars { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--hud-bg); border: 1px solid var(--hud-edge); }
