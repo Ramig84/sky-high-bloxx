@@ -6,7 +6,6 @@ import { CityMap } from "@/game/CityMap";
 import { HomeMenu } from "@/game/HomeMenu";
 import { Shop } from "@/game/Shop";
 import { submitScore } from "@/game/leaderboard";
-import { loadSettings } from "@/game/settings";
 import { DISTRICTS, LEVELS_PER_DISTRICT, TOTAL_LEVELS, levelSpec, loadStars, recordStars, saveStars } from "@/game/levels";
 import { Preloader } from "@/game/Preloader";
 import { DistrictCelebration } from "@/game/DistrictCelebration";
