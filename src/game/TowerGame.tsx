@@ -305,8 +305,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (ok(img)) {
         // Painted pigment at the join grounds the facade without a picture-frame outline.
         if (shadow && ok(paintedContact)) {
+          // the sprite's pale outer rim is skipped here too, for the same reason
+          const cw = paintedContact.naturalWidth, ch = paintedContact.naturalHeight;
           ctx.globalAlpha = 0.18;
-          ctx.drawImage(paintedContact, -bw / 2, BH / 2 - 2, bw, 4);
+          ctx.drawImage(paintedContact, cw * 0.1, ch * 0.42, cw * 0.8, ch * 0.3, -bw / 2, BH / 2 - 2, bw, 4);
           ctx.globalAlpha = 1;
         }
         // The sprite is authored for this exact rectangle, including its painted side return.
