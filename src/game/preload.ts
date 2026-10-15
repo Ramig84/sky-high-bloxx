@@ -4,6 +4,8 @@ import ambientSrc from "@/assets/ambient.webp";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import windSrc from "@/assets/wind-poses.png";
 import plaqueSrc from "@/assets/ui-plaque.webp";
+import contactSrc from "@/assets/painted-ground-contact.webp";
+import paperSrc from "@/assets/painted-paper.webp";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, type DistrictId } from "./levels";
 import { coin, SHOP_IMAGES } from "./shopArtwork";
@@ -39,17 +41,17 @@ const PLAY_SOUNDS: Sound[] = ["drop", "perfect", "miss", "release", "collapse", 
 
 export function homeAssets(): ScreenAssets {
   const a = art();
-  return { images: [coin, districtStreet("oldtown", isTablet()), a.cloudSrc, a.birdSrc, a.hookSrc, a.b1, a.logoSrc, plaqueSrc], sounds: UI_SOUNDS };
+  return { images: [coin, paperSrc, districtStreet("oldtown", isTablet()), a.cloudSrc, a.birdSrc, a.hookSrc, a.b1, a.logoSrc, plaqueSrc], sounds: UI_SOUNDS };
 }
 export function mapAssets(): ScreenAssets {
   const a = art(), t = isTablet();
-  return { images: [a.mapSrc, a.cloudSrc, a.birdSrc, a.logoSrc, plaqueSrc, ...DISTRICTS.flatMap(d => districtFloors(d.id, t))], sounds: UI_SOUNDS };
+  return { images: [paperSrc, contactSrc, a.mapSrc, a.cloudSrc, a.birdSrc, a.logoSrc, plaqueSrc, ...DISTRICTS.flatMap(d => districtFloors(d.id, t))], sounds: UI_SOUNDS };
 }
-export function shopAssets(): ScreenAssets { return { images: SHOP_IMAGES, sounds: ["tap", "music"] }; }
+export function shopAssets(): ScreenAssets { return { images: [...SHOP_IMAGES, paperSrc, districtStreet("oldtown", isTablet())], sounds: ["tap", "music"] }; }
 export function levelAssets(district: DistrictId, extras: string[] = []): ScreenAssets {
   const a = art(), t = isTablet();
   return {
-    images: [coin, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
+    images: [coin, contactSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
       a.birdSrc, a.rainSrc, windSrc, confettiSrc, roofSrc, ambientSrc, ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
@@ -65,5 +67,5 @@ export async function preload(list: ScreenAssets, onProgress?: (p: number) => vo
 export { roofSrc, confettiSrc };
 export function celebrateAssets(from: DistrictId, to: DistrictId | null): ScreenAssets {
   const a = art(), t = isTablet();
-  return { images: [a.mapSrc, a.cloudSrc, a.birdSrc, plaqueSrc, roofSrc, confettiSrc, ...districtFloors(from, t), ...(to ? districtFloors(to, t) : [])], sounds: [...UI_SOUNDS, "clear", "perfect"] };
+  return { images: [paperSrc, contactSrc, a.mapSrc, a.cloudSrc, a.birdSrc, plaqueSrc, roofSrc, confettiSrc, ...districtFloors(from, t), ...(to ? districtFloors(to, t) : [])], sounds: [...UI_SOUNDS, "clear", "perfect"] };
 }

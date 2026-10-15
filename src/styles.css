@@ -341,14 +341,13 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 /* District-complete celebration (painted art only) */
 .celebrate-map { position: absolute; inset: -10%; width: 120%; height: 120%; object-fit: cover; animation: celebrate-pan 9s ease-in-out forwards; filter: saturate(1.05); }
 @keyframes celebrate-pan { from { transform: scale(1.9); } to { transform: scale(1.5) translateY(var(--to-y, 0%)); } }
-.celebrate-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, color-mix(in oklab, var(--hud-bg) 35%, transparent), color-mix(in oklab, var(--game-shell) 55%, transparent) 75%); }
 .celebrate-banner { animation: celebrate-drop 0.7s cubic-bezier(.3,1.6,.5,1) both; }
 @keyframes celebrate-drop { from { transform: translateY(-140%) rotate(-4deg); opacity: 0; } to { transform: none; opacity: 1; } }
 .celebrate-stars { animation: coin-pop 0.5s 0.6s ease-out both; }
-.celebrate-tower { display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 6px 6px var(--hud-shadow)); animation: celebrate-sway 3.2s 2s ease-in-out infinite; transform-origin: 50% 100%; }
+.celebrate-tower { position: relative; display: flex; flex-direction: column; align-items: center; animation: celebrate-sway 3.2s 2s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes celebrate-sway { 0%,100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
-.celebrate-floor { width: 132px; height: 40px; object-fit: cover; margin-top: -1px; animation: celebrate-stack 0.42s cubic-bezier(.3,1.4,.6,1) both; }
-.celebrate-roof { height: 34px; width: 140px; object-fit: contain; }
+.celebrate-floor { width: 100px; height: 59.5px; object-fit: fill; margin-top: -1px; animation: celebrate-stack 0.42s cubic-bezier(.3,1.4,.6,1) both; }
+.celebrate-roof { height: 25px; width: 106px; object-fit: contain; }
 @keyframes celebrate-stack { from { transform: translateY(-60vh); opacity: 0; } 70% { opacity: 1; } to { transform: none; opacity: 1; } }
 .celebrate-card { animation: celebrate-rise 0.6s 1.9s ease-out both; }
 @keyframes celebrate-rise { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -360,3 +359,11 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .celebrate-chip { position: absolute; top: -6%; width: 14px; height: 21px; background-size: 600% 100%; animation: celebrate-fall linear infinite; }
 @keyframes celebrate-fall { from { transform: translateY(0) rotate(0); } to { transform: translateY(115vh) rotate(calc(var(--spin) * 540deg)); } }
 @media (prefers-reduced-motion: reduce) { .celebrate *, .celebrate-map { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; } .celebrate-chip { display: none; } }
+
+/* Cropped pigment from the existing painted sign, never synthetic scenery. */
+.hud-pill, .game-status-bar, .market-round, .market-balance, .market-tabs, .market-item, .market-note, .reward-tile, .level-tile { background-image: url("./assets/painted-paper.webp"); background-size: 100% 100%; }
+.market-art { background: url("./assets/bg-street.webp") center 36% / cover; }
+.map-tower { position: relative; filter: none; }
+.map-tower-contact, .celebrate-contact { position: absolute; bottom: -5px; width: 130%; height: 9px; max-width: none; mix-blend-mode: multiply; opacity: 0.6; pointer-events: none; }
+.map-tower-contact { bottom: -2px; height: 4px; }
+@media (max-height: 760px) { .celebrate-floor { width: 80px; height: 47.6px; } .celebrate-roof { width: 85px; height: 20px; } .celebrate-card { margin-top: 1rem; } }

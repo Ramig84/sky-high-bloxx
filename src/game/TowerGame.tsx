@@ -13,6 +13,7 @@ import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import confettiSrc from "@/assets/painted-confetti.webp";
+import contactSrc from "@/assets/painted-ground-contact.webp";
 import { getImage } from "./preload";
 import { blockSource, craneSource, coin } from "./shopArtwork";
 import { coins, loadLoadout, runReward } from "./wallet";
@@ -37,24 +38,6 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 
 const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
-
-// A contact shadow painted from the scene's own palette. The old contact sprite
-// measured as a pale tan smudge (mean rgb ~137,131,113), so drawing it thin left
-// a bright halo under the building instead of a shadow.
-function paintSoftShadow(ctx: CanvasRenderingContext2D, cx: number, cy: number, halfW: number, halfH: number, strength: number) {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(1, halfH / halfW);
-  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, halfW);
-  g.addColorStop(0, `rgba(41,29,21,${strength})`);
-  g.addColorStop(0.55, `rgba(41,29,21,${strength * 0.55})`);
-  g.addColorStop(1, "rgba(41,29,21,0)");
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(0, 0, halfW, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
 
 export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
@@ -125,6 +108,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const hook = load(hookSrc);
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
     const confetti = load(confettiSrc);
+    const contact = load(contactSrc);
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
     const life = spawnAmbient(district.id, 360);
@@ -320,7 +304,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
       if (ok(img)) {
         // Painted pigment at the join grounds the facade without a picture-frame outline.
-        if (shadow) paintSoftShadow(ctx, 0, BH / 2 - 1, bw * 0.52, 3.5, 0.16);
+        if (shadow && ok(contact)) {
+          ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.22;
+          ctx.drawImage(contact, -bw * 0.52, BH / 2 - 3, bw * 1.04, 6);
+          ctx.restore();
+        }
         // The sprite is authored for this exact rectangle, including its painted side return.
         ctx.drawImage(img, -bw / 2, -BH / 2, bw, BH);
       }
@@ -414,16 +402,12 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
-      // The ground floor sits straight on the painted pavement, held down by a soft
-      // shadow painted from the scene's own palette. Both the separate masonry
-      // plinth and the old contact sprite (a pale smudge, not a shadow) were tried
-      // and both read as pasted-on marks, so they are gone.
+      // Pigment grain shares the pavement's light; multiply avoids a pale halo.
       const gy = toScreenY(0);
-      if (gy < VH + 200) {
-        // The dark core has to fall on the pavement *below* the base line, so the
-        // ellipse centres sit just under it instead of hiding behind the block.
-        paintSoftShadow(ctx, vw / 2, gy + 3, bw * 0.55, 7, 0.55);
-        paintSoftShadow(ctx, vw / 2, gy + 6, bw * 0.95, 16, 0.3);
+      if (gy < VH + 200 && ok(contact)) {
+        ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.6;
+        ctx.drawImage(contact, vw / 2 - bw * 0.72, gy - 3, bw * 1.44, 12);
+        ctx.restore();
       }
 
       for (let i = 0; i < s.floors.length; i++) {
