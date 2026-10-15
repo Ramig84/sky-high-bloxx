@@ -28,7 +28,7 @@
 - Game audio is pre-generated recordings stored as CDN asset pointers in src/assets/audio and mixed through src/game/audio.ts (one Web Audio context), so playback needs no runtime API calls.
 - Every screen is wrapped in Preloader with an asset list from src/game/preload.ts and the canvas reuses its decoded images, so screens never appear half-loaded.
 - Signed-in coins and Market items live in player_profiles and change only through security-definer functions; game coins are granted only by finish_game_run, which validates a start_game_run ticket (single use, minimum time per floor, level goal, daily caps) and recomputes the reward server-side. Prices and reward formulas are duplicated in SQL and src/game/wallet.ts. Guests keep a phone-only wallet imported once on first sign-in.
-- Ad placeholders are isolated test-only dialogs with no reward or provider calls; gameplay pauses through a ref while previews run, so testing placements cannot affect wallets or leaderboard fairness.
+- Real ads run only in the native app via AdMob in src/game/ads.ts (unit IDs and testing flag in one place, app ID in AndroidManifest); web keeps the placeholder dialog, and ads never touch wallets, so swapping test IDs for live ones is a two-spot change.
 - Keep ad eligibility in browser-safe adPlacements logic and recording gain adjustments in audioMix with regression tests, so placement and mixing rules can be checked without running providers or audio devices.
 - Keep completed-run eligibility in browser-safe runPolicy and enforce campaign completion in finish_game_run, so retries never bank unfinished level rewards.
 - Pause gameplay through a separate ref from ad previews, so closing an ad cannot resume a manually paused game.

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AD_PLACEMENTS, type AdPlacement } from "./adPlacements";
+import { nativeAds, showNativeAd } from "./ads";
 
 /** Deliberately no provider calls, wallet writes or gameplay rewards. */
 export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdPlacement; onClose: () => void; onReward?: (() => void) | undefined }) {
@@ -9,7 +10,13 @@ export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdP
   const [stage, setStage] = useState<"offer" | "playing" | "complete">(automatic ? "playing" : "offer");
   const [remaining, setRemaining] = useState(3);
   useEffect(() => {
-    if (stage !== "playing") return;
+    if (stage !== "playing" || !nativeAds()) return;
+    let live = true;
+    showNativeAd(placement).then(ok => { if (!live) return; if (ok) setStage("complete"); else onClose(); }).catch(() => { if (live) setStage("complete"); });
+    return () => { live = false; };
+  }, [stage, placement]);
+  useEffect(() => {
+    if (stage !== "playing" || nativeAds()) return;
     const timer = window.setInterval(() => setRemaining(n => Math.max(0, n - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [stage]);
