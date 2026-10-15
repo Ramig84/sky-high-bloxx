@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -188,12 +189,13 @@ function MissionsPanel({ collector, onBack }: { collector: RefObject<CoinCollect
 function Leaderboard({ onBack }: { onBack: () => void }) {
   const [rows, setRows] = useState<ScoreRow[] | null>(null);
   const [err, setErr] = useState(false);
-  const me = loadSettings().playerId;
-  useEffect(() => { topScores().then(setRows).catch(() => setErr(true)); }, []);
+  const [me, setMe] = useState<string | null>(null);
+  useEffect(() => { topScores().then(setRows).catch(() => setErr(true)); void supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? null)); }, []);
   return (
     <div className="hud-pill w-full max-w-sm gap-2 p-4">
       <span className="text-2xl font-extrabold">Endless leaderboard</span>
       <span className="hud-label">New obstacle every 10 floors: {ENDLESS_STAGES.join(" → ")}</span>
+      {!me && <span className="hud-label">Sign in to post your scores — every score is checked to keep it fair.</span>}
       <ol className="mt-2 flex max-h-[45dvh] flex-col gap-1 overflow-y-auto">
         {err && <li>Couldn't load scores. Check your connection.</li>}
         {!err && !rows && <li>Loading…</li>}
