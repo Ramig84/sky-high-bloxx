@@ -57,6 +57,16 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Apply painted game icon and splash artwork
+        run: |
+          python -m pip install Pillow==11.3.0
+          python scripts/test_android_artwork.py
+          python scripts/android_artwork.py
+
       - name: Update Gradle wrapper
         working-directory: android
         run: |
