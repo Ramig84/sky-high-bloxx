@@ -1,3 +1,5 @@
+import { tourLevel } from "./tour";
+import type { Stars } from "./levels";
 export const WALLET_KEY = "bloxx-coins";
 export const LOADOUT_KEY = "bloxx-loadout";
 
@@ -61,8 +63,5 @@ export function claimDailyReward(now = new Date()): DailyReward {
   return { day, reward, crane, claimed: false };
 }
 
-export function dailyLevel(now = new Date()) {
-  const key = dayKey(now).replaceAll("-", "");
-  let hash = 0; for (const c of key) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-  return hash % 100;
-}
+/** Today's District Tour level; see tour.ts. */
+export function dailyLevel(now = new Date(), stars: Stars = []) { return tourLevel(now, stars); }

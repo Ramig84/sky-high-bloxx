@@ -55,7 +55,7 @@ function Home() {
     return () => window.removeEventListener("pointerdown", onDown);
   }, [menu]);
 
-  if (screen.kind === "home") return <Preloader key="home" assets={homeAssets}><HomeMenu onCampaign={() => setScreen({ kind: "map" })} onDaily={() => setScreen({ kind: "level", level: dailyLevel(), daily: true })} onEndless={() => setScreen({ kind: "endless", run: Date.now() })} onShop={() => setScreen({ kind: "shop" })} onReset={() => setStars([])} /></Preloader>;
+  if (screen.kind === "home") return <Preloader key="home" assets={homeAssets}><HomeMenu onCampaign={() => setScreen({ kind: "map" })} onDaily={() => setScreen({ kind: "level", level: dailyLevel(new Date(), stars), daily: true })} onEndless={() => setScreen({ kind: "endless", run: Date.now() })} onShop={() => setScreen({ kind: "shop" })} onReset={() => setStars([])} /></Preloader>;
   if (screen.kind === "map") return <Preloader key="map" assets={mapAssets}><CityMap stars={stars} focus={lastDistrict} onHome={home} onPlay={level => setScreen({ kind: "level", level })} /></Preloader>;
   if (screen.kind === "shop") return <Preloader key="shop" assets={shopAssets}><Shop onBack={home} /></Preloader>;
   const loadoutAssets = () => { const x = loadLoadout(); return [craneSource(x.crane), blockSource(x.block)].filter((v): v is string => Boolean(v)); };
