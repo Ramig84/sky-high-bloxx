@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 /** Local, immutable game content with same-origin online accounts and ad services. */
 public class MainActivity extends BridgeActivity {
@@ -19,7 +20,14 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(state);
         final JSONObject files;
         try (InputStream stream = getAssets().open("public/native-files.json")) {
-            files = new JSONObject(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+            // InputStream.readAllBytes requires newer Android than our minimum.
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = stream.read(buffer)) != -1) {
+                bytes.write(buffer, 0, count);
+            }
+            files = new JSONObject(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
         } catch (Exception error) {
             throw new IllegalStateException("Packaged game manifest is missing", error);
         }
@@ -46,6 +54,7 @@ public class MainActivity extends BridgeActivity {
             }
         });
         // Reload after installing the client so even the initial document is local.
+        getBridge().getWebView().stopLoading();
         getBridge().getWebView().loadUrl("https://sky-high-bloxx.lovable.app/");
     }
 }
