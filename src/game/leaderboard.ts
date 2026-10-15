@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { lastFinishedRun } from "./account";
 
 export type ScoreRow = { id: string; name: string; score: number; floors: number; player_id: string };
 
@@ -8,8 +9,12 @@ export async function topScores(limit = 50): Promise<ScoreRow[]> {
   return data ?? [];
 }
 
-export async function submitScore(playerId: string, name: string, score: number, floors: number) {
-  if (score <= 0) return;
-  const { error } = await supabase.from("endless_scores").insert({ player_id: playerId, name: name.trim().slice(0, 16) || "Builder", score, floors });
+/** Only signed-in players' server-verified endless runs reach the leaderboard. */
+export async function submitScore(score: number) {
+  if (score <= 0) return false;
+  const run = await lastFinishedRun;
+  if (!run) return false;
+  const { data, error } = await supabase.rpc("submit_endless_score", { _run: run, _score: score });
   if (error) throw error;
+  return Boolean(data);
 }

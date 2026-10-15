@@ -6,7 +6,6 @@ import { CityMap } from "@/game/CityMap";
 import { HomeMenu } from "@/game/HomeMenu";
 import { Shop } from "@/game/Shop";
 import { submitScore } from "@/game/leaderboard";
-import { loadSettings } from "@/game/settings";
 import { DISTRICTS, LEVELS_PER_DISTRICT, TOTAL_LEVELS, levelSpec, loadStars, recordStars, saveStars } from "@/game/levels";
 import { Preloader } from "@/game/Preloader";
 import { DistrictCelebration } from "@/game/DistrictCelebration";
@@ -63,7 +62,7 @@ function Home() {
   if (screen.kind === "endless") return (
     <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id, loadoutAssets())}>
       <TowerGame level={0} endless onMap={home} onComplete={() => {}}
-        onEndlessOver={(score, floors) => { const s = loadSettings(); submitScore(s.playerId, s.name, score, floors).catch(() => {}); void pushProgress(); }} />
+        onEndlessOver={(score, floors) => { void floors; submitScore(score).catch(() => {}); void pushProgress(); }} />
     </Preloader>
   );
   if (screen.kind === "celebrate") {
