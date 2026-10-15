@@ -402,11 +402,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
-      // Pigment grain shares the pavement's light; multiply avoids a pale halo.
+      // Painted contact only exists under a real ground floor; an empty street stays clean.
       const gy = toScreenY(0);
-      if (gy < VH + 200 && ok(contact)) {
-        ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.6;
-        ctx.drawImage(contact, vw / 2 - bw * 0.72, gy - 3, bw * 1.44, 12);
+      if (s.floors.length > 0 && gy < VH + 200 && ok(contact)) {
+        ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.35;
+        ctx.drawImage(contact, vw / 2 - bw * 0.56, gy - 4, bw * 1.12, 8);
         ctx.restore();
       }
 
