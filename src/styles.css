@@ -370,3 +370,7 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .mission-bar { height: 0.55rem; border-radius: 999px; background: var(--hud-shadow); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.25); }
 .mission-bar i { display: block; height: 100%; border-radius: 999px; background: var(--hud-accent); transition: width 0.4s ease; }
 .tour-intro { margin-inline: auto; max-width: 18rem; padding: 0.8rem 1rem; background: var(--hud-bg) url("./assets/painted-paper.webp") center / 100% 100%; color: var(--hud-fg); border: 1px solid var(--hud-edge); border-radius: 6px; box-shadow: 0 4px 14px var(--hud-shadow); }
+.home-topbar { position: absolute; left: 0.9rem; right: 0.9rem; top: max(0.75rem, env(safe-area-inset-top)); z-index: 5; }
+.home-topbar .home-wallet { border-radius: 999px; padding: 0.15rem 0.8rem 0.15rem 0.2rem; background: var(--hud-bg) url("./assets/painted-paper.webp") center / 100% 100%; box-shadow: 0 2px 6px var(--hud-shadow); }
+.home-topbar .home-wallet img { width: 1.8rem; height: 1.8rem; }
+.home-topbar .home-gift { background: var(--hud-bg) url("./assets/painted-paper.webp") center / 100% 100%; }

@@ -56,7 +56,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
   }, []);
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
   useEffect(() => setGift(g => ({ ...g, available: giftAvailable(), day: nextRewardDay() })), []);
-  const [woke, setWoke] = useState(false);
+  const [, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none" onPointerUp={() => setWoke(true)}>
