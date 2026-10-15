@@ -118,6 +118,73 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
   );
 }
 
+function MissionsPanel({ collector, onBack }: { collector: RefObject<CoinCollectorHandle | null>; onBack: () => void }) {
+  const [rows, setRows] = useState<MissionStatus[]>([]);
+  const [busy, setBusy] = useState<MissionKind | null>(null);
+  const target = useRef<HTMLImageElement>(null);
+  const counter = useRef<HTMLElement>(null);
+  const load = () => {
+    if (isSignedIn()) {
+      void missionStatus().then(server => {
+        if (server) setRows(server);
+        else setRows(guestRows());
+      }).catch(() => setRows(guestRows()));
+    } else setRows(guestRows());
+  };
+  const guestRows = (): MissionStatus[] => {
+    const progress = missionProgress(), claimed = missionsClaimed();
+    return missionsForDay().map(m => ({ kind: m.kind, goal: m.goal, reward: m.reward, progress: progress[m.kind], claimed: claimed.includes(m.kind) }));
+  };
+  useEffect(load, []);
+  const claim = (kind: MissionKind, e: React.MouseEvent) => {
+    if (busy) return;
+    setBusy(kind);
+    const before = coins();
+    const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const source = { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+    const done = (reward: number) => {
+      setBusy(null);
+      load();
+      const t = target.current, c = counter.current;
+      if (reward > 0 && t && c && collector.current) collector.current.collect({ source, target: t, counter: c, from: before, to: coins() });
+    };
+    if (isSignedIn()) void claimMission(kind).then(r => done(r && !r.claimed ? r.reward : 0)).catch(() => setBusy(null));
+    else done(claimGuestMission(kind));
+  };
+  return (
+    <div className="hud-pill w-full max-w-sm gap-2 p-4">
+      <span className="text-2xl font-extrabold">Daily missions</span>
+      <span className="hud-label">New missions every day — same for every builder.</span>
+      <div className="reward-wallet self-center" aria-label="Coin balance"><img ref={target} src={coin} alt="" /><strong ref={counter}>{coins().toLocaleString()}</strong></div>
+      <ul className="mt-1 flex w-full flex-col gap-2">
+        {rows.map(m => {
+          const ready = !m.claimed && m.progress >= m.goal;
+          return (
+            <li key={m.kind} className="reward-tile w-full flex-col items-stretch gap-1 p-3 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-extrabold">{MISSION_LABELS[m.kind](m.goal)}</span>
+                <span className="flex items-center gap-1 text-sm font-extrabold"><img src={coin} alt="" className="h-4 w-4" />+{m.reward}</span>
+              </div>
+              <div className="mission-bar" aria-label={`${Math.min(m.progress, m.goal)} of ${m.goal}`}>
+                <i style={{ width: `${Math.min(100, (m.progress / m.goal) * 100)}%` }} />
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="opacity-75">{Math.min(m.progress, m.goal)}/{m.goal}</span>
+                {m.claimed
+                  ? <span className="font-extrabold">✓ Claimed</span>
+                  : ready
+                    ? <Button variant="ghost" className="paper-btn h-8 rounded-full px-4 text-sm font-extrabold" disabled={busy === m.kind} onClick={e => claim(m.kind, e)}>Claim</Button>
+                    : <span className="opacity-60">Keep building</span>}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <Button variant="ghost" className="plaque menu-plaque mt-2 rounded-none text-lg font-extrabold" onClick={onBack}>Back</Button>
+    </div>
+  );
+}
+
 function Leaderboard({ onBack }: { onBack: () => void }) {
   const [rows, setRows] = useState<ScoreRow[] | null>(null);
   const [err, setErr] = useState(false);
