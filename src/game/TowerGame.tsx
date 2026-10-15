@@ -581,7 +581,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           </>}
         </div>
       </div>}
-      {daily && tourIntro && <div className="tour-intro pointer-events-none absolute inset-x-4 top-[22%] z-20 text-center animate-in fade-in zoom-in duration-500"><span className="hud-label">DISTRICT TOUR{tourPreview ? " · PREVIEW" : ""}</span><strong className="block text-2xl">{district.name}</strong><span className="hud-label">{tourPreview ? "A taste of what's ahead — unlock it in the city" : "Triple coins today"}</span></div>}
+      {daily && tourIntro && <div className="tour-intro pointer-events-none absolute inset-x-4 top-[44%] z-20 text-center animate-in fade-in zoom-in duration-500"><span className="hud-label">DISTRICT TOUR{tourPreview ? " · PREVIEW" : ""}</span><strong className="block text-2xl">{district.name}</strong><span className="hud-label">{tourPreview ? "A taste of what's ahead — unlock it in the city" : "Triple coins today"}</span></div>}
       {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
       {hud.over && (
         <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
