@@ -406,13 +406,15 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // building site foundation with a pulsing "build here" glow before the first floor
       const gy = toScreenY(0);
       if (gy < VH + 200 && ok(foundation)) {
-        const fw = bw * 1.12, fh = 7;
+        const fw = bw * 1.12, fh = 13;
         if (ok(paintedContact)) {
-          ctx.globalAlpha = 0.45;
-          ctx.drawImage(paintedContact, vw / 2 - fw * 0.65 - 5, gy - 4, fw * 1.3, 16);
+          // the plinth's own shadow on the pavement, painted before the plinth so
+          // the masonry sits on top of it rather than over it
+          ctx.globalAlpha = 0.35;
+          ctx.drawImage(paintedContact, vw / 2 - fw * 0.7, gy + fh - 7, fw * 1.4, 12);
           ctx.globalAlpha = 1;
         }
-        ctx.drawImage(foundation, vw / 2 - fw / 2, gy, fw, fh);
+        ctx.drawImage(featheredFoundation(foundation, fw, fh), vw / 2 - fw / 2, gy, fw, fh);
       }
 
       for (let i = 0; i < s.floors.length; i++) {
