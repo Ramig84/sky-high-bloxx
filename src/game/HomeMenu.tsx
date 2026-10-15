@@ -1,3 +1,5 @@
+import { isPreview, tomorrowDistrict, tourDistrict } from "./tour";
+import { DISTRICTS, loadStars } from "./levels";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store, ScrollText } from "lucide-react";
@@ -92,8 +94,15 @@ const big = "plaque menu-plaque h-auto w-full justify-start gap-3 rounded-none t
 
 const small = "plaque h-14 rounded-none text-sm font-extrabold";
 
+function useTour() {
+  const [t, setT] = useState({ name: DISTRICTS[tourDistrict()]!.name, tomorrow: DISTRICTS[tomorrowDistrict()]!.name, preview: false });
+  useEffect(() => { const d = tourDistrict(); setT({ name: DISTRICTS[d]!.name, tomorrow: DISTRICTS[tomorrowDistrict()]!.name, preview: isPreview(d, loadStars()) }); }, []);
+  return t;
+}
+
 function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, balance, onGift }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; gift: { available: boolean; day: number; reward: number; crane: boolean }; balance: number; onGift: () => void }) {
   const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
+  const tour = useTour();
   const label = gift.day === 7 ? "crane!" : `+${DAILY_REWARDS[gift.day - 1] ?? 100}`;
   return (
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
@@ -104,7 +113,8 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
         </button>
       </div>
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
-      <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /> Daily challenge<span className="ml-auto text-sm font-semibold">3× coins</span></Button>
+      <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /><span className="flex flex-col items-start leading-tight">District tour<span className="text-xs font-semibold opacity-80">{tour.name}{tour.preview ? " · preview" : ""}</span></span><span className="ml-auto text-sm font-semibold">3× coins</span></Button>
+      <span className="hud-label -mt-1 text-center">Tomorrow: {tour.tomorrow}</span>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
       <div className="grid grid-cols-2 gap-2">
         <Button variant="ghost" className={small} onClick={() => setPanel("missions")}><ScrollText /> Missions</Button>

@@ -78,3 +78,6 @@
 - [x] Review major phone screens and all district paintings; restore painted joins, paper surfaces, Market previews and celebration proportions
 - [ ] Verify final storybook presentation on physical Android phone (blocked: latest APK must be installed)
 - [ ] Re-run the Android build on GitHub after these fixes sync (blocked: GitHub still on the older commit whose packaging step fails)
+- [x] District Tour daily challenge (shared rotating district, preview of locked districts, tomorrow teaser)
+- [x] Leaderboard accepts only signed-in, server-checked Endless runs
+- [ ] District stamps reward for tours (after launch)

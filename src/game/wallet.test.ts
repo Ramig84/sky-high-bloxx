@@ -16,7 +16,7 @@ describe("premium coin economy", () => {
     expect(runReward({ stars: 2, perfects: 5, floors: 20, daily: true })).toBe(normal * 3);
   });
   it("gives every UTC date one shared deterministic level", () => {
-    expect(dailyLevel(new Date("2026-03-01T01:00:00Z"))).toBe(dailyLevel(new Date("2026-03-01T23:00:00Z")));
+    expect(dailyLevel(new Date("2026-03-01T01:00:00Z"), [])).toBe(dailyLevel(new Date("2026-03-01T23:00:00Z"), []));
   });
 });
 

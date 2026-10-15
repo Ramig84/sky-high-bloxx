@@ -1,3 +1,4 @@
+import { LEVELS_PER_DISTRICT as TOUR_LPD, isDistrictUnlocked, loadStars } from "./levels";
 import { useEffect, useRef, useState } from "react";
 import { Star, Map as MapIcon, Volume2, VolumeX, Pause, Play, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
   const goal = baseSpec.goal;
   const endCb = useRef(onEndlessOver); endCb.current = onEndlessOver;
+  const [tourIntro, setTourIntro] = useState(daily);
+  const [tourPreview, setTourPreview] = useState(false);
+  useEffect(() => { if (!daily) return; setTourPreview(!isDistrictUnlocked(loadStars(), Math.floor(levelIndex / TOUR_LPD))); const t = window.setTimeout(() => setTourIntro(false), 2800); return () => window.clearTimeout(t); }, [daily, levelIndex]);
   const bestKey = endless ? "bloxx-endless-best" : "bloxx-best";
   const district = DISTRICTS[baseSpec.district] ?? DISTRICTS[0];
   if (!district) throw new Error("No game districts configured");
@@ -554,7 +558,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         <div className="game-hud pointer-events-none">
           <div className="game-status-bar">
           <div className="game-stat game-score"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
-          <div className="game-stat game-progress"><span className="hud-label">{daily ? "DAILY · 3×" : endless ? "ENDLESS" : `${district.name.toUpperCase()} · ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
+          <div className="game-stat game-progress"><span className="hud-label">{daily ? `TOUR · ${district.name.toUpperCase()}` : endless ? "ENDLESS" : `${district.name.toUpperCase()} · ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
           <div className="game-stat game-lives"><span className="hud-label">LIVES</span><span className="hud-value whitespace-nowrap" aria-label={`${hud.lives} lives`}>{[0, 1, 2].map(i => <span key={i} className={i < hud.lives ? "" : "opacity-20"}>♥</span>)}</span></div>
           <Button variant="ghost" aria-label="Pause game" title="Pause game" disabled={hud.over} className="game-sound pointer-events-auto h-11 w-11 text-foreground !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={pause}>
@@ -577,6 +581,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           </>}
         </div>
       </div>}
+      {daily && tourIntro && <div className="tour-intro pointer-events-none absolute inset-x-4 top-[44%] z-20 text-center animate-in fade-in zoom-in duration-500"><span className="hud-label">DISTRICT TOUR{tourPreview ? " · PREVIEW" : ""}</span><strong className="block text-2xl">{district.name}</strong><span className="hud-label">{tourPreview ? "A taste of what's ahead — unlock it in the city" : "Triple coins today"}</span></div>}
       {hud.msg.trim() && !hud.over && <div key={hud.msgKey} className="msg-pop pointer-events-none absolute inset-x-0 px-2 text-center animate-in fade-in zoom-in duration-300">{hud.msg}</div>}
       {hud.over && (
         <div className="absolute inset-0 flex items-center justify-center bg-game-shell/50 backdrop-blur-sm" onPointerDown={e => e.stopPropagation()}>
@@ -589,7 +594,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             {hud.won && <span className="flex gap-1" aria-label={`${hud.stars} stars`}>{[0, 1, 2].map(k => <Star key={k} className={`h-8 w-8 ${k < hud.stars ? "fill-current" : "opacity-30"}`} />)}</span>}
             {!endless && <span className="hud-label">★ goal · ★ {baseSpec.perfectGoal} perfects · ★ no lives lost</span>}
             {endless && !daily && <span className="hud-label">SCORE SENT TO LEADERBOARD</span>}
-            {daily && <span className="hud-label">TODAY'S SHARED TOWER · TRIPLE REWARD</span>}
+            {daily && <span className="hud-label">{tourPreview ? `UNLOCK ${district.name.toUpperCase()} IN THE CITY CAMPAIGN` : "TODAY'S DISTRICT TOUR · TRIPLE REWARD"}</span>}
             <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
             <span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()} coins</span></span>
             <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>

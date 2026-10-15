@@ -290,6 +290,7 @@ export type Database = {
         Args: { _run: string; _score: number }
         Returns: boolean
       }
+      tour_district_for: { Args: { _day: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
