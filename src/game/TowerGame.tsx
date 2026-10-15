@@ -40,6 +40,32 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
 
+// The painted plinth strip is cut square at both ends, which reads as a loose
+// plank lying across the pavement. Feathering its ends lets the masonry melt
+// into the painted street instead of ending in a hard line.
+const featheredPlinth = new Map<string, HTMLCanvasElement>();
+function featheredFoundation(img: HTMLImageElement, w: number, h: number) {
+  const key = `${img.src}|${Math.round(w)}x${Math.round(h)}`;
+  const cached = featheredPlinth.get(key);
+  if (cached) return cached;
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(w));
+  c.height = Math.max(1, Math.round(h));
+  const g = c.getContext("2d");
+  if (!g) return img;
+  g.drawImage(img, 0, 0, c.width, c.height);
+  const fade = g.createLinearGradient(0, 0, c.width, 0);
+  fade.addColorStop(0, "rgba(0,0,0,0)");
+  fade.addColorStop(0.14, "rgba(0,0,0,1)");
+  fade.addColorStop(0.86, "rgba(0,0,0,1)");
+  fade.addColorStop(1, "rgba(0,0,0,0)");
+  g.globalCompositeOperation = "destination-in";
+  g.fillStyle = fade;
+  g.fillRect(0, 0, c.width, c.height);
+  featheredPlinth.set(key, c);
+  return c;
+}
+
 export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
   const goal = baseSpec.goal;
