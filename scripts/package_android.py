@@ -27,7 +27,7 @@ def package(client=Path("dist/client"), android=Path("android")):
             raise RuntimeError("Unsafe media path")
         output = target / relative
         output.parent.mkdir(parents=True, exist_ok=True)
-        with urlopen(ORIGIN + asset["url"], timeout=60) as response:
+        with urlopen(Request(ORIGIN + asset["url"], headers={"User-Agent": USER_AGENT}), timeout=60) as response:
             data = response.read()
             if response.status != 200 or not data:
                 raise RuntimeError(f"Media download failed: {pointer.name}")
