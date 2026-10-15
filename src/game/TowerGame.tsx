@@ -191,6 +191,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     }
     const publish = (msg = "") => setHud(h => ({ score: s.score, floors: s.floors.length, lives: s.lives, combo: s.combo, best: s.best, over: s.over, won: s.won, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, coins: h.coins, msg, msgKey: h.msgKey + 1 }));
     const awardRun = () => { const earned = runReward({ stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0, perfects: s.perfects, floors: s.floors.length, endless, daily }); const stats = { floors: s.floors.length, perfects: s.perfects, stars: s.won ? starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives) : 0 };
+      recordRun(stats);
       const t = ticket; ticket = Promise.resolve(null);
       const generation = runGeneration.current;
       void finishRun(t, stats, earned).then(got => {
