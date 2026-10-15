@@ -1,16 +1,18 @@
 // Painted district-complete celebration: the cleared district's tower rises, paper confetti falls, the next district unlocks.
 import { useEffect, useMemo } from "react";
 import { Lock, LockOpen, Star } from "lucide-react";
-import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
+import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, districtGoal, districtStars, LEVELS_PER_DISTRICT, type Stars } from "./levels";
 import { confettiSrc, roofSrc } from "./preload";
 import { sfx } from "./audio";
+import contactSrc from "@/assets/painted-ground-contact.webp";
 
 const isTablet = () => window.matchMedia("(min-width: 600px)").matches;
 
 export function DistrictCelebration({ district, stars, onNext, onMap }: { district: number; stars: Stars; onNext?: (() => void) | undefined; onMap: () => void }) {
   const a = isTablet() ? tabletArtwork : phoneArtwork;
-  const done = DISTRICTS[district]!, next = DISTRICTS[district + 1] ?? null;
+  const done = DISTRICTS[district], next = DISTRICTS[district + 1] ?? null;
+  if (!done) throw new Error("Unknown celebration district");
   const tiles = districtFloors(done.id, isTablet());
   const nextTiles = next ? districtFloors(next.id, isTablet()) : null;
   const st = districtStars(stars, district);
@@ -24,8 +26,7 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
 
   return (
     <main className="celebrate fixed inset-0 overflow-hidden bg-game-shell">
-      <img src={a.mapSrc} alt="" aria-hidden className="celebrate-map" style={{ transformOrigin: `${done.mapX}% ${done.mapY}%`, ["--to-y" as string]: `${(done.mapY - (next?.mapY ?? done.mapY)) * 1.4}%` }} />
-      <div className="celebrate-glow" aria-hidden />
+      <img src={districtStreet(done.id, isTablet())} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
       {[0, 1].map(i => <img key={i} src={a.cloudSrc} alt="" aria-hidden className="map-cloud" style={{ top: `${12 + i * 46}%`, animationDelay: `${-i * 15}s`, animationDuration: `${34 + i * 8}s` }} />)}
       <div className="map-bird-path" style={{ top: "22%" }} aria-hidden><div className="map-bird" style={{ backgroundImage: `url(${a.birdSrc})` }} /></div>
 
@@ -39,10 +40,11 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
         </div>
 
         <div className="celebrate-tower mt-auto" aria-label={`${done.name} tower`}>
-          <img src={roofSrc} alt="" className="celebrate-floor celebrate-roof" style={{ animationDelay: `${0.25 + 7 * 0.18}s` }} />
-          {Array.from({ length: 7 }, (_, k) => 6 - k).map(k => (
+          <img src={roofSrc} alt="" className="celebrate-floor celebrate-roof" style={{ animationDelay: `${0.25 + 5 * 0.18}s` }} />
+          {Array.from({ length: 5 }, (_, k) => 4 - k).map(k => (
             <img key={k} src={k === 0 ? tiles[3] : tiles[(k - 1) % 3]} alt="" className="celebrate-floor" style={{ animationDelay: `${0.25 + k * 0.18}s` }} />
           ))}
+          <img src={contactSrc} alt="" className="celebrate-contact" />
         </div>
 
         <div className="hud-pill celebrate-card mt-6 w-full gap-2 p-4">

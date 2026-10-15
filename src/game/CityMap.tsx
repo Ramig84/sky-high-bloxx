@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Lock, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import contactSrc from "@/assets/painted-ground-contact.webp";
 import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, LEVELS_PER_DISTRICT, districtCleared, districtStars, isDistrictUnlocked as lockedDistrict, isLevelUnlocked as lockedLevel, levelSpec, type DistrictId, type Stars } from "./levels";
 
@@ -15,6 +16,7 @@ function MiniTower({ id, stars }: { id: DistrictId; stars: number }) {
       {Array.from({ length: count }, (_, k) => count - 1 - k).map(k => (
         <img key={k} src={k === 0 ? tiles[3] : tiles[(k - 1) % 3]} alt="" className="map-tower-floor" style={{ animationDelay: `${k * 90}ms` }} />
       ))}
+      <img src={contactSrc} alt="" className="map-tower-contact" />
     </div>
   );
 }

@@ -18,7 +18,7 @@ export function Preloader({ assets, children }: { assets: () => ScreenAssets; ch
     <div className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-game-shell" role="status" aria-label="Loading">
       <img src={phoneArtwork.logoSrc} alt="Sky Bloxx" className="w-56 drop-shadow-md" />
       <div className="hud-pill h-4 w-56 overflow-hidden p-0">
-        <div className="h-full bg-hud-accent transition-[width] duration-200" style={{ width: `${Math.round(progress * 100)}%` }} />
+        <div className="plaque h-full transition-[width] duration-200" style={{ width: `${Math.round(progress * 100)}%` }} />
       </div>
     </div>
   );

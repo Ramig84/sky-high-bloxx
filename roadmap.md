@@ -74,5 +74,7 @@
 - [x] Apply the painted game icon as Android launcher, adaptive and splash artwork at all densities
 - [x] Bundle every game picture, sound and page inside the Android build (197 files, 6.6 MB) while accounts, scores and ads stay online
 - [x] Build the legal pages into the packaged site so the Android content step completes
-- [x] Paint a soft contact shadow under the tower base; drop unused footing and contact artwork
+- [x] Restore painted contact pigment at tower joins; remove synthetic grounding shadows
+- [x] Review major phone screens and all district paintings; restore painted joins, paper surfaces, Market previews and celebration proportions
+- [ ] Verify final storybook presentation on physical Android phone (blocked: latest APK must be installed)
 - [ ] Re-run the Android build on GitHub after these fixes sync (blocked: GitHub still on the older commit whose packaging step fails)
