@@ -21,6 +21,7 @@ export type Database = {
           id: string
           name: string
           player_id: string
+          run_id: string | null
           score: number
         }
         Insert: {
@@ -29,6 +30,7 @@ export type Database = {
           id?: string
           name: string
           player_id: string
+          run_id?: string | null
           score: number
         }
         Update: {
@@ -37,6 +39,7 @@ export type Database = {
           id?: string
           name?: string
           player_id?: string
+          run_id?: string | null
           score?: number
         }
         Relationships: []
@@ -282,6 +285,10 @@ export type Database = {
       start_game_run: {
         Args: { _level: number; _mode: string }
         Returns: string
+      }
+      submit_endless_score: {
+        Args: { _run: string; _score: number }
+        Returns: boolean
       }
     }
     Enums: {
