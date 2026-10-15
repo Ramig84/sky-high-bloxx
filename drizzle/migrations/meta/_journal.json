@@ -64,6 +64,13 @@
       "when": 1792053706323,
       "tag": "0008_verified_endless_scores",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792054023414,
+      "tag": "0009_district_tour_daily",
+      "breakpoints": true
     }
   ]
 }
