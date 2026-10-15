@@ -80,6 +80,27 @@ export type Database = {
         }
         Relationships: []
       }
+      mission_claims: {
+        Row: {
+          claimed_at: string
+          day: string
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          day: string
+          kind: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          day?: string
+          kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_profiles: {
         Row: {
           block: string
@@ -194,6 +215,7 @@ export type Database = {
       claim_daily_gift: { Args: never; Returns: Json }
       claim_daily_reward: { Args: never; Returns: Json }
       claim_daily_streak: { Args: never; Returns: Json }
+      claim_mission: { Args: { _kind: string }; Returns: Json }
       daily_level_for: { Args: { _day: string }; Returns: number }
       ensure_player_profile: {
         Args: never
@@ -256,6 +278,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      mission_status: { Args: never; Returns: Json }
       start_game_run: {
         Args: { _level: number; _mode: string }
         Returns: string
