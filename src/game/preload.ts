@@ -1,8 +1,6 @@
 // Loads and decodes every image/sound a screen needs before it is shown, so screens appear complete at once.
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
-import paintedContactSrc from "@/assets/painted-contact.webp";
-import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import windSrc from "@/assets/wind-poses.png";
 import plaqueSrc from "@/assets/ui-plaque.webp";
@@ -52,7 +50,7 @@ export function levelAssets(district: DistrictId, extras: string[] = []): Screen
   const a = art(), t = isTablet();
   return {
     images: [coin, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
-      a.birdSrc, a.rainSrc, windSrc, footingSrc, paintedContactSrc, confettiSrc, roofSrc, ambientSrc, ...extras],
+      a.birdSrc, a.rainSrc, windSrc, confettiSrc, roofSrc, ambientSrc, ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
 }

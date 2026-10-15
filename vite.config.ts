@@ -10,7 +10,10 @@ export default defineConfig({
   tanstackStart: {
     // Android packages these public documents and the client bundle; online
     // server functions remain on the published same-origin service.
-    pages: ["/", "/privacy", "/terms", "/delete-account"].map(path => ({ path, prerender: { enabled: true } })),
+    // maxRedirects: the server normalises "/privacy/" to "/privacy", and the build
+    // wrapper defaults to following zero redirects, which silently skips every page
+    // except the home screen. Five hops lets all four documents prerender.
+    pages: ["/", "/privacy", "/terms", "/delete-account"].map(path => ({ path, prerender: { enabled: true, maxRedirects: 5 } })),
     prerender: { enabled: true, autoStaticPathsDiscovery: false, crawlLinks: false, failOnError: true },
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

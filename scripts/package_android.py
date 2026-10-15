@@ -3,7 +3,14 @@ import json
 import mimetypes
 import shutil
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
+
+# The media CDN rejects Python's default "Python-urllib/3.x" user agent with 403.
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+
+# Resolve project paths from this script so the packager works from any folder.
+ROOT = Path(__file__).resolve().parents[1]
+MAIN_ACTIVITY = Path(__file__).resolve().parent / "android/MainActivity.java"
 from concurrent.futures import ThreadPoolExecutor
 
 ORIGIN = "https://sky-high-bloxx.lovable.app"
@@ -24,7 +31,7 @@ def package(client=Path("dist/client"), android=Path("android")):
             raise RuntimeError("Unsafe media path")
         output = target / relative
         output.parent.mkdir(parents=True, exist_ok=True)
-        with urlopen(ORIGIN + asset["url"], timeout=60) as response:
+        with urlopen(Request(ORIGIN + asset["url"], headers={"User-Agent": USER_AGENT}), timeout=60) as response:
             data = response.read()
             if response.status != 200 or not data:
                 raise RuntimeError(f"Media download failed: {pointer.name}")
@@ -33,7 +40,7 @@ def package(client=Path("dist/client"), android=Path("android")):
         output.write_bytes(data)
         return len(data)
 
-    pointers = list(Path("src/assets").rglob("*.asset.json"))
+    pointers = list((ROOT / "src/assets").rglob("*.asset.json"))
     with ThreadPoolExecutor(max_workers=6) as pool:
         total = sum(pool.map(download, pointers))
     manifest = {}
@@ -55,7 +62,7 @@ def package(client=Path("dist/client"), android=Path("android")):
     java = android / "app/src/main/java/app/lovable/skyhighbloxx/MainActivity.java"
     if not java.is_file():
         raise RuntimeError("Generated Android package path is unexpected")
-    shutil.copyfile("scripts/android/MainActivity.java", java)
+    shutil.copyfile(MAIN_ACTIVITY, java)
     print(f"Packaged {len(manifest)} URLs including {len(pointers)} CDN files ({total:,} bytes); APIs remain online")
 
 

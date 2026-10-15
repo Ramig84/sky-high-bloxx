@@ -71,3 +71,8 @@
 - [x] Privacy policy, terms, delete account
 - [x] Districts locked for release; district-complete celebration added
 - [x] Run signed Android build (signed sky-bloxx-release-aab produced using saved GitHub keys)
+- [x] Apply the painted game icon as Android launcher, adaptive and splash artwork at all densities
+- [x] Bundle every game picture, sound and page inside the Android build (197 files, 6.6 MB) while accounts, scores and ads stay online
+- [x] Build the legal pages into the packaged site so the Android content step completes
+- [x] Paint a soft contact shadow under the tower base; drop unused footing and contact artwork
+- [ ] Re-run the Android build on GitHub after these fixes sync (blocked: GitHub still on the older commit whose packaging step fails)
