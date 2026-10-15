@@ -19,6 +19,7 @@ import { getImage } from "./preload";
 import { blockSource, craneSource, coin } from "./shopArtwork";
 import { coins, loadLoadout, runReward } from "./wallet";
 import { finishRun, startRun } from "./account";
+import { recordRun } from "./missions";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
