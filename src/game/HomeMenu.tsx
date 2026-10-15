@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store } from "lucide-react";
+import { CalendarDays, Gift, Map as MapIcon, Infinity as InfinityIcon, Trophy, Settings as Cog, Store, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { sfx, setMusic, currentMusic } from "./audio";
@@ -10,11 +10,12 @@ import { ENDLESS_STAGES } from "./endless";
 import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
-import { ACCOUNT_EVENT, claimGift, isSignedIn, signIn, signOut } from "./account";
+import { ACCOUNT_EVENT, claimGift, claimMission, isSignedIn, missionStatus, signIn, signOut, type MissionStatus } from "./account";
+import { MISSION_LABELS, claimGuestMission, missionProgress, missionsClaimed, missionsForDay, type MissionKind } from "./missions";
 import { AdPlacementTests } from "./AdPlaceholder";
 import { deleteMyAccount } from "./account.functions";
 
-type Panel = "home" | "leaderboard" | "settings";
+type Panel = "home" | "leaderboard" | "settings" | "missions";
 
 export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; onReset: () => void }) {
   const [panel, setPanel] = useState<Panel>("home");
