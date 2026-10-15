@@ -592,17 +592,25 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             </picture>
             <span className="text-3xl font-extrabold">{hud.won ? "Level clear!" : endless ? "Tower down!" : "Game Over"}</span>
             {hud.won && <span className="flex gap-1" aria-label={`${hud.stars} stars`}>{[0, 1, 2].map(k => <Star key={k} className={`h-8 w-8 ${k < hud.stars ? "fill-current" : "opacity-30"}`} />)}</span>}
-            {!endless && <span className="hud-label">★ goal · ★ {baseSpec.perfectGoal} perfects · ★ no lives lost</span>}
-            {endless && !daily && <span className="hud-label">SCORE SENT TO LEADERBOARD</span>}
-            {daily && <span className="hud-label">{tourPreview ? `UNLOCK ${district.name.toUpperCase()} IN THE CITY CAMPAIGN` : "TODAY'S DISTRICT TOUR · TRIPLE REWARD"}</span>}
-            <span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span>
-            <span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()} coins</span></span>
-            <span className="hud-label">BEST {hud.best} · {hud.floors} FLOORS</span>
-            {!hud.won && !endless && <span className="text-xs text-center">Level unfinished · coins not banked</span>}
-            {!endless && extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => openAd("extra-life")}>+1 life · Test ad</Button>}
-            <Button variant="ghost" className="paper-btn mt-2 h-auto rounded-full px-8 py-3 text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
-            {hud.won && <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={() => api.current.restart()}>Replay</Button>}
-            <Button variant="ghost" className="paper-btn h-auto rounded-full px-6 py-2 text-base" onClick={onMap}><MapIcon className="h-4 w-4" /> {endless ? "Home" : "City map"}</Button>
+            {!endless && !hud.won && <span className="hud-label text-center">★ goal · ★ {baseSpec.perfectGoal} perfects · ★ no lives lost</span>}
+            <div className="over-stats">
+              <div><span className="hud-label">SCORE</span><span className="hud-value">{hud.score}</span></div>
+              <div><span className="hud-label">COINS</span><span ref={rewardSource} className="coin-reward" aria-label={`+${hud.coins} coins`}><img src={coin} alt="" className="coin-reward-icon" /><span>+{hud.coins.toLocaleString()}</span></span></div>
+            </div>
+            <span className="hud-label text-center">{[
+              `BEST ${hud.best} · ${hud.floors} FLOORS`,
+              endless && !daily ? "SCORE SENT TO LEADERBOARD" : "",
+              daily ? (tourPreview ? `UNLOCK ${district.name.toUpperCase()} IN THE CITY` : "DISTRICT TOUR · 3× COINS") : "",
+              !hud.won && !endless ? "COINS NOT BANKED" : "",
+            ].filter(Boolean).join(" · ")}</span>
+            <div className="mt-1 flex w-full flex-col gap-2">
+              {!endless && extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none text-base font-extrabold" onClick={() => openAd("extra-life")}><Heart className="h-5 w-5" /> Watch ad · +1 life</Button>}
+              <Button variant="ghost" className="plaque menu-plaque h-14 w-full rounded-none text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>
+              <div className="grid grid-cols-2 gap-2">
+                {hud.won && <Button variant="ghost" className="plaque h-12 rounded-none font-extrabold" onClick={() => api.current.restart()}><RotateCcw className="h-4 w-4" /> Replay</Button>}
+                <Button variant="ghost" className={`plaque h-12 rounded-none font-extrabold ${hud.won ? "" : "col-span-2"}`} onClick={onMap}><MapIcon className="h-4 w-4" /> {endless || daily ? "Home" : "City map"}</Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
