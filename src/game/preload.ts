@@ -5,6 +5,7 @@ import confettiSrc from "@/assets/painted-confetti.webp";
 import windSrc from "@/assets/wind-poses.png";
 import plaqueSrc from "@/assets/ui-plaque.webp";
 import contactSrc from "@/assets/painted-ground-contact.webp";
+import footingSrc from "@/assets/storybook-footing.webp";
 import paperSrc from "@/assets/painted-paper.webp";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, type DistrictId } from "./levels";
@@ -51,7 +52,7 @@ export function shopAssets(): ScreenAssets { return { images: [...SHOP_IMAGES, p
 export function levelAssets(district: DistrictId, extras: string[] = []): ScreenAssets {
   const a = art(), t = isTablet();
   return {
-    images: [coin, contactSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
+    images: [coin, contactSrc, footingSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
       a.birdSrc, a.rainSrc, windSrc, confettiSrc, roofSrc, ambientSrc, ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
