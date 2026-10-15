@@ -14,6 +14,7 @@ import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } 
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import contactSrc from "@/assets/painted-ground-contact.webp";
+import footingSrc from "@/assets/storybook-footing.webp";
 import { getImage } from "./preload";
 import { blockSource, craneSource, coin } from "./shopArtwork";
 import { coins, loadLoadout, runReward } from "./wallet";
@@ -38,6 +39,25 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 
 const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
+
+// The painted stone plinth fades out at its ends so it melts into the street painting.
+const featheredPlinth = new Map<string, HTMLCanvasElement>();
+function featheredFoundation(img: HTMLImageElement, w: number, h: number): CanvasImageSource {
+  const key = `${img.src}|${Math.round(w)}x${Math.round(h)}`;
+  const cached = featheredPlinth.get(key);
+  if (cached) return cached;
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(w * 2)); c.height = Math.max(1, Math.round(h * 2));
+  const g = c.getContext("2d");
+  if (!g) return img;
+  g.drawImage(img, 0, 0, c.width, c.height);
+  const fade = g.createLinearGradient(0, 0, c.width, 0);
+  fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(0.1, "rgba(0,0,0,1)");
+  fade.addColorStop(0.9, "rgba(0,0,0,1)"); fade.addColorStop(1, "rgba(0,0,0,0)");
+  g.globalCompositeOperation = "destination-in"; g.fillStyle = fade; g.fillRect(0, 0, c.width, c.height);
+  featheredPlinth.set(key, c);
+  return c;
+}
 
 export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
@@ -108,7 +128,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const hook = load(hookSrc);
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
     const confetti = load(confettiSrc);
-    const contact = load(contactSrc);
+    const contact = load(contactSrc), footing = load(footingSrc);
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
     const life = spawnAmbient(district.id, 360);
@@ -402,12 +422,17 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
-      // Painted contact only exists under a real ground floor; an empty street stays clean.
+      // Painted stone plinth (same width as the physics foundation) set into the pavement,
+      // with its own soft painted shadow underneath so the masonry sits in the street.
       const gy = toScreenY(0);
-      if (s.floors.length > 0 && gy < VH + 200 && ok(contact)) {
-        ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.35;
-        ctx.drawImage(contact, vw / 2 - bw * 0.56, gy - 4, bw * 1.12, 8);
-        ctx.restore();
+      if (gy < VH + 200 && ok(footing)) {
+        const fw = bw * 1.12, fh = 13;
+        if (ok(contact)) {
+          ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.35;
+          ctx.drawImage(contact, vw / 2 - fw * 0.7, gy + fh - 7, fw * 1.4, 12);
+          ctx.restore();
+        }
+        ctx.drawImage(featheredFoundation(footing, fw, fh), vw / 2 - fw / 2, gy, fw, fh);
       }
 
       for (let i = 0; i < s.floors.length; i++) {
