@@ -1,9 +1,11 @@
 # Sky Bloxx — Android (Play Store)
 
-The Android app is a Capacitor shell that loads the published game
-(`https://sky-high-bloxx.lovable.app`). Because coins, accounts and the
-leaderboard live in the cloud, the installed app needs internet — same as
-the web version.
+The Android app bundles the game code, paintings, music and sound effects.
+GitHub builds the client game and downloads its CDN media during packaging.
+The installed game serves these files locally under the published game origin;
+accounts, coins, leaderboard and future ad providers still use the internet.
+Game-code and artwork changes require a new APK/AAB, while online service
+changes require publishing. Keep the published service current before release.
 
 ## Everything happens on GitHub — no coding needed
 

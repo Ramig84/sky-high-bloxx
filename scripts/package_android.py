@@ -1,0 +1,63 @@
+"""Assemble client build + CDN media into Android assets, without moving server code."""
+import json
+import mimetypes
+import shutil
+from pathlib import Path
+from urllib.request import urlopen
+from concurrent.futures import ThreadPoolExecutor
+
+ORIGIN = "https://sky-high-bloxx.lovable.app"
+
+
+def package(client=Path("dist/client"), android=Path("android")):
+    if not (client / "index.html").is_file():
+        raise RuntimeError("Client prerender index.html missing; cannot ship an online-only wrapper")
+    target = android / "app/src/main/assets/public"
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(client, target)
+
+    def download(pointer):
+        asset = json.loads(pointer.read_text())
+        relative = asset["url"].lstrip("/")
+        if ".." in Path(relative).parts:
+            raise RuntimeError("Unsafe media path")
+        output = target / relative
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with urlopen(ORIGIN + asset["url"], timeout=60) as response:
+            data = response.read()
+            if response.status != 200 or not data:
+                raise RuntimeError(f"Media download failed: {pointer.name}")
+            if len(data) != asset["size"]:
+                raise RuntimeError(f"Media size mismatch: {pointer.name}")
+        output.write_bytes(data)
+        return len(data)
+
+    pointers = list(Path("src/assets").rglob("*.asset.json"))
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        total = sum(pool.map(download, pointers))
+    manifest = {}
+    for file in target.rglob("*"):
+        if not file.is_file():
+            continue
+        relative = file.relative_to(target).as_posix()
+        mime = mimetypes.guess_type(relative)[0] or "application/octet-stream"
+        entry = {"file": relative, "mime": mime}
+        manifest["/" + relative] = entry
+        if relative.endswith("index.html"):
+            route = "/" + relative.removesuffix("index.html").rstrip("/")
+            manifest[route] = entry
+            manifest[route.rstrip("/") + "/"] = entry
+    for route in ("/", "/privacy", "/terms", "/delete-account"):
+        if route not in manifest:
+            raise RuntimeError(f"Missing packaged screen: {route}")
+    (target / "native-files.json").write_text(json.dumps(manifest, sort_keys=True))
+    java = android / "app/src/main/java/app/lovable/skyhighbloxx/MainActivity.java"
+    if not java.is_file():
+        raise RuntimeError("Generated Android package path is unexpected")
+    shutil.copyfile("scripts/android/MainActivity.java", java)
+    print(f"Packaged {len(manifest)} URLs including {len(pointers)} CDN files ({total:,} bytes); APIs remain online")
+
+
+if __name__ == "__main__":
+    package()

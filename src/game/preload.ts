@@ -8,7 +8,7 @@ import windSrc from "@/assets/wind-poses.png";
 import plaqueSrc from "@/assets/ui-plaque.webp";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, type DistrictId } from "./levels";
-import { SHOP_IMAGES } from "./shopArtwork";
+import { coin, SHOP_IMAGES } from "./shopArtwork";
 import { DISTRICT_MUSIC, preloadSounds, type Sound } from "./audio";
 
 const cache = new Map<string, HTMLImageElement>();
@@ -41,7 +41,7 @@ const PLAY_SOUNDS: Sound[] = ["drop", "perfect", "miss", "release", "collapse", 
 
 export function homeAssets(): ScreenAssets {
   const a = art();
-  return { images: [districtStreet("oldtown", isTablet()), a.cloudSrc, a.birdSrc, a.hookSrc, a.b1, a.logoSrc, plaqueSrc], sounds: UI_SOUNDS };
+  return { images: [coin, districtStreet("oldtown", isTablet()), a.cloudSrc, a.birdSrc, a.hookSrc, a.b1, a.logoSrc, plaqueSrc], sounds: UI_SOUNDS };
 }
 export function mapAssets(): ScreenAssets {
   const a = art(), t = isTablet();
@@ -51,7 +51,7 @@ export function shopAssets(): ScreenAssets { return { images: SHOP_IMAGES, sound
 export function levelAssets(district: DistrictId, extras: string[] = []): ScreenAssets {
   const a = art(), t = isTablet();
   return {
-    images: [...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
+    images: [coin, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
       a.birdSrc, a.rainSrc, windSrc, footingSrc, paintedContactSrc, confettiSrc, roofSrc, ambientSrc, ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };

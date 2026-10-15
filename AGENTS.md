@@ -33,3 +33,4 @@
 - Keep completed-run eligibility in browser-safe runPolicy and enforce campaign completion in finish_game_run, so retries never bank unfinished level rewards.
 - Pause gameplay through a separate ref from ad previews, so closing an ad cannot resume a manually paused game.
 - Derive browser and native Android launcher/adaptive icons and launch screens from the same painted game-icon master; apply scripts/android_artwork.py after Capacitor sync and before packaging, so generated Android defaults cannot replace game identity.
+- Android packages prerendered public documents, the full client build and CDN media through scripts/package_android.py; an exact-path native manifest serves only immutable game files at the published origin while API/auth/ad traffic remains online, preserving same-origin security and avoiding mixed game revisions.

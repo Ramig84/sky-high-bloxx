@@ -1,12 +1,12 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 // Sky Bloxx Android wrapper.
-// The game is a live online app (cloud saves, coins, leaderboard), so the
-// native shell loads the published app URL and requires internet.
+// Android serves packaged game documents/media under this online origin via
+// MainActivity's exact-path manifest. Accounts, scores and ads stay online.
 const config: CapacitorConfig = {
   appId: "app.lovable.skyhighbloxx",
   appName: "Sky Bloxx",
-  // Placeholder web assets — the real content comes from server.url below.
+  // CI replaces generated Android web assets with dist/client + CDN media.
   webDir: "public",
   server: {
     url: "https://sky-high-bloxx.lovable.app",
