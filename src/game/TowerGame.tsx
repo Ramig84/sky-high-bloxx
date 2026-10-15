@@ -12,7 +12,6 @@ import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
-import paintedContactSrc from "@/assets/painted-contact.webp";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import { getImage } from "./preload";
 import { blockSource, craneSource, coin } from "./shopArtwork";
@@ -125,7 +124,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc);
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
-    const paintedContact = load(paintedContactSrc);
     const confetti = load(confettiSrc);
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
