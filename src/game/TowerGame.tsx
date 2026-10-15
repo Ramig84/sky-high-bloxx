@@ -13,7 +13,6 @@ import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import paintedContactSrc from "@/assets/painted-contact.webp";
-import footingSrc from "@/assets/storybook-footing.png";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import { getImage } from "./preload";
 import { blockSource, craneSource, coin } from "./shopArtwork";
@@ -39,32 +38,6 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 
 const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
-
-// The painted plinth strip is cut square at both ends, which reads as a loose
-// plank lying across the pavement. Feathering its ends lets the masonry melt
-// into the painted street instead of ending in a hard line.
-const featheredPlinth = new Map<string, HTMLCanvasElement>();
-function featheredFoundation(img: HTMLImageElement, w: number, h: number) {
-  const key = `${img.src}|${Math.round(w)}x${Math.round(h)}`;
-  const cached = featheredPlinth.get(key);
-  if (cached) return cached;
-  const c = document.createElement("canvas");
-  c.width = Math.max(1, Math.round(w));
-  c.height = Math.max(1, Math.round(h));
-  const g = c.getContext("2d");
-  if (!g) return img;
-  g.drawImage(img, 0, 0, c.width, c.height);
-  const fade = g.createLinearGradient(0, 0, c.width, 0);
-  fade.addColorStop(0, "rgba(0,0,0,0)");
-  fade.addColorStop(0.14, "rgba(0,0,0,1)");
-  fade.addColorStop(0.86, "rgba(0,0,0,1)");
-  fade.addColorStop(1, "rgba(0,0,0,0)");
-  g.globalCompositeOperation = "destination-in";
-  g.fillStyle = fade;
-  g.fillRect(0, 0, c.width, c.height);
-  featheredPlinth.set(key, c);
-  return c;
-}
 
 export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
@@ -133,7 +106,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const skins = premiumBlock ? [load(premiumBlock), load(premiumBlock), load(premiumBlock), load(bg0)] : [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc);
-    const crane = load(craneSource(loadout.crane)), foundation = load(footingSrc), cloud = load(cloudSrc), bird = load(birdSrc);
+    const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
     const paintedContact = load(paintedContactSrc);
     const confetti = load(confettiSrc);
     const roof = load(roofSrc);
@@ -429,18 +402,14 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
-      // building site foundation with a pulsing "build here" glow before the first floor
+      // The ground floor sits straight on the painted pavement, held down by a soft
+      // contact shadow. A separate masonry plinth was tried and always read as a
+      // plank pasted across the street, so it is gone.
       const gy = toScreenY(0);
-      if (gy < VH + 200 && ok(foundation)) {
-        const fw = bw * 1.12, fh = 13;
-        if (ok(paintedContact)) {
-          // the plinth's own shadow on the pavement, painted before the plinth so
-          // the masonry sits on top of it rather than over it
-          ctx.globalAlpha = 0.35;
-          ctx.drawImage(paintedContact, vw / 2 - fw * 0.7, gy + fh - 7, fw * 1.4, 12);
-          ctx.globalAlpha = 1;
-        }
-        ctx.drawImage(featheredFoundation(foundation, fw, fh), vw / 2 - fw / 2, gy, fw, fh);
+      if (gy < VH + 200 && ok(paintedContact)) {
+        ctx.globalAlpha = 0.4;
+        ctx.drawImage(paintedContact, vw / 2 - bw * 0.8, gy - 4, bw * 1.6, 14);
+        ctx.globalAlpha = 1;
       }
 
       for (let i = 0; i < s.floors.length; i++) {
