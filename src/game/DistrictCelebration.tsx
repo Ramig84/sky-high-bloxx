@@ -2,12 +2,13 @@
 import { useEffect, useRef } from "react";
 import { ArrowRight, Map, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { districtFloors, districtStreet } from "./artwork";
+import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, districtStars, LEVELS_PER_DISTRICT, type Stars } from "./levels";
 import { confettiSrc, getImage, roofSrc } from "./preload";
 import { sfx } from "./audio";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";
+import ambientSrc from "@/assets/ambient.webp";
 
 const ease = (t: number) => { const n = Math.max(0, Math.min(1, t)); return n * n * (3 - 2 * n); };
 
@@ -22,10 +23,12 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
     if (!ctx) return;
     const tablet = window.matchMedia("(min-width: 600px)").matches;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const art = tablet ? tabletArtwork : phoneArtwork;
+    const cloud = getImage(art.cloudSrc), bird = getImage(art.birdSrc), ambient = getImage(ambientSrc);
     const from = { street: getImage(districtStreet(done.id, tablet)), floors: districtFloors(done.id, tablet).map(getImage) };
     const to = next ? { street: getImage(districtStreet(next.id, tablet)), floors: districtFloors(next.id, tablet).map(getImage) } : null;
     const roof = getImage(roofSrc), contact = getImage(contactSrc), footing = getImage(footingSrc), confetti = getImage(confettiSrc);
-    let frame = 0, start = 0, width = 394;
+    let frame = 0, start = 0, width = 394, pausedAt = 0;
     const resize = () => {
       const bounds = el.getBoundingClientRect(), ratio = Math.min(window.devicePixelRatio || 1, 2);
       el.width = Math.round(bounds.width * ratio); el.height = Math.round(bounds.height * ratio);
@@ -63,6 +66,35 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
       const reveal = to ? ease((t - 3.1) / 1.6) : 0;
       paint(from, 5, (1 - ease((t - 0.25) / 1.1)) * 85, 1);
       if (to && reveal > 0) paint(to, 3, 0, reveal);
+      // Painted sky life stays behind the tower silhouette and clear of the headings.
+      for (let i = 0; i < 2; i++) {
+        const cw = 82 + i * 24, ch = cw * cloud.naturalHeight / cloud.naturalWidth;
+        const x = (i === 0 ? -32 : width - 70) + Math.sin(t * 0.16 + i * 2) * 18;
+        ctx.save(); ctx.globalAlpha = 0.42;
+        ctx.drawImage(cloud, x, 190 + i * 34, cw, ch); ctx.restore();
+      }
+      if (!reduce) {
+        for (let i = 0; i < 2; i++) {
+          const cycle = (t * 13 + i * (width + 70) / 2) % (width + 70);
+          const pose = Math.floor(t * 7 + i * 2) % 6;
+          const sw = bird.naturalWidth / 6;
+          ctx.save(); ctx.globalAlpha = 0.68;
+          ctx.drawImage(bird, pose * sw, 0, sw, bird.naturalHeight,
+            cycle - 35, 203 + i * 32 + Math.sin(t * 1.8 + i) * 4, 13, 16.6);
+          ctx.restore();
+        }
+        // A few turning painted petals linger at the edges, never an endless confetti curtain.
+        for (let i = 0; i < 5; i++) {
+          const y = 210 + ((t * (12 + i) + i * 67) % 330);
+          const side = i % 2 ? 1 : -1;
+          const x = width / 2 + side * (width * 0.36 + Math.sin(t * 0.8 + i * 2) * 13);
+          const cell = ambient.naturalWidth / 7;
+          ctx.save(); ctx.globalAlpha = 0.6;
+          ctx.translate(x, y); ctx.rotate(Math.sin(t + i) * 0.7);
+          ctx.drawImage(ambient, cell, 0, cell, ambient.naturalHeight, -4, -4, 8, 8);
+          ctx.restore();
+        }
+      }
       // One restrained celebratory burst, not an endless confetti curtain.
       if (!reduce && t > 1.25 && t < 4.8) {
         for (let i = 0; i < 24; i++) {
@@ -77,10 +109,18 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
           ctx.restore();
         }
       }
-      if (t < 6 && !document.hidden) frame = requestAnimationFrame(draw);
+      if (!reduce && !document.hidden) frame = requestAnimationFrame(draw);
     };
     frame = requestAnimationFrame(draw);
-    const resume = () => { if (!document.hidden) { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); } };
+    const resume = () => {
+      cancelAnimationFrame(frame);
+      if (document.hidden) pausedAt = performance.now();
+      else {
+        if (pausedAt && start) start += performance.now() - pausedAt;
+        pausedAt = 0;
+        frame = requestAnimationFrame(draw);
+      }
+    };
     document.addEventListener("visibilitychange", resume);
     return () => { cancelAnimationFrame(frame); observer.disconnect(); document.removeEventListener("visibilitychange", resume); };
   }, [done, next]);
