@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TransitionPreviewRouteImport } from './routes/transition-preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TransitionPreviewRoute = TransitionPreviewRouteImport.update({
+  id: '/transition-preview',
+  path: '/transition-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/delete-account': typeof DeleteAccountRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/transition-preview': typeof TransitionPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/delete-account': typeof DeleteAccountRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/transition-preview': typeof TransitionPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,21 @@ export interface FileRoutesById {
   '/delete-account': typeof DeleteAccountRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/transition-preview': typeof TransitionPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/delete-account' | '/privacy' | '/terms'
+  fullPaths:
+    '/' | '/delete-account' | '/privacy' | '/terms' | '/transition-preview'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/delete-account' | '/privacy' | '/terms'
-  id: '__root__' | '/' | '/delete-account' | '/privacy' | '/terms'
+  to: '/' | '/delete-account' | '/privacy' | '/terms' | '/transition-preview'
+  id:
+    | '__root__'
+    | '/'
+    | '/delete-account'
+    | '/privacy'
+    | '/terms'
+    | '/transition-preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +83,7 @@ export interface RootRouteChildren {
   DeleteAccountRoute: typeof DeleteAccountRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  TransitionPreviewRoute: typeof TransitionPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/transition-preview': {
+      id: '/transition-preview'
+      path: '/transition-preview'
+      fullPath: '/transition-preview'
+      preLoaderRoute: typeof TransitionPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +131,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeleteAccountRoute: DeleteAccountRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  TransitionPreviewRoute: TransitionPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

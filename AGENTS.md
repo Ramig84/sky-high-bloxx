@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 - Subdirectories have their own AGENTS.md (e.g. src/game/AGENTS.md); read it before changing files there.
+- Keep the standalone transition preview isolated from saved campaign progress and rewards, so visual reviews cannot unlock districts or pay coins.
 - Endless-mode rules live in the browser-safe src/game/endless.ts with tests; leaderboard scores are posted only via submit_endless_score, which requires a signed-in, finished, server-validated endless run ticket (one score per run), so guests cannot pollute the board.
 - Game audio is pre-generated recordings stored as CDN asset pointers in src/assets/audio and mixed through src/game/audio.ts (one Web Audio context), so playback needs no runtime API calls.
 - Every screen is wrapped in Preloader with an asset list from src/game/preload.ts and the canvas reuses its decoded images, so screens never appear half-loaded.
