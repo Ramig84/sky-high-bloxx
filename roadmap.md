@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Confirm the latest living-transition edits appear in GitHub after automatic synchronization
 - [ ] Rework district transitions as cohesive animated painted scenes; verify phone layouts and onward navigation without changing approved rules
 - [x] Replace default Android launcher/splash artwork and verify generated resources
 - [x] Audit active game images, sounds and screen preloading; fix concrete failures
