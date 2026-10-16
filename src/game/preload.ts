@@ -68,5 +68,5 @@ export async function preload(list: ScreenAssets, onProgress?: (p: number) => vo
 export { roofSrc, confettiSrc };
 export function celebrateAssets(from: DistrictId, to: DistrictId | null): ScreenAssets {
   const a = art(), t = isTablet();
-  return { images: [paperSrc, contactSrc, footingSrc, districtStreet(from, t), a.cloudSrc, a.birdSrc, plaqueSrc, roofSrc, confettiSrc, ...districtFloors(from, t), ...(to ? [districtStreet(to, t), ...districtFloors(to, t)] : [])], sounds: [...UI_SOUNDS, "clear", "perfect"] };
+  return { images: [paperSrc, contactSrc, footingSrc, ambientSrc, districtStreet(from, t), a.cloudSrc, a.birdSrc, plaqueSrc, roofSrc, confettiSrc, ...districtFloors(from, t), ...(to ? [districtStreet(to, t), ...districtFloors(to, t)] : [])], sounds: [...UI_SOUNDS, "clear", "perfect"] };
 }
