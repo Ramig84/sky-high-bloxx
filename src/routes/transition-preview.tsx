@@ -8,7 +8,7 @@ export const Route = createFileRoute("/transition-preview")({
   head: () => ({
     meta: [
       { title: "District Transition Preview — Sky Bloxx" },
-      { name: "description", content: "Preview Sky Bloxx’s painted district celebration from Old Town to Gardens." },
+      { name: "description", content: "Preview Sky Bloxx’s painted district celebration from Old Town to Harbour." },
       { property: "og:title", content: "District Transition Preview — Sky Bloxx" },
       { property: "og:description", content: "An animated painted tower celebration revealing the next Sky Bloxx district." },
       { property: "og:type", content: "website" },
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/transition-preview")({
 function TransitionPreview() {
   const navigate = useNavigate();
   return (
-    <Preloader assets={() => celebrateAssets("oldtown", "gardens")}>
+    <Preloader assets={() => celebrateAssets("oldtown", "harbour")}>
       <DistrictCelebration district={0} stars={Array.from({ length: 10 }, () => 3)}
         onNext={() => void navigate({ to: "/" })}
         onMap={() => void navigate({ to: "/" })} />
