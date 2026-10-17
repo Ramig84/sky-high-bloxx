@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Correct account restoration on restart and regression-test saved sign-in
 - [ ] Confirm the latest living-transition edits appear in GitHub (waiting on automatic synchronization; remote file still showed earlier transition)
 - [x] Rework district transitions as cohesive animated painted scenes; verify phone layouts and onward navigation without changing approved rules
 - [x] Replace default Android launcher/splash artwork and verify generated resources
