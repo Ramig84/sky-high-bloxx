@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Correct account restoration on restart and regression-test saved sign-in (12 targeted tests passed; guest browser restart checked)
+- [ ] Verify Google account restart on the updated Android app (blocked: latest APK installation and real phone sign-in required)
 - [ ] Confirm the latest living-transition edits appear in GitHub (waiting on automatic synchronization; remote file still showed earlier transition)
 - [x] Rework district transitions as cohesive animated painted scenes; verify phone layouts and onward navigation without changing approved rules
 - [x] Replace default Android launcher/splash artwork and verify generated resources

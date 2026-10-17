@@ -1,6 +1,7 @@
 // Signed-in player accounts: the server owns coins and Market items; the device keeps a cache for instant UI.
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import type { Session } from "@supabase/supabase-js";
 import { LOADOUT_KEY, WALLET_KEY, addCoins, coins, loadLoadout, type DailyReward } from "./wallet";
 import { loadSettings, saveSettings } from "./settings";
 import { loadStars, saveStars, type Stars } from "./levels";
@@ -8,7 +9,10 @@ import { loadStars, saveStars, type Stars } from "./levels";
 type Profile = { name: string; coins: number; owned_cranes: string[]; owned_blocks: string[]; crane: string; block: string; stars: number[]; endless_best: number };
 export const ACCOUNT_EVENT = "bloxx-account";
 let signedIn = false;
+let accountReady = false;
+let syncVersion = 0;
 export const isSignedIn = () => signedIn;
+export const isAccountReady = () => accountReady;
 const notify = () => window.dispatchEvent(new Event(ACCOUNT_EVENT));
 
 function cache(p: Profile) {
@@ -22,13 +26,22 @@ function cache(p: Profile) {
 }
 
 /** Called on start and whenever sign-in changes. First sign-in moves this phone's progress into the account once. */
-export async function syncAccount() {
-  const { data } = await supabase.auth.getUser();
-  signedIn = Boolean(data.user);
-  if (!signedIn) { notify(); return; }
+export async function syncAccount(restoredSession?: Session | null) {
+  const version = ++syncVersion;
+  // The SDK restores/refreshes its persisted session. A temporary /user network
+  // failure must not make a saved account look signed out; RLS still verifies RPCs.
+  const session = restoredSession === undefined
+    ? (await supabase.auth.getSession()).data.session
+    : restoredSession;
+  if (version !== syncVersion) return;
+  signedIn = Boolean(session);
+  accountReady = true;
+  notify(); // Show the restored account before waiting for cloud progress.
+  if (!session) return;
   const imported = await supabase.rpc("import_guest_progress", {
     _coins: coins(), _stars: loadStars(), _best: Number(localStorage.getItem("bloxx-endless-best") || 0), _name: loadSettings().name,
   });
+  if (version !== syncVersion) return;
   if (imported.data) cache(imported.data as Profile);
   void pushProgress();
 }
@@ -39,9 +52,10 @@ export async function signIn() {
 }
 export async function signOut() {
   await supabase.auth.signOut();
+  ++syncVersion;
   // Account coins stay in the account; the phone goes back to an empty guest wallet.
   localStorage.removeItem(WALLET_KEY); localStorage.removeItem(LOADOUT_KEY);
-  signedIn = false; notify();
+  signedIn = false; accountReady = true; notify();
 }
 
 export type RunMode = "city" | "daily" | "endless";
