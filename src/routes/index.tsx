@@ -40,12 +40,20 @@ function Home() {
   const menu = screen.kind === "home" || screen.kind === "map" || screen.kind === "celebrate";
   useEffect(() => { if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } }, [menu]);
   useEffect(() => {
-    void syncAccount().then(() => setStars(loadStars()));
-    const { data } = supabase.auth.onAuthStateChange(event => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      void syncAccount().then(() => setStars(loadStars()));
+    let disposed = false;
+    let pending: ReturnType<typeof setTimeout> | undefined;
+    const restore = () => { void syncAccount().then(() => { if (!disposed) setStars(loadStars()); }).catch(() => {}); };
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "INITIAL_SESSION" && event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED" && event !== "TOKEN_REFRESHED") return;
+      // Leave the auth callback before any SDK/RPC calls (including initialization).
+      clearTimeout(pending);
+      pending = setTimeout(() => {
+        void syncAccount(session).then(() => { if (!disposed) setStars(loadStars()); }).catch(() => {});
+      }, 0);
     });
-    return () => data.subscription.unsubscribe();
+    const onVisible = () => { if (document.visibilityState === "visible") restore(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { disposed = true; clearTimeout(pending); data.subscription.unsubscribe(); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
   // Quietly warm the map in the background so opening it is instant.
   useEffect(() => { const t = window.setTimeout(() => void preload(mapAssets()), 2500); return () => window.clearTimeout(t); }, []);

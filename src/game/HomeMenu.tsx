@@ -13,7 +13,7 @@ import { ENDLESS_STAGES } from "./endless";
 import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
-import { ACCOUNT_EVENT, claimGift, claimMission, isSignedIn, missionStatus, signIn, signOut, type MissionStatus } from "./account";
+import { ACCOUNT_EVENT, claimGift, claimMission, isAccountReady, isSignedIn, missionStatus, signIn, signOut, type MissionStatus } from "./account";
 import { MISSION_LABELS, claimGuestMission, missionProgress, missionsClaimed, missionsForDay, type MissionKind } from "./missions";
 import { AdPlacementTests } from "./AdPlaceholder";
 import { deleteMyAccount } from "./account.functions";
@@ -120,9 +120,11 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
         <Button variant="ghost" className={small} onClick={() => setPanel("leaderboard")}><Trophy /> Scores</Button>
         <Button variant="ghost" className={small} onClick={() => setPanel("settings")}><Cog /> Settings</Button>
       </div>
-      {isSignedIn()
-        ? <button type="button" className="home-account" onClick={() => void signOut()}>{loadSettings().name} · Sign out</button>
-        : <button type="button" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins</button>}
+      {!isAccountReady()
+        ? <Button variant="ghost" className="home-account" disabled>Restoring account…</Button>
+        : isSignedIn()
+          ? <Button variant="ghost" className="home-account" onClick={() => void signOut()}>{loadSettings().name} · Sign out</Button>
+          : <Button variant="ghost" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins</Button>}
     </div>
   );
 }
