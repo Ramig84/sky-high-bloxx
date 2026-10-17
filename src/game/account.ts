@@ -1,4 +1,5 @@
 // Signed-in player accounts: the server owns coins and Market items; the device keeps a cache for instant UI.
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import type { Session } from "@supabase/supabase-js";
@@ -47,8 +48,46 @@ export async function syncAccount(restoredSession?: Session | null) {
 }
 
 export async function signIn() {
+  if (Capacitor.isNativePlatform()) return signInNative();
   const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
   if (r.error) throw r.error;
+}
+
+/** Native APK: Google sign-in runs in the phone browser and returns via the app deep link, never leaving the player on the website. */
+const NATIVE_CALLBACK = "app.lovable.skyhighbloxx://oauth-callback";
+async function signInNative(): Promise<void> {
+  const { App } = await import("@capacitor/app");
+  const state = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join("");
+  const params = new URLSearchParams({ provider: "google", redirect_uri: NATIVE_CALLBACK, state });
+  const url = `${window.location.origin}/~oauth/initiate?${params.toString()}`;
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      void handle.then(h => h.remove());
+      if (error) reject(error); else resolve();
+    };
+    const handle = App.addListener("appUrlOpen", ({ url: callback }) => {
+      if (!callback.startsWith(NATIVE_CALLBACK)) return;
+      // Tokens arrive as query params or in the hash fragment.
+      const q = callback.indexOf("?") >= 0 ? callback.slice(callback.indexOf("?") + 1) : "";
+      const h = callback.indexOf("#") >= 0 ? callback.slice(callback.indexOf("#") + 1) : "";
+      const data = new URLSearchParams(q.includes("=") ? q : h);
+      const dataHash = new URLSearchParams(h);
+      const pick = (key: string) => data.get(key) ?? dataHash.get(key);
+      if (pick("state") !== state) return;
+      const err = pick("error");
+      if (err) { finish(new Error(pick("error_description") ?? err)); return; }
+      const access = pick("access_token"), refresh = pick("refresh_token");
+      if (!access || !refresh) { finish(new Error("Sign in failed")); return; }
+      void supabase.auth.setSession({ access_token: access, refresh_token: refresh })
+        .then(({ error }) => finish(error ? new Error(error.message) : undefined));
+    });
+    const timer = setTimeout(() => finish(new Error("Sign in was cancelled")), 120_000);
+    window.open(url, "_blank");
+  });
 }
 export async function signOut() {
   await supabase.auth.signOut();
