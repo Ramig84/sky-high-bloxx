@@ -8,6 +8,7 @@ import balloon from "@/assets/spirit-balloon-animation.webp";
 import boat from "@/assets/spirit-boat-animation.webp";
 import petal from "@/assets/spirit-petal-animation.webp";
 import type { SpiritKind } from "./sky";
+import { poseBlend } from "./poseMotion";
 
 /** Transparent, padded 4 × 2 atlases; poses change without stretching the paintings. */
 export type PaintedSpirit = SpiritKind | "kite" | "balloon" | "boat" | "petal";
@@ -23,4 +24,16 @@ export function spiritPose(kind: PaintedSpirit, index: number, time: number) {
   const cycle = cycles[kind];
   const step = Math.floor(Math.max(0, time) * rates[kind] + index * 2.73) % cycle.length;
   return cycle[step] ?? 0;
+}
+
+/** Draw registered whole paintings, never stretch wings or morph silhouettes. */
+export function drawSpirit(ctx: CanvasRenderingContext2D, image: (HTMLImageElement | HTMLCanvasElement) & { naturalWidth: number; naturalHeight: number }, kind: PaintedSpirit, index: number, time: number, size: number, glide = false) {
+  const blend = glide ? { current: 6, next: 6, mix: 0 } : poseBlend(cycles[kind], rates[kind], index * 2.73, time, ["steam", "lantern", "kite", "balloon", "boat"].includes(kind));
+  const cw = image.naturalWidth / 4, ch = image.naturalHeight / 2, alpha = ctx.globalAlpha;
+  for (const [frame, weight] of [[blend.current, 1 - blend.mix], [blend.next, blend.mix]]) {
+    if (frame === undefined || weight === undefined || weight <= 0) continue;
+    ctx.globalAlpha = alpha * weight;
+    ctx.drawImage(image, frame % 4 * cw, Math.floor(frame / 4) * ch, cw, ch, -size / 2, -size / 2, size, size);
+  }
+  ctx.globalAlpha = alpha;
 }

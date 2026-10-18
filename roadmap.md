@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Refine remaining painted animation: correct gull glide poses, soften slow object-pose changes, unify street and sky rendering, and verify focused motion checks without new generated artwork.
 - [x] Locked tiles no longer show saved stars; reproduced an isolated level-7 win with gaps, confirmed disabled and no star icons, and preserved earned progress.
 - [x] Polish home composition and account access; correct bird facing/recycling and curved overlapping coin travel without changing rewards or sound.
 - [x] Investigate spirit paths and post-ad/next-level stalls: authored pose timing, star-painting reuse, unchanged balance DOM, hidden-screen scheduling, next-level preloading and ad/manual pause separation; 135 checks pass, ten districts reviewed at three heights, real touch landing/pause/resume/leave verified. Real Android frame pacing and ad return remain unverified.
