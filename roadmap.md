@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Replace single-image district spirit deformation with authored painted pose cycles; verify phone motion and unchanged gameplay, then verify GitHub sync and start Android workflow.
+- [ ] Replace single-image spirit deformation across all ten districts, including street creatures, petals, boats, kites and balloons, with authored painted pose cycles; verify phone motion and unchanged gameplay, then verify GitHub sync and start Android workflow.
 - [x] Native Google sign-in return via accepted https return page /auth/app-return that hands tokens to the app link (sign-in service accepts it; 6 tests)
 - [ ] Publish the site so /auth/app-return is live, then confirm APK sign-in on a real phone (blocked: publish + phone install)
 - [ ] Start a new GitHub Android workflow after verified sky changes synchronize (blocked: GitHub main remains at 399fc01 and does not contain src/game/sky.ts; running now would build the old game)
