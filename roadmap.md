@@ -90,4 +90,4 @@
 - [x] Leaderboard accepts only signed-in, server-checked Endless runs
 - [ ] District stamps reward for tours (after launch)
 - [x] Layered sky depth per height band and per-district sky moods (no clouds at street level; original clouds/birds kept)
-- Sky decorations must be truly animated painted motion, not static sprites (user feedback)
+- [x] Animated sky spirits in every district

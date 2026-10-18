@@ -79,6 +79,49 @@ export function birdFlight(time: number, phase: number) {
 }
 
 export type SkyLife = "balloon" | "kite" | "none";
+/** Animated district spirits: each moves with its own painted motion (flapping, tumbling, rising). */
+export type SpiritKind = "gull" | "butterfly" | "leaf" | "steam" | "lantern";
+export const DISTRICT_SPIRIT: Record<DistrictId, { kind: SpiritKind; count: number }> = {
+  oldtown: { kind: "leaf", count: 5 }, harbour: { kind: "gull", count: 4 }, market: { kind: "lantern", count: 4 },
+  riverside: { kind: "leaf", count: 6 }, gardens: { kind: "butterfly", count: 5 }, university: { kind: "leaf", count: 4 },
+  railyard: { kind: "steam", count: 6 }, downtown: { kind: "lantern", count: 4 }, skyline: { kind: "lantern", count: 6 },
+  cloudpeak: { kind: "butterfly", count: 4 },
+};
+/** Spirits accompany the whole climb: present from the street and thinning only in the high sky. */
+export function spiritPresence(kind: SpiritKind, altitude: number) {
+  const top = kind === "lantern" ? 4200 : kind === "gull" ? 2600 : 2000;
+  return 1 - skyBlend(altitude, top - 600, top);
+}
+export type SpiritState = { x: number; y: number; rot: number; flip: number; flap: number; scale: number; alpha: number };
+/** Deterministic motion for spirit i at time t on a vw x vh screen. Always keeps the centre lane clear. */
+export function spiritMotion(kind: SpiritKind, i: number, t: number, vw: number, vh: number): SpiritState {
+  const side = i % 2 ? -1 : 1, ph = i * 1.73, lane = vw / 2 + side * vw * (0.3 + (i % 3) * 0.06);
+  const loop = (period: number) => (((t + ph * period / 6.28) / period) % 1 + 1) % 1;
+  if (kind === "gull") {
+    const k = loop(14 + i * 2), dir = side;
+    return { x: vw / 2 + dir * (k - 0.5) * vw * 1.4, y: vh * (0.25 + (i % 4) * 0.12) + Math.sin(t * 0.7 + ph) * 12,
+      rot: Math.sin(t * 0.7 + ph) * 0.08, flip: dir, flap: Math.max(0, Math.sin(t * 4.2 + ph)) * (Math.sin(t * 0.3 + ph) > -0.3 ? 1 : 0.15),
+      scale: 0.8 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 4) };
+  }
+  if (kind === "butterfly") {
+    return { x: lane + Math.sin(t * 0.5 + ph) * vw * 0.07 + Math.sin(t * 1.3 + ph) * 10, y: vh * (0.3 + (i % 4) * 0.15) + Math.sin(t * 0.8 + ph * 2) * 30,
+      rot: Math.cos(t * 0.5 + ph) * 0.35, flip: 1, flap: 0.5 + 0.5 * Math.sin(t * 13 + ph), scale: 0.8 + (i % 2) * 0.3, alpha: 1 };
+  }
+  if (kind === "leaf") {
+    const k = loop(11 + i * 1.5);
+    return { x: lane + Math.sin(t * 1.1 + ph) * vw * 0.08, y: -40 + k * (vh + 80), rot: t * 0.9 + ph + Math.sin(t * 1.6) * 0.6,
+      flip: Math.cos(t * 2.2 + ph), flap: 0, scale: 0.7 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 3) };
+  }
+  if (kind === "steam") {
+    const k = loop(9 + (i % 3)), sx = vw / 2 + side * vw * (0.36 + (i % 3) * 0.04);
+    return { x: sx + Math.sin(k * 5 + ph) * 14 + side * k * 30, y: vh * 1.02 - k * vh * 0.8, rot: k * side * 0.8, flip: 1, flap: 0,
+      scale: 0.5 + k * 1.6, alpha: Math.sin(k * Math.PI) * 0.6 };
+  }
+  const k = loop(26 + i * 3);
+  return { x: lane + Math.sin(t * 0.4 + ph) * 18, y: vh * 1.05 - k * vh * 1.15, rot: Math.sin(t * 0.9 + ph) * 0.07, flip: 1,
+    flap: 0.7 + 0.3 * Math.abs(Math.sin(t * 6.1 + ph) * Math.sin(t * 2.3 + ph)), scale: 0.7 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 3) };
+}
+
 export type DistrictSky = {
   /** Soft painted light wash laid over the sky paintings. */
   wash: [number, number, number]; washAlpha: number;
