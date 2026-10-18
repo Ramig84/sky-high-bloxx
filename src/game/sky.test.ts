@@ -143,3 +143,18 @@ describe("district living sky", () => {
     expect(a.x).toBe(b.x); expect(a.a).not.toBe(b.a);
   });
 });
+
+import { birdPath } from "./sky";
+describe("natural bird flight", () => {
+  it("flaps while climbing, glides while sinking, banks, and keeps out of the centre lane", () => {
+    for (let i = 0; i < 4; i++) {
+      const path = Array.from({ length: 400 }, (_, s) => birdPath(i, s / 20, 390, 700));
+      expect(path.some(p => p.pose === 5)).toBe(true);
+      expect(path.some(p => p.pose < 5)).toBe(true);
+      expect(path.every(p => Math.abs(p.x - 195) > 390 * 0.2)).toBe(true);
+      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(60);
+      expect(new Set(path.map(p => p.rot.toFixed(2))).size).toBeGreaterThan(10);
+      expect(path.some(p => p.x < -20 || p.x > 410)).toBe(true); // enters and leaves off-screen
+    }
+  });
+});

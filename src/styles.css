@@ -203,7 +203,10 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .map-pan { animation: map-pan 40s ease-in-out infinite alternate; transform-origin: 50% 60%; }
 @keyframes map-pan { from { transform: scale(1.04) translateY(0); } to { transform: scale(1.08) translateY(-1%); } }
 .map-cloud { position: absolute; left: -40%; width: 40%; opacity: 0.5; pointer-events: none; animation: map-cloud linear infinite; }
-@keyframes map-cloud { to { transform: translateX(330%); } }
+@keyframes map-cloud { 0% { transform: translateX(0) scale(1, 1); } 30% { transform: translateX(95%) translateY(-3%) scale(1.06, 0.95); } 65% { transform: translateX(215%) translateY(2%) scale(0.95, 1.05); } 100% { transform: translateX(330%) scale(1.02, 0.98); } }
+.sky-bird { position: absolute; left: 0; top: 0; width: 28px; height: 36px; background-size: 600% 100%; transform-origin: 50% 100%; will-change: transform; }
+.home-light { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light; background: radial-gradient(ellipse 60% 40% at 30% 35%, rgba(255, 230, 180, 0.45), transparent 70%); animation: home-light 18s ease-in-out infinite alternate; }
+@keyframes home-light { from { opacity: 0.35; background-position: 0 0; } to { opacity: 0.8; } }
 .map-bird-path { position: absolute; left: -10%; pointer-events: none; animation: map-bird-fly 22s linear infinite; }
 @keyframes map-bird-fly { 0% { transform: translate(0, 0); } 50% { transform: translate(60vmin, -4vmin); } 100% { transform: translate(130vmin, 2vmin); } }
 .map-bird { width: 28px; height: 36px; background-size: 600% 100%; animation: map-flap 0.6s steps(6) infinite; }
@@ -219,7 +222,7 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 @keyframes map-rise { from { transform: translateY(10px); opacity: 0; } }
 .map-card { pointer-events: auto; }
 @media (min-width: 600px) { .map-tower-floor { width: 48px; height: 28px; } .map-pin-name { font-size: 1.1rem; } }
-@media (prefers-reduced-motion: reduce) { .map-pan, .map-cloud, .map-bird-path, .map-bird, .map-pin-live .map-pin-name { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .map-pan, .map-cloud, .home-light, .map-bird-path, .map-bird, .map-pin-live .map-pin-name { animation: none; } }
 /* The map auto-scrolls to the district you're playing, so a neighbouring sign can
    end up sliced in half at the top edge. Fading the first few rem into the shell
    colour turns that hard cut into a soft painted frame edge. */
