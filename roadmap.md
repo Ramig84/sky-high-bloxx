@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Fix out-of-order campaign unlocks: require every earlier level cleared, preserve saved stars, reject isolated finale completion; 125 tests passed and phone map confirmed level 4 playable with levels 5–10 locked, no runtime errors.
+- [ ] Verify level-lock fix on GitHub and run Android workflow (blocked: managed GitHub sync has not yet exported this turn's correction; remote main still d64315e).
 - [x] Recheck all ten district screens at five heights and painted pose motion; exercise menus, audio settings, daily gift, Market, Tour, a 15-floor completed campaign, pause/leave cancellation, replay, three misses, test-ad extra life, Endless and public pages; 121 game tests and 3 Android packaging tests passed, with no browser runtime or artwork-request errors. Physical-phone Google sign-in and live ads remain unverified.
 - [x] Replace single-image spirit deformation across all ten districts, including street creatures, petals, boats, kites and balloons, with authored painted pose cycles; 121 checks pass, fifty phone-height captures reviewed, changing gull poses and real touch drop verified.
 - [x] Native Google sign-in return via accepted https return page /auth/app-return that hands tokens to the app link (sign-in service accepts it; 6 tests)
