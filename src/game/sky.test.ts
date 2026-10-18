@@ -87,3 +87,13 @@ describe("district spirits", () => {
     for (const { kind } of Object.values(DISTRICT_SPIRIT)) expect(spiritPresence(kind, 0)).toBe(1);
   });
 });
+
+import { districtSkyMix } from "./sky";
+describe("district painted skies", () => {
+  it("street sky at the bottom, high sky at the top, smooth blend between", () => {
+    expect(districtSkyMix(0)).toEqual({ low: 0.9, high: 0 });
+    expect(districtSkyMix(2000)).toEqual({ low: 0, high: 0.9 });
+    const mid = districtSkyMix(1150);
+    expect(mid.low).toBeGreaterThan(0.2); expect(mid.high).toBeGreaterThan(0.2);
+  });
+});

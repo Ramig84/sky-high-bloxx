@@ -165,3 +165,9 @@ export function skyVisitors(count: number): SkyVisitor[] {
     size: i % 2 ? 26 : 34,
   }));
 }
+
+/** Opacity of each district's painted street sky and high sky at an altitude: crossfade slowly, never swap. */
+export function districtSkyMix(altitude: number) {
+  const up = skyBlend(altitude, 700, 1600);
+  return { low: 0.9 * (1 - up), high: 0.9 * up };
+}
