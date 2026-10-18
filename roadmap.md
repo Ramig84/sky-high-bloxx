@@ -100,4 +100,4 @@
 - [x] Per-district painted skies (street + high)
 
 - [x] Natural bird flight on every screen (game, celebration, home, map); street butterflies full travel; home light + shape-changing clouds
-- [ ] GitHub sync + Android workflow for natural-bird update (runs after this reply is saved)
+- [x] GitHub sync + Android workflow for natural-bird update: remote main matches local 5e6be54 "Dedicated bird layer added"; Android build #55 queued at https://github.com/Ramig84/sky-high-bloxx/actions/runs/39135069543.
