@@ -91,9 +91,11 @@ describe("district spirits", () => {
 import { districtSkyMix } from "./sky";
 describe("district painted skies", () => {
   it("street sky at the bottom, high sky at the top, smooth blend between", () => {
-    expect(districtSkyMix(0)).toEqual({ low: 0.9, high: 0 });
-    expect(districtSkyMix(2000)).toEqual({ low: 0, high: 0.9 });
-    const mid = districtSkyMix(1150);
+    expect(districtSkyMix(0)).toEqual({ low: 1, high: 0 });
+    expect(districtSkyMix(3000)).toEqual({ low: 0, high: 1 });
+    const mid = districtSkyMix(1300);
     expect(mid.low).toBeGreaterThan(0.2); expect(mid.high).toBeGreaterThan(0.2);
+    // gradual: a single floor (50px) never changes the mix by more than 5%
+    for (let a = 0; a < 3000; a += 50) expect(districtSkyMix(a + 50).high - districtSkyMix(a).high).toBeLessThan(0.05);
   });
 });
