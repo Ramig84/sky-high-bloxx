@@ -29,6 +29,6 @@
 - Clouds and aurora use preloaded whole painted atmosphere poses with in-place dissolves; keep fog and lightning behind gameplay, so no strip seams or washed-out landing silhouettes appear.
 - Cache derived star paintings between levels and update balance DOM only when values change, so screen transitions avoid repeated pixel processing and frame-by-frame text replacement.
 - Coin collections may overlap without cancelling each other; track pending arrivals per counter and use continuous curved paths, so all exact reward amounts arrive visibly.
-- Route street and sky spirit paintings through a shared pose renderer; dissolve slow material poses but keep wingbeats crisp, so animation avoids abrupt object swaps and ghosted wings.
+- Use shared painted poses, crisp wingbeats and soft material changes; anchor steam to backdrop roofs, keep lanterns/butterflies above streets and honor district bird settings, so scenery stays cohesive without changing obstacles.
 - Endless result submission status follows the resolved leaderboard response and is reset per run, so guests and failed submissions never display success.
 - Native Google sign-in returns to the https page /auth/app-return (the managed sign-in service rejects custom app schemes), which forwards the result to the Android app link; browser-safe src/game/nativeAuth.ts checks the pending state and age, so only sign-ins started on this phone are accepted.

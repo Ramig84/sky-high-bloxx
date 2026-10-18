@@ -89,7 +89,8 @@ describe("district spirits", () => {
   it("butterflies travel through the sky instead of hovering around a perch", () => {
     for (let i = 0; i < 5; i++) {
       const path = Array.from({ length: 360 }, (_, step) => spiritMotion("butterfly", i, step / 10, 390, 700));
-      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(700);
+      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(300);
+      expect(path.every(p => p.y < 700 * 0.65)).toBe(true);
       expect(path.every(p => Math.abs(p.x - 195) >= 390 * 0.275)).toBe(true);
       expect(Math.max(...path.map(p => p.x)) - Math.min(...path.map(p => p.x))).toBeGreaterThan(40);
     }
@@ -146,6 +147,21 @@ describe("district living sky", () => {
 
 import { birdPath } from "./sky";
 describe("natural bird flight", () => {
+  it("keeps every bird visible below the score bar for at least a third of its flight", () => {
+    for (let i = 0; i < 6; i++) {
+      const path = Array.from({ length: 2400 }, (_, s) => birdPath(i, s * 0.05, 390, 700));
+      expect(path.filter(p => p.x > 0 && p.x < 390 && p.y > 70 && p.y < 600).length / path.length).toBeGreaterThan(0.33);
+    }
+  });
+  it("keeps lanterns above pavement and steam in a compact rooftop band", () => {
+    for (let i = 0; i < 6; i++) for (let s = 0; s < 800; s++) {
+      expect(spiritMotion("lantern", i, s * 0.1, 390, 700).y).toBeLessThan(700 * 0.56);
+      const steam = spiritMotion("steam", i, s * 0.1, 390, 700);
+      expect(steam.y).toBeGreaterThanOrEqual(700 * 0.24);
+      expect(steam.y).toBeLessThanOrEqual(700 * 0.43);
+      expect(steam.scale).toBeLessThanOrEqual(1.15);
+    }
+  });
   it("never reverses facing in the visible sky or recycles while visible", () => {
     for (let i = 0; i < 4; i++) for (let step = 0; step < 1200; step++) {
       const a = birdPath(i, step / 20, 390, 700), b = birdPath(i, (step + 1) / 20, 390, 700);

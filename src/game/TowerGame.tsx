@@ -618,7 +618,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         for (const p of life) {
           stepAmbient(p, dt, vw, spec.wind ? windDir * spec.wind : 0);
           const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0, flipX = 1;
-          if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 1.8 + p.ph) * 0.25; al *= fadeHi; }
+          if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 1.8 + p.ph) * 0.25; al *= fadeHi * (1 - skyBlend(y, VH * 0.6, VH * 0.76)); }
           else if (L.kind === "mist") { y = p.y; al *= (0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph)) * fadeHi; }
           else if (L.kind === "flutter") {
             const m = spiritMotion("butterfly", Math.floor(p.ph * 10), reducedMotion ? 0 : p.age, vw, VH);
