@@ -136,10 +136,10 @@ export function spiritMotion(kind: SpiritKind, i: number, t: number, vw: number,
   const side = i % 2 ? -1 : 1, ph = i * 1.73, lane = vw / 2 + side * vw * (0.3 + (i % 3) * 0.06);
   const loop = (period: number) => (((t + ph * period / 6.28) / period) % 1 + 1) % 1;
   if (kind === "gull") {
-    const k = loop(14 + i * 2), dir = side;
-    return { x: vw / 2 + dir * (k - 0.5) * vw * 1.4, y: vh * (0.25 + (i % 4) * 0.12) + Math.sin(t * 0.7 + ph) * 12,
-      rot: Math.sin(t * 0.7 + ph) * 0.08, flip: dir, flap: Math.max(0, Math.sin(t * 4.2 + ph)) * (Math.sin(t * 0.3 + ph) > -0.3 ? 1 : 0.15),
-      scale: 0.8 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 4) };
+    const flight = birdPath(i, t * 0.78, vw, vh, 0.18, 0.28);
+    return { x: flight.x, y: flight.y, rot: flight.mirror ? -flight.rot : flight.rot,
+      flip: flight.mirror ? -1 : 1, flap: flight.pose === 5 ? 0 : 1,
+      scale: flight.scale, alpha: 1 };
   }
   if (kind === "butterfly") {
     // A winding ascent with offscreen recycling, not wingbeats around a fixed perch.
@@ -254,7 +254,7 @@ export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.1
   const a = at(t), b = at(t + 0.05);
   const dx = b.x - a.x, dy = b.y - a.y;
   const climbing = dy < -0.15;
-  const pose = climbing ? [0, 1, 2, 3, 2, 1][Math.floor((t + ph) * 11) % 6]! : 5;
+  const pose = climbing ? ([0, 1, 2, 3, 2, 1][Math.floor((t + ph) * 11) % 6] ?? 2) : 5;
   const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.001) * 0.35));
   return { x: a.x, y: a.y, rot, pose, mirror: dx < 0, scale: 0.8 + (i % 3) * 0.15 };
 }
