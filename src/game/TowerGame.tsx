@@ -578,7 +578,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (spPres > 0.01 && ok(spiritSrcImg) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
         const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
         if (spirit.kind === "steam") {
-          const source = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH, 0.39, 0.36, alt);
+          const source = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH, 0.07, 0.43, alt);
           m.x = source.x + (m.x - vw / 2) * 0.08;
           m.y = source.y + m.y - VH * 0.43;
           m.alpha *= sky.street;
@@ -633,7 +633,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           else {
             const k = p.age / 4;
             const source = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH,
-              district.id === "railyard" ? 0.39 : 0.17, district.id === "railyard" ? 0.36 : 0.47, alt);
+              district.id === "railyard" ? 0.07 : 0.17, district.id === "railyard" ? 0.43 : 0.47, alt);
             x = source.x + Math.sin(p.ph) * 5 + k * 10; y = source.y - k * 65;
             sz *= 0.4 + k * 0.6; al *= Math.sin(k * Math.PI) ** 2 * sky.street;
           }

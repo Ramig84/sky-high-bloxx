@@ -243,7 +243,7 @@ export type BirdState = { x: number; y: number; rot: number; pose: number; mirro
  */
 export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.12, band = 0.2): BirdState {
   const side = i % 2 ? -1 : 1, ph = i * 2.37;
-  const period = 19 + (i % 3) * 4.5;
+  const period = 24 + (i % 3) * 4.5;
   const at = (time: number) => {
     const k = (((time + ph * 3) / period) % 1 + 1) % 1;
     // One continuous departure: enter at the side, climb out above the sky.
