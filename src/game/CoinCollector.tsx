@@ -34,6 +34,7 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
     const bounds = target.getBoundingClientRect();
     const dx = bounds.left + bounds.width / 2 - source.x;
     const dy = bounds.top + bounds.height / 2 - source.y;
+    const corridor = bounds.left < window.innerWidth / 2 ? 12 - source.x : window.innerWidth - 12 - source.x;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const amounts = coinFlightAmounts(to - from, reduced);
     const count = amounts.length;
@@ -60,12 +61,11 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
       }
       root.appendChild(sprite);
       const angle = i * Math.PI * 2 / count;
-      const spreadX = Math.cos(angle) * 35;
-      const spreadY = Math.sin(angle) * 24 - 25;
+      const spreadY = -Math.abs(Math.sin(angle)) * 24 - 25;
       const animation = sprite.animate([
         { transform: "translate(-50%, -50%) scale(0.4)", opacity: 0 },
-        { transform: `translate(calc(-50% + ${spreadX}px), calc(-50% + ${spreadY}px)) scale(1)`, opacity: 1, offset: 0.25 },
-        { transform: `translate(calc(-50% + ${dx * 0.4 + spreadX}px), calc(-50% + ${dy * 0.4 - 65}px)) scale(0.95)`, opacity: 1, offset: 0.58 },
+        { transform: `translate(calc(-50% + ${corridor}px), calc(-50% + ${spreadY}px)) scale(1)`, opacity: 1, offset: 0.25 },
+        { transform: `translate(calc(-50% + ${corridor}px), calc(-50% + ${dy * 0.4 - 65}px)) scale(0.95)`, opacity: 1, offset: 0.58 },
         { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.45)`, opacity: 1 },
       ], { duration: reduced ? 120 : 780, delay: reduced ? 0 : i * 42, easing: "cubic-bezier(0.3,0,0.6,1)", fill: "both" });
       active.current.add(animation);

@@ -28,6 +28,7 @@ import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 import { canBankRun } from "./runPolicy";
+import { atmosphereArtwork, drawAtmosphere } from "./paintedAtmosphere";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -64,7 +65,7 @@ function featheredFoundation(img: HTMLImageElement, w: number, h: number): Canva
   return c;
 }
 
-export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => void }) {
+export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => Promise<boolean> }) {
   const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
   const goal = baseSpec.goal;
   const endCb = useRef(onEndlessOver); endCb.current = onEndlessOver;
@@ -85,6 +86,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const balanceLabel = useRef<HTMLSpanElement>(null);
   const balancePanel = useRef<HTMLDivElement>(null);
   const [credited, setCredited] = useState(0);
+  const [scoreStatus, setScoreStatus] = useState<"idle" | "pending" | "sent" | "ineligible" | "failed">("idle");
   const [adPlacement, setAdPlacement] = useState<AdPlacement | null>(null);
   const adPaused = useRef(false);
   const manualPaused = useRef(false);
@@ -177,6 +179,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       return Object.assign(spiritTinted, { naturalWidth: spiritTinted.width, naturalHeight: spiritTinted.height });
     };
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
+    const cloudPoses = load(atmosphereArtwork.cloud), auroraPoses = load(atmosphereArtwork.aurora);
     const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
     const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
@@ -309,7 +312,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { runGeneration.current++; collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
+    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
 
     api.current.revive = () => { if (!s.over || s.won || endless) return; s.over = false; s.lives = 1; s.combo = 0; s.shake = 0; if (!s.drop) s.held = true; publish("EXTRA LIFE!"); };
 
@@ -320,7 +323,15 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         s.over = true;
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem(bestKey, String(s.best)); }
         if (canBankRun(s.won, endless, daily)) awardRun();
-        if (endless && !daily) endCb.current?.(s.score, s.floors.length);
+        if (endless && !daily) {
+          const generation = runGeneration.current;
+          const callback = endCb.current;
+          setScoreStatus("pending");
+          if (!callback) setScoreStatus("ineligible");
+          else void callback(s.score, s.floors.length).then(sent => {
+            if (generation === runGeneration.current) setScoreStatus(sent ? "sent" : "ineligible");
+          }).catch(() => { if (generation === runGeneration.current) setScoreStatus("failed"); });
+        }
       }
       publish(msg);
     };
@@ -526,14 +537,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             const g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, st.r * 4);
             g.addColorStop(0, `rgba(255,250,235,${0.9 * st.a * vis})`); g.addColorStop(1, "rgba(255,250,235,0)");
             ctx.fillStyle = g; ctx.fillRect(st.x - st.r * 4, st.y - st.r * 4, st.r * 8, st.r * 8); }
-        } else if (w === "aurora" && ok(aurora)) { // the painted aurora curtain ripples: vertical strips sway on a travelling wave
-          const a = Math.max(0.5, highSkyGlow(altC, 1, true));
-          const aw = vw * 1.5, ah = aw * aurora.naturalHeight / aurora.naturalWidth, strips = 24, sw = aurora.naturalWidth / strips;
-          ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = a * (0.35 + 0.1 * Math.sin(s.t * 0.4));
-          for (let k = 0; k < strips; k++) {
-            const dy = 10 * Math.sin(s.t * 0.6 + k * 0.45), sh = 1 + 0.06 * Math.sin(s.t * 0.5 + k * 0.3);
-            ctx.drawImage(aurora, k * sw, 0, sw + 1, aurora.naturalHeight, vw / 2 - aw / 2 + (k * aw) / strips, 30 + dy, aw / strips + 1, ah * sh);
-          }
+        } else if (w === "aurora" && ok(auroraPoses)) {
+          ctx.globalCompositeOperation = "screen";
+          const strength = Math.max(0.5, highSkyGlow(altC, 1, true));
+          drawAtmosphere(ctx, auroraPoses, s.t * 0.6, 0, -vw * 0.15, -vw * 0.2, vw * 1.3, strength * 0.3);
         }
         ctx.restore();
       }
@@ -586,7 +593,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
         const base = { gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20 }[spirit.kind] * m.scale;
         const w = base * 1.25, h = w, iw = spiritArt.naturalWidth / 4, ih = spiritArt.naturalHeight / 2;
-        const pose = spiritPose(spirit.kind, i, s.t);
+        const pose = spirit.kind === "gull" && m.flap === 0 ? 5 : spiritPose(spirit.kind, i, s.t);
         ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
         if (spirit.kind === "gull" && m.flip < 0) ctx.scale(-1, 1);
         ctx.drawImage(spiritArt, (pose % 4) * iw, Math.floor(pose / 4) * ih, iw, ih, -w / 2, -h / 2, w, h);
@@ -602,7 +609,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const x = vw / 2 + side * (vw * 0.48 + drift);
         const w = 100 * c.sc * (0.7 + depth);
         ctx.globalAlpha = (0.16 + depth * 0.3) * sky.clouds * sky.wisps;
-        ctx.drawImage(cloud, x - w / 2, sy, w, w * cloud.naturalHeight / cloud.naturalWidth); ctx.globalAlpha = 1;
+        drawAtmosphere(ctx, cloudPoses, reducedMotion ? 0 : s.t, i * 1.7, x - w / 2, sy, w, ctx.globalAlpha); ctx.globalAlpha = 1;
       }
       if (ok(bird)) for (const [i, b] of birds.entries()) {
         const m = birdPath(i, reducedMotion ? b.ph : s.t, vw, VH);
@@ -647,6 +654,16 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           }
           ctx.restore();
         }
+      }
+      if (spec.fog) {
+        const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
+        g.addColorStop(0, `rgba(226,224,214,${spec.fog})`); g.addColorStop(1, "rgba(226,224,214,0)");
+        ctx.fillStyle = g; ctx.fillRect(0, 0, vw, VH * 0.55);
+      }
+      if (district.id === "cloudpeak") {
+        // distant lightning: rare soft sky flash
+        if (flash <= 0 && Math.random() < dt * 0.08) flash = 0.5;
+        if (flash > 0) { ctx.fillStyle = `rgba(240,236,220,${flash * 0.35})`; ctx.fillRect(0, 0, vw, VH); flash -= dt * 1.6; }
       }
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
@@ -715,16 +732,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       if (!(ok(dSkyLow) && ok(dSkyHigh))) drawSkyClouds(altC, true); // near clouds pass in front at the screen edges
       if (spec.night && endless) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
-      if (spec.fog) {
-        const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
-        g.addColorStop(0, `rgba(226,224,214,${spec.fog})`); g.addColorStop(1, "rgba(226,224,214,0)");
-        ctx.fillStyle = g; ctx.fillRect(0, 0, vw, VH * 0.55);
-      }
-      if (district.id === "cloudpeak") {
-        // distant lightning: rare soft sky flash
-        if (flash <= 0 && Math.random() < dt * 0.08) flash = 0.5;
-        if (flash > 0) { ctx.fillStyle = `rgba(240,236,220,${flash * 0.35})`; ctx.fillRect(0, 0, vw, VH); flash -= dt * 1.6; }
-      }
       if (spec.slip && ok(rain)) {
         for (const p of rainStrokes) {
           stepRain(p, dt, vw, VH, spec.wind * windDir);
@@ -790,7 +797,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           </div>
         </div>
       )}
-      {pauseView && <div className="absolute inset-0 z-40 flex items-center justify-center bg-game-shell/70 p-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={pauseView === "leave" ? "Leave game?" : "Game paused"} onPointerDown={e => e.stopPropagation()}>
+      {pauseView && <div className="absolute inset-0 z-40 flex items-center justify-center bg-game-shell/50 p-6" role="dialog" aria-modal="true" aria-label={pauseView === "leave" ? "Leave game?" : "Game paused"} onPointerDown={e => e.stopPropagation()}>
         <div className="hud-pill w-full max-w-xs items-center gap-4 p-6 text-center">
           <h2 className="text-2xl font-extrabold">{pauseView === "leave" ? "Leave game?" : "Paused"}</h2>
           {pauseView === "leave" ? <>
@@ -811,7 +818,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           <div className="hud-pill max-h-[90dvh] w-[min(20rem,calc(100%-1.5rem))] items-center gap-3 overflow-y-auto px-6 py-5">
             <picture>
               <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
-              <img src={phoneArtwork.logoSrc} alt="" width={1280} height={640} className="w-40" />
+              <img src={phoneArtwork.logoSrc} alt="" width={1280} height={640} className="w-24" />
             </picture>
             <span className="text-3xl font-extrabold">{hud.won ? "Level clear!" : endless ? "Tower down!" : "Game Over"}</span>
             {hud.won && <span className="flex gap-1" aria-label={`${hud.stars} stars`}>{[0, 1, 2].map(k => <Star key={k} className={`h-8 w-8 ${k < hud.stars ? "fill-current" : "opacity-30"}`} />)}</span>}
@@ -822,10 +829,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             </div>
             <span className="hud-label text-center">{[
               `BEST ${hud.best} · ${hud.floors} FLOORS`,
-              endless && !daily ? "SCORE SENT TO LEADERBOARD" : "",
+              
               daily ? (tourPreview ? `UNLOCK ${district.name.toUpperCase()} IN THE CITY` : "DISTRICT TOUR · 3× COINS") : "",
               !hud.won && !endless ? "COINS NOT BANKED" : "",
             ].filter(Boolean).join(" · ")}</span>
+            {endless && !daily && <span role="status" className="hud-label text-center">{scoreStatus === "sent" ? "SCORE SENT TO LEADERBOARD" : scoreStatus === "pending" ? "CHECKING SCORE…" : scoreStatus === "failed" ? "SCORE NOT SENT · CONNECTION ERROR" : "SCORE SAVED ON THIS PHONE"}</span>}
             <div className="mt-1 flex w-full flex-col gap-2">
               {!endless && extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none text-base font-extrabold" onClick={() => openAd("extra-life")}><Heart className="h-5 w-5" /> Watch ad · +1 life</Button>}
               <Button variant="ghost" className="plaque menu-plaque h-14 w-full rounded-none text-xl font-extrabold" onClick={() => (hud.won && onNext ? onNext() : api.current.restart())}>{hud.won && onNext ? "Next level" : "Play again"}</Button>

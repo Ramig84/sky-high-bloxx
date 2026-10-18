@@ -8,9 +8,10 @@ import { Slider } from "@/components/ui/slider";
 import { sfx, setMusic, currentMusic } from "./audio";
 import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { SkyBirds } from "./SkyBirds";
+import { PaintedClouds } from "./PaintedClouds";
+import { phoneArtwork as rewardArt } from "./artwork";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
 import { topScores, type ScoreRow } from "./leaderboard";
-import { ENDLESS_STAGES } from "./endless";
 import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
@@ -63,7 +64,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none" onPointerUp={() => setWoke(true)}>
       <div className="game-viewport relative h-full overflow-hidden">
         <div className="map-pan absolute inset-0 bg-cover bg-bottom" style={{ backgroundImage: `url(${districtStreet("oldtown", tablet)})` }} aria-hidden />
-        {[0, 1, 2].map(i => <img key={`c${i}`} src={art.cloudSrc} alt="" aria-hidden className="map-cloud" style={{ top: `${4 + i * 14}%`, animationDelay: `${-i * 15}s`, animationDuration: `${34 + i * 10}s` }} />)}
+        <PaintedClouds />
         <div className="home-light" aria-hidden />
         <SkyBirds src={art.birdSrc} count={3} top={0.16} band={0.16} />
         <div className="home-crane" aria-hidden>
@@ -73,7 +74,7 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
             <img src={art.b1} alt="" className="home-block" />
           </div>
         </div>
-        <div className="absolute inset-0 flex flex-col items-center gap-4 overflow-y-auto px-5 pb-8 pt-[max(3.75rem,calc(env(safe-area-inset-top)+3rem))]">
+        <div className="absolute inset-0 flex flex-col items-center home-content gap-4 overflow-y-auto px-5 pb-8 pt-[max(3.75rem,calc(env(safe-area-inset-top)+3rem))]">
           <img src={art.logoSrc} alt="Sky Bloxx" className="home-logo w-64 drop-shadow-md" />
           {panel === "home" && <MainButtons onCampaign={onCampaign} onEndless={onEndless} onDaily={onDaily} onShop={onShop} setPanel={setPanel} gift={gift} balance={balance} onGift={() => setShowMap(true)} />}
           {showMap && <RewardMap gift={gift} balance={balance} targetRef={rewardTarget} counterRef={rewardCounter} onClaim={claimGiftNow} onClose={() => { collector.current?.clear(); collecting.current = false; setBalance(coins()); setShowMap(false); }} />}
@@ -105,9 +106,9 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
     <div className="home-buttons mt-auto flex w-full max-w-xs flex-col gap-2">
       <div className="home-topline home-topbar">
         <div className="home-wallet"><img src={coin} alt="" /><strong>{balance.toLocaleString()}</strong></div>
-        <button type="button" className={`home-gift ${gift.available ? "is-ready" : ""}`} onClick={onGift} aria-label={`Daily reward, day ${gift.day} of 7`}>
+        <Button variant="ghost" className={`home-gift ${gift.available ? "is-ready" : ""}`} onClick={onGift} aria-label={`Daily reward, day ${gift.day} of 7`}>
           <Gift className="h-4 w-4" /> Day {gift.day}/7 · {gift.crane ? "crane won!" : gift.available ? label : "claimed"}
-        </button>
+        </Button>
       </div>
       <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /><span className="flex flex-col items-start leading-tight">District tour<span className="text-xs font-semibold opacity-80">{tour.name}{tour.preview ? " preview" : ""} · next {tour.tomorrow}</span></span><span className="ml-auto text-sm font-semibold">3× coins</span></Button>
@@ -177,7 +178,7 @@ function MissionsPanel({ collector, onBack }: { collector: RefObject<CoinCollect
               <div className="mission-bar" aria-label={`${Math.min(m.progress, m.goal)} of ${m.goal}`}>
                 <i style={{ width: `${Math.min(100, (m.progress / m.goal) * 100)}%` }} />
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="mission-status flex w-full items-center justify-between gap-3 text-sm">
                 <span className="opacity-75">{Math.min(m.progress, m.goal)}/{m.goal}</span>
                 {m.claimed
                   ? <span className="font-extrabold">✓ Claimed</span>
@@ -198,19 +199,19 @@ function Leaderboard({ onBack }: { onBack: () => void }) {
   const [rows, setRows] = useState<ScoreRow[] | null>(null);
   const [err, setErr] = useState(false);
   const [me, setMe] = useState<string | null>(null);
-  useEffect(() => { topScores().then(setRows).catch(() => setErr(true)); void supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? null)); }, []);
+  useEffect(() => { topScores().then(setRows).catch(() => setErr(true)); void supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null)); }, []);
   return (
     <div className="hud-pill w-full max-w-sm gap-2 p-4">
       <span className="text-2xl font-extrabold">Endless leaderboard</span>
-      <span className="hud-label">New obstacle every 10 floors: {ENDLESS_STAGES.join(" → ")}</span>
+      <div className="score-personal"><span className="hud-label">YOUR PHONE BEST</span><strong>{Number(localStorage.getItem("bloxx-endless-best") || 0).toLocaleString()}</strong></div>
       {!me && <span className="hud-label">Sign in to post your scores — every score is checked to keep it fair.</span>}
-      <ol className="mt-2 flex max-h-[45dvh] flex-col gap-1 overflow-y-auto">
+      <ol className="score-list mt-2 flex w-full max-h-[45dvh] flex-col gap-1 overflow-y-auto">
         {err && <li>Couldn't load scores. Check your connection.</li>}
         {!err && !rows && <li>Loading…</li>}
         {rows?.length === 0 && <li>No scores yet — be the first!</li>}
         {rows?.map((r, i) => (
-          <li key={r.id} className={`flex items-center gap-2 rounded px-2 py-1 ${r.player_id === me ? "bg-hud-accent/30 font-extrabold" : ""}`}>
-            <span className="w-7 text-right">{i + 1}.</span><span className="flex-1 truncate">{r.name}</span>
+          <li key={r.id} className={`score-row flex items-center gap-2 rounded px-2 py-1 ${r.player_id === me ? "bg-hud-accent/30 font-extrabold" : ""}`}>
+            <span className={`score-rank ${i < 3 ? "text-hud-accent" : ""}`}>{i + 1}</span><span className="flex-1 truncate">{r.name}</span>
             <span className="text-sm opacity-70">{r.floors} fl</span><span className="w-16 text-right font-extrabold">{r.score}</span>
           </li>
         ))}
@@ -243,7 +244,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
         <Slider aria-label="Sound effects volume" min={0} max={100} step={1} value={[s.sound ? Math.round(s.soundVolume * 100) : 0]} onValueChange={([v]) => update({ sound: true, soundVolume: (v ?? 0) / 100 })} onValueCommit={() => void sfx("drop", 0.55)} />
       </label>
       <Toggle label="Vibration" on={s.vibrate} set={v => update({ vibrate: v })} />
-      <AdPlacementTests />
+      {import.meta.env.DEV && <AdPlacementTests />}
       <div className="flex justify-center gap-4 text-sm underline">
         <a href="/privacy">Privacy Policy</a><a href="/terms">Terms</a>
       </div>
@@ -279,7 +280,7 @@ function RewardMap({ gift, balance, targetRef, counterRef, onClaim, onClose }: {
             return (
               <div key={n} className={`reward-tile ${n === 7 ? "is-big" : ""} ${done ? "is-done" : ""} ${today && gift.available ? "is-today" : ""}`}>
                 <span>Day {n}</span>
-                <img src={n === 7 ? craneSource("weekly") : coin} alt="" className={n === 7 ? "reward-crane" : ""} />
+                {n === 7 ? <div className="reward-crane-scene"><img src={craneSource("weekly")} alt="Festival Crane" className="reward-crane" /><span className="reward-preview-rope" /><img src={rewardArt.hookSrc} alt="" className="reward-preview-hook" /><img src={rewardArt.b1} alt="" className="reward-preview-block" /></div> : <img src={coin} alt="" />}
                 <b>{n === 7 ? "Festival Crane" : `+${DAILY_REWARDS[n - 1]}`}</b>
                 {done && <i>✓</i>}
               </div>
