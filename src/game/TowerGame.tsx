@@ -440,7 +440,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // render
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      const alt = s.camY;
+      const dbgAlt = import.meta.env.DEV && typeof window !== "undefined" ? (window as unknown as { __skyAlt?: number }).__skyAlt : undefined;
+      const alt = typeof dbgAlt === "number" ? dbgAlt : s.camY; // dev-only sky review hook
       const sky = skyProfile(alt);
       const altC = alt + dsky.cloudOffset; // cloud bands (Cloud Peak starts nearer the clouds)
       const skyC = skyProfile(altC);
@@ -470,7 +471,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // Far city sinking into blue haze below the rising tower (slowest layer).
       if (sky.cityHaze > 0.01 && ok(cityHaze)) {
         const hw = vw * 1.7, hh = hw * cityHaze.naturalHeight / cityHaze.naturalWidth;
-        ctx.globalAlpha = sky.cityHaze * 0.55;
+        ctx.globalAlpha = sky.cityHaze * 0.85;
         ctx.drawImage(cityHaze, vw / 2 - hw / 2, VH - hh * 1.05 + Math.max(0, alt - 500) * 0.12, hw, hh);
         ctx.globalAlpha = 1;
       }
@@ -491,12 +492,38 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (visitors.length && ok(visitorArt)) for (const v of visitors) {
         const fade = skyBlend(alt, v.wy - 650, v.wy - 350) * (1 - skyBlend(alt, v.wy + 500, v.wy + 900));
         if (fade < 0.01) continue;
-        const y = cloudScreenY(v.wy, alt, v.depth, 230) + (reducedMotion ? 0 : Math.sin(s.t * 0.6 + v.phase) * 6);
+        const m = reducedMotion ? 0 : 1, t = s.t + v.phase * 3;
+        const y = cloudScreenY(v.wy, alt, v.depth, 230) + m * (Math.sin(t * 0.6) * 6 + Math.sin(t * 1.7) * 1.5);
         const x = vw / 2 + v.lane * vw;
         const w = v.size, h = w * visitorArt.naturalHeight / visitorArt.naturalWidth;
         ctx.save(); ctx.globalAlpha = fade * 0.9; ctx.translate(x, y);
-        if (dsky.life === "kite") ctx.rotate(Math.sin(s.t * 0.9 + v.phase) * 0.12);
-        ctx.drawImage(visitorArt, -w / 2, -h / 2, w, h); ctx.restore();
+        if (dsky.life === "kite") {
+          // Living kite: gusty flutter, wind-filled sail, waving painted tail and taut string.
+          const gust = Math.sin(t * 0.9) * 0.12 + Math.sin(t * 3.1) * 0.05 * m;
+          const tailLen = h * 1.6, segs = 14;
+          ctx.save(); ctx.lineCap = "round"; ctx.strokeStyle = "rgba(196,72,52,0.85)"; ctx.lineWidth = Math.max(1.2, w * 0.035);
+          ctx.beginPath(); ctx.moveTo(0, h * 0.42);
+          const pts: [number, number][] = [];
+          for (let i = 1; i <= segs; i++) { const k = i / segs; const px = Math.sin(t * 4 - k * 5) * w * 0.22 * k * m + k * w * 0.15; const py = h * 0.42 + k * tailLen; pts.push([px, py]); ctx.lineTo(px, py); }
+          ctx.stroke();
+          for (let i = 3; i < segs; i += 3) { const [bx, by] = pts[i]!; const flap = Math.sin(t * 6 + i) * m; ctx.fillStyle = i % 2 ? "rgba(236,190,80,0.9)" : "rgba(92,140,170,0.9)"; ctx.beginPath(); ctx.ellipse(bx - w * 0.06, by, w * 0.06, w * 0.03 * (0.6 + 0.4 * flap), -0.4 + flap * 0.3, 0, Math.PI * 2); ctx.ellipse(bx + w * 0.06, by, w * 0.06, w * 0.03 * (0.6 - 0.4 * flap), 0.4 - flap * 0.3, 0, Math.PI * 2); ctx.fill(); }
+          ctx.strokeStyle = "rgba(70,55,45,0.45)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(0, h * 0.2);
+          ctx.quadraticCurveTo(-w * 0.6 + Math.sin(t * 0.7) * 6 * m, h * 2.5, -w * 1.1, h * 5); ctx.stroke(); ctx.restore();
+          ctx.rotate(gust); ctx.scale(1 + Math.sin(t * 2.3) * 0.04 * m, 1 - Math.sin(t * 2.3) * 0.03 * m);
+          ctx.drawImage(visitorArt, -w / 2, -h / 2, w, h);
+        } else {
+          // Living balloon: basket swings from the envelope, envelope breathes, burner flickers.
+          const swing = Math.sin(t * 0.8) * 0.07 * m + Math.sin(t * 1.9) * 0.015 * m;
+          ctx.translate(0, -h * 0.35); ctx.rotate(swing); ctx.translate(0, h * 0.35);
+          const breathe = 1 + Math.sin(t * 1.3) * 0.025 * m;
+          const fl = m ? 0.35 + 0.35 * Math.abs(Math.sin(t * 7.3) * Math.sin(t * 3.1)) : 0.3;
+          const gy = h * 0.2, g = ctx.createRadialGradient(0, gy, 0, 0, gy, w * 0.45);
+          g.addColorStop(0, `rgba(255,190,90,${fl})`); g.addColorStop(1, "rgba(255,150,60,0)");
+          ctx.save(); ctx.scale(breathe, 2 - breathe); ctx.drawImage(visitorArt, -w / 2, -h / 2, w, h); ctx.restore();
+          ctx.globalCompositeOperation = "soft-light"; ctx.fillStyle = g; ctx.fillRect(-w / 2, gy - w * 0.45, w, w * 0.9);
+          ctx.globalCompositeOperation = "source-over";
+        }
+        ctx.restore();
       }
       // Original drifting clouds (only from rooftop height up, so none sit on the street) and birds.
       if (ok(cloud)) for (const [i, c] of puffs.entries()) {
