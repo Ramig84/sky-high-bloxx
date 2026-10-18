@@ -255,6 +255,6 @@ export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.1
   const dx = b.x - a.x, dy = b.y - a.y;
   const climbing = dy < -0.15;
   const pose = climbing ? [0, 1, 2, 3, 2, 1][Math.floor((t + ph) * 11) % 6]! : 5;
-  const rot = Math.max(-0.45, Math.min(0.45, Math.atan2(dy, Math.abs(dx) + 0.001) * 0.6));
+  const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.001) * 0.35));
   return { x: a.x, y: a.y, rot, pose, mirror: dx < 0, scale: 0.8 + (i % 3) * 0.15 };
 }
