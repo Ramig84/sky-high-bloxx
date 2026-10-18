@@ -7,7 +7,8 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { birdFlight, cloudHeight, skyProfile } from "./sky";
+import { DISTRICT_SKY, birdFlight, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyProfile, skyVisitors } from "./sky";
+import { skyArt } from "./skyArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
@@ -151,9 +152,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     api.current.mute = (m) => { isMuted = m; saveSettings({ ...loadSettings(), sound: !m }); setAmbience(m ? [] : ambienceFor(district.id, spec)); setMusic(!m, 0.22, DISTRICT_MUSIC[district.id]); };
     setAmbience(ambienceFor(district.id, spec)); setMusic(true, 0.22, DISTRICT_MUSIC[district.id]);
     api.current.start = () => { unlockAudio(); isStarted = true; };
-    // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
-    const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
-    const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
+    // Layered sky: world-anchored clouds at several depths, district visitors and birds.
+    const dsky = DISTRICT_SKY[district.id];
+    const field = cloudField();
+    const visitors = skyVisitors(dsky.lifeCount);
+    const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
+    const visitorArt = load(dsky.life === "kite" ? skyArt.kiteSrc : skyArt.balloonSrc), aurora = load(skyArt.auroraSrc);
+    const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ x: -250 - i * 220, y: 140 + (i % 3) * 60 + i * 12, sp: (30 + Math.random() * 20) * dsky.birds.speed, ph: Math.random() * 6 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
     const starPigment = document.createElement("canvas");
