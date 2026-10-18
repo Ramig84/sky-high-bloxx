@@ -98,3 +98,6 @@
 - [x] Layered sky depth per height band and per-district sky moods (no clouds at street level; original clouds/birds kept)
 - [x] Animated sky spirits in every district
 - [x] Per-district painted skies (street + high)
+
+- [x] Natural bird flight on every screen (game, celebration, home, map); street butterflies full travel; home light + shape-changing clouds
+- [ ] GitHub sync + Android workflow for natural-bird update (runs after this reply is saved)

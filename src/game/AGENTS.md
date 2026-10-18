@@ -18,3 +18,4 @@
 - District spirits use padded transparent painted pose atlases from spiritArtwork, with independent pose timing and browser-safe sky trajectories; never deform a single painting into wing motion, so the action comes from authored poses rather than stretched icons.
 - Butterfly scenery shares sky spirit trajectories across street and altitude layers; balloon and kite travel uses visitorMotion with camera depth, so no rendering path falls back to fixed-position hovering.
 - Each district has its own painted street sky and high sky, crossfaded by districtSkyMix over the shared base layers and preloaded per district, so districts read distinctly without swapping or sliding images.
+- Every screen's birds fly through the shared birdPath in sky.ts (menus via SkyBirds), never CSS sliding paths, so flight looks the same everywhere.
