@@ -15,5 +15,5 @@
 - Derive building floors, street plate and footing from a single approved master painting and match auxiliary sprites to it, so independent asset generation cannot fragment the scene's visual language.
 - Render celebration particles from a compact painted-paper sprite sheet rather than synthetic colored rectangles, so effects share the scene's material language.
 - Render district celebrations as one portrait canvas using predecoded district streets, floors, roof and footing; crossfade to the next district before navigation so the transition stays cohesive and never streams artwork mid-scene.
-- Each district has an animated sky spirit (wing-hinged gulls/butterflies, tumbling leaves, rising steam/lanterns) driven by browser-safe spiritMotion in sky.ts with tests, so creatures move through real painted motion rather than sliding images.
+- District spirits use padded transparent painted pose atlases from spiritArtwork, with independent pose timing and browser-safe sky trajectories; never deform a single painting into wing motion, so the action comes from authored poses rather than stretched icons.
 - Each district has its own painted street sky and high sky, crossfaded by districtSkyMix over the shared base layers and preloaded per district, so districts read distinctly without swapping or sliding images.
