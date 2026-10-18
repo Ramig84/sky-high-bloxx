@@ -3,6 +3,7 @@ import { Lock, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
+import { SkyBirds } from "./SkyBirds";
 import { DISTRICTS, LEVELS_PER_DISTRICT, districtCleared, districtStars, isDistrictUnlocked as lockedDistrict, isLevelUnlocked as lockedLevel, levelSpec, type DistrictId, type Stars } from "./levels";
 
 const isTablet = () => typeof window !== "undefined" && window.matchMedia("(min-width: 600px)").matches;

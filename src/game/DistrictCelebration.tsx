@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, districtStars, LEVELS_PER_DISTRICT, type Stars } from "./levels";
 import { confettiSrc, getImage, roofSrc } from "./preload";
+import { birdPath } from "./sky";
 import { sfx } from "./audio";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";

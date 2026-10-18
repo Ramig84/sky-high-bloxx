@@ -63,11 +63,8 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
       <div className="game-viewport relative h-full overflow-hidden">
         <div className="map-pan absolute inset-0 bg-cover bg-bottom" style={{ backgroundImage: `url(${districtStreet("oldtown", tablet)})` }} aria-hidden />
         {[0, 1, 2].map(i => <img key={`c${i}`} src={art.cloudSrc} alt="" aria-hidden className="map-cloud" style={{ top: `${4 + i * 14}%`, animationDelay: `${-i * 15}s`, animationDuration: `${34 + i * 10}s` }} />)}
-        {[0, 1].map(i => (
-          <div key={`b${i}`} className="map-bird-path" style={{ top: `${22 + i * 12}%`, animationDelay: `${-i * 9}s` }} aria-hidden>
-            <div className="map-bird" style={{ backgroundImage: `url(${art.birdSrc})` }} />
-          </div>
-        ))}
+        <div className="home-light" aria-hidden />
+        <SkyBirds src={art.birdSrc} count={3} top={0.16} band={0.16} />
         <div className="home-crane" aria-hidden>
           <div className="home-swing">
             <span className="home-rope" />
