@@ -7,6 +7,7 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
+import { birdFlight, cloudHeight, skyProfile } from "./sky";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
@@ -153,6 +154,23 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
     const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
     const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Extract only existing star pigment: no generated points, glow or new illustration.
+    const starPigment = document.createElement("canvas");
+    if (ok(space)) {
+      starPigment.width = space.naturalWidth; starPigment.height = space.naturalHeight;
+      const pigment = starPigment.getContext("2d", { willReadFrequently: true });
+      if (pigment) {
+        pigment.drawImage(space, 0, 0);
+        const pixels = pigment.getImageData(0, 0, starPigment.width, starPigment.height);
+        for (let i = 0; i < pixels.data.length; i += 4) {
+          const red = pixels.data[i] ?? 0, green = pixels.data[i + 1] ?? 0, blue = pixels.data[i + 2] ?? 0;
+          const y = Math.floor(i / 4 / starPigment.width);
+          pixels.data[i + 3] = y < starPigment.height * 0.78 ? Math.max(0, Math.min(255, (Math.min(red, green, blue) - 145) * 3)) : 0;
+        }
+        pigment.putImageData(pixels, 0, 0);
+      }
+    }
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
     let faded = false;
@@ -381,42 +399,52 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // render
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       const alt = s.camY;
-      const a = (lo: number, hi: number) => Math.max(0, Math.min(1, (alt - lo) / (hi - lo)));
+      const sky = skyProfile(alt);
       drawCover(clouds, 1, 0);
-      drawCover(sunset, a(1200, 2000), 0);
-      drawCover(space, a(3000, 3800), 0);
+      drawCover(sunset, sky.sunset, 0);
+      drawCover(space, sky.space, 0);
+      if (!reducedMotion && sky.space > 0 && starPigment.width) {
+        ctx.save(); ctx.globalCompositeOperation = "screen";
+        drawCover(starPigment, sky.space * (0.035 + 0.025 * Math.sin(s.t * 0.65)), 0);
+        ctx.restore();
+      }
       if (!faded && ok(street)) buildFade();
-      drawCover(faded ? streetFaded : street, 1 - a(400, 900), alt);
+      drawCover(faded ? streetFaded : street, sky.street, alt);
 
       // drifting clouds (slower parallax than the tower) and birds
-      if (ok(cloud)) for (const c of puffs) {
-        c.x += c.sp * dt; if (c.x > vw / 2 + 140) c.x = -vw / 2 - 140;
-        const sy = GROUND_SCREEN - (c.y - alt * 0.6);
-        if (sy < -120 || sy > VH + 60) continue;
-        const w = 100 * c.sc;
-        ctx.globalAlpha = 0.45 * (1 - a(3200, 3800)); ctx.drawImage(cloud, vw / 2 + c.x - w / 2, sy, w, w * cloud.naturalHeight / cloud.naturalWidth); ctx.globalAlpha = 1;
+      if (ok(cloud)) for (const [i, c] of puffs.entries()) {
+        const depth = 0.22 + (i % 3) * 0.19;
+        const sy = cloudHeight(260 + i * 212, alt, depth, VH);
+        // Side-lane clouds leave the crane and landing edges unobstructed.
+        const side = i % 2 ? 1 : -1;
+        const drift = reducedMotion ? 0 : Math.sin(s.t * c.sp * 0.004 + i * 1.7) * 20;
+        const x = vw / 2 + side * (vw * 0.48 + drift);
+        const w = 100 * c.sc * (0.7 + depth);
+        ctx.globalAlpha = (0.16 + depth * 0.3) * sky.clouds;
+        ctx.drawImage(cloud, x - w / 2, sy, w, w * cloud.naturalHeight / cloud.naturalWidth); ctx.globalAlpha = 1;
       }
       if (ok(bird)) for (const b of birds) {
         b.x += b.sp * dt; if (b.x > vw / 2 + 80) { b.x = -vw / 2 - 80 - Math.random() * 300; b.y = 120 + Math.random() * 160; }
-        const wingCycle = [0, 1, 2, 3, 2, 1];
-        const pose = wingCycle[Math.floor((s.t + b.ph) * 10) % wingCycle.length] ?? 0;
-        ctx.globalAlpha = 1 - a(1500, 2200);
-        drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 2 + b.ph) * 2, 20, 25.6); ctx.globalAlpha = 1;
+        const pose = reducedMotion ? 5 : birdFlight(s.t, b.ph);
+        const depth = 0.65 + b.ph / 6 * 0.25;
+        const lane = Math.abs(b.x) < vw * 0.23 ? 0.18 : 1;
+        ctx.globalAlpha = sky.birds * depth * lane;
+        drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 0.7 + b.ph) * 5, 20 * depth, 25.6 * depth); ctx.globalAlpha = 1;
       }
       // district life: painted leaves, petals, butterflies, steam, boats and mist
       if (ok(amb)) {
-        const gs = toScreenY(0), fadeHi = 1 - a(500, 1100);
+        const gs = toScreenY(0), fadeHi = sky.districtLife;
         for (const p of life) {
           stepAmbient(p, dt, vw, spec.wind ? windDir * spec.wind : 0);
           const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0, flipX = 1;
-          if (L.kind === "fall") { y = p.y; rot = p.age * 1.8 * p.sp + p.ph; flipX = Math.cos(p.age * 3.1 + p.ph); }
-          else if (L.kind === "mist") { y = p.y; al *= 0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph); }
+          if (L.kind === "fall") { y = p.y; rot = p.age * 1.8 * p.sp + p.ph; flipX = Math.cos(p.age * 3.1 + p.ph); al *= fadeHi; }
+          else if (L.kind === "mist") { y = p.y; al *= (0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph)) * fadeHi; }
           else if (L.kind === "flutter") { y = gs - p.y - 40; cell = Math.floor(p.age * 9) % 2 ? 3 : 2; flipX = Math.cos(p.age * 0.7 + p.ph) >= 0 ? 1 : -1; al *= fadeHi; }
           else if (L.kind === "boat") {
             // Only the harbour has an unobstructed water lane. Reuse the backdrop cover transform.
             const point = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH, 0.5 + Math.sin(p.age * 0.12 + p.ph) * 0.1, 0.704, alt);
             x = point.x; y = point.y + p.y; sz = 16;
-            rot = Math.sin(p.age * 1.6 + p.ph) * 0.05; al *= 1 - a(400, 900);
+            rot = Math.sin(p.age * 1.6 + p.ph) * 0.05; al *= sky.street;
           }
           else { const k = p.age / 4; x += Math.sin(p.age + p.ph) * 6 + k * 14; y = gs - 150 - k * 70; sz *= 0.5 + k; al *= (1 - k) * fadeHi; }
           if (al <= 0.01 || y < -150 || y > VH + 60) continue;
