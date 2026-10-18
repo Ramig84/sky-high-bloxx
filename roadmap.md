@@ -1,4 +1,7 @@
 # Roadmap
+- [ ] Fix audit defects: natural Harbour gulls, seamless aurora, atmosphere behind gameplay, truthful score status, readable missions/reward previews and accessible release settings.
+- [ ] Polish home, map, Market, results, scores and destination reveal without changing approved mechanics, payouts or artwork.
+- [ ] Recheck all district gameplay and screens, regression tests and Android packaging; verify GitHub sync and run the latest Android workflow.
 - [x] Replace hovering butterfly, balloon and kite paths with travelling painted motion, including street butterflies; 128 tests and 3 Android packaging checks passed, all ten districts captured at four heights and three animation times, real touch landed one floor without losing a life, no runtime errors.
 - [x] Confirm travelling-spirit changes on GitHub and run Android workflow: remote main matches local 21e9fed; manually dispatched Android build #52 is in progress at https://github.com/Ramig84/sky-high-bloxx/actions/runs/39132696159.
 - [x] Fix out-of-order campaign unlocks: require every earlier level cleared, preserve saved stars, reject isolated finale completion; 125 tests passed and phone map confirmed level 4 playable with levels 5–10 locked, no runtime errors.
