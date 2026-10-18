@@ -190,6 +190,42 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       c.globalCompositeOperation = "destination-out"; c.fillStyle = g;
       c.fillRect(0, 0, street.naturalWidth, street.naturalHeight * 0.3);
     };
+    // Storm districts darken the same painted clouds (multiply grey kept inside the brushwork).
+    const shaded = new Map<HTMLImageElement, CanvasImageSource>();
+    const cloudArt = (img: HTMLImageElement): CanvasImageSource => {
+      if (dsky.cloudShade <= 0) return img;
+      const hit = shaded.get(img); if (hit) return hit;
+      const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext("2d"); if (!g) return img;
+      g.drawImage(img, 0, 0); g.globalCompositeOperation = "multiply";
+      const v = Math.round(255 * (1 - dsky.cloudShade * 0.55)); g.fillStyle = `rgb(${v},${v},${Math.min(255, v + 8)})`; g.fillRect(0, 0, c.width, c.height);
+      g.globalCompositeOperation = "destination-in"; g.drawImage(img, 0, 0);
+      shaded.set(img, c); return c;
+    };
+    /** Back pass: far wisps and mid clouds behind the tower. Front pass: a few near clouds at the very edges. */
+    const drawSkyClouds = (altC: number, front: boolean) => {
+      for (const [i, c] of field.entries()) {
+        const img = c.kind === "wisp" ? wisp : cloud;
+        if (!ok(img)) continue;
+        const isFront = c.kind === "puff" && i % 4 === 1;
+        if (isFront !== front) continue;
+        const dens = cloudDensity(c.kind, altC);
+        if (dens < 0.01) continue;
+        const depth = front ? 1.3 : c.depth;
+        const y = cloudScreenY(cloudWorldY(c.wy, altC), altC, depth);
+        const w = (c.kind === "wisp" ? 190 : 110) * c.scale * (0.55 + depth * (front ? 0.9 : 0.8));
+        const h = w * img.naturalHeight / img.naturalWidth;
+        if (y < -h - 40 || y > VH + 40) continue;
+        const drift = reducedMotion ? 0 : Math.sin(s.t * 0.035 * (0.5 + depth) + c.drift) * 18;
+        // Side lanes keep the crane, falling floor and landing area clear; near clouds hug the edges.
+        const lane = front ? Math.sign(c.lane) * (0.56 + Math.abs(c.lane) * 0.25) : c.lane;
+        const x = vw / 2 + lane * vw + drift;
+        const far = c.kind === "wisp" ? 0.5 : 0.28 + depth * 0.5; // far clouds paler
+        ctx.globalAlpha = dens * (front ? 0.42 : far);
+        ctx.drawImage(cloudArt(img), x - w / 2, y - h / 2, w, h);
+      }
+      ctx.globalAlpha = 1;
+    };
 
     let scale = 1, vw = 360;
     const resize = () => {
