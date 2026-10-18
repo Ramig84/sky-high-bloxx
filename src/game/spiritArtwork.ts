@@ -27,7 +27,7 @@ export function spiritPose(kind: PaintedSpirit, index: number, time: number) {
 }
 
 /** Draw registered whole paintings, never stretch wings or morph silhouettes. */
-export function drawSpirit(ctx: CanvasRenderingContext2D, image: HTMLImageElement, kind: PaintedSpirit, index: number, time: number, size: number, glide = false) {
+export function drawSpirit(ctx: CanvasRenderingContext2D, image: (HTMLImageElement | HTMLCanvasElement) & { naturalWidth: number; naturalHeight: number }, kind: PaintedSpirit, index: number, time: number, size: number, glide = false) {
   const blend = glide ? { current: 6, next: 6, mix: 0 } : poseBlend(cycles[kind], rates[kind], index * 2.73, time, ["steam", "lantern", "kite", "balloon", "boat"].includes(kind));
   const cw = image.naturalWidth / 4, ch = image.naturalHeight / 2, alpha = ctx.globalAlpha;
   for (const [frame, weight] of [[blend.current, 1 - blend.mix], [blend.next, blend.mix]]) {

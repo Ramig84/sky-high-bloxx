@@ -565,9 +565,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (dsky.life !== "none" && visitors.length && ok(visitorArt)) for (const v of visitors) {
         const fade = skyBlend(alt, v.wy - 650, v.wy - 350) * (1 - skyBlend(alt, v.wy + 500, v.wy + 900));
         if (fade < 0.01) continue;
-        const t = s.t + v.phase * 3;
+        const t = s.t;
         const m = visitorMotion(dsky.life, v, s.t, alt, vw, VH, reducedMotion);
-        const w = v.size * 1.6, h = w;
+        const w = v.size * 1.6;
         ctx.save(); ctx.globalAlpha = fade * m.alpha * 0.9; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
         drawSpirit(ctx, visitorArt, dsky.life, Math.floor(v.phase * 10), reducedMotion ? 0 : t, w);
         ctx.restore();
@@ -578,7 +578,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (spPres > 0.01 && ok(spiritSrcImg) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
         const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
         const base = { gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20 }[spirit.kind] * m.scale;
-        const w = base * 1.25, h = w, iw = spiritArt.naturalWidth / 4, ih = spiritArt.naturalHeight / 2;
+        const w = base * 1.25;
         ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
         if (spirit.kind === "gull" && m.flip < 0) ctx.scale(-1, 1);
         drawSpirit(ctx, spiritArt, spirit.kind, i, s.t, w, spirit.kind === "gull" && m.flap === 0);
