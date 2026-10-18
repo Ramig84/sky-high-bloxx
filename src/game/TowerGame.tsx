@@ -440,7 +440,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // render
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      const alt = s.camY;
+      const dbgAlt = import.meta.env.DEV && typeof window !== "undefined" ? (window as unknown as { __skyAlt?: number }).__skyAlt : undefined;
+      const alt = typeof dbgAlt === "number" ? dbgAlt : s.camY; // dev-only sky review hook
       const sky = skyProfile(alt);
       const altC = alt + dsky.cloudOffset; // cloud bands (Cloud Peak starts nearer the clouds)
       const skyC = skyProfile(altC);
@@ -470,7 +471,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // Far city sinking into blue haze below the rising tower (slowest layer).
       if (sky.cityHaze > 0.01 && ok(cityHaze)) {
         const hw = vw * 1.7, hh = hw * cityHaze.naturalHeight / cityHaze.naturalWidth;
-        ctx.globalAlpha = sky.cityHaze * 0.55;
+        ctx.globalAlpha = sky.cityHaze * 0.85;
         ctx.drawImage(cityHaze, vw / 2 - hw / 2, VH - hh * 1.05 + Math.max(0, alt - 500) * 0.12, hw, hh);
         ctx.globalAlpha = 1;
       }
