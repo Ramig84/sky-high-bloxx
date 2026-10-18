@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Correct district scenery trajectories, rooftop/source anchoring and bird visibility; verify all districts and unchanged obstacles, then verify GitHub and start Android workflow.
 - [x] Re-audited all ten districts at street and elevated camera heights in an isolated phone-sized browser (60 timed captures, no artwork failures/runtime errors). Confirmed bottom-origin lanterns in Market/Downtown/Skyline, source-less steam, ignored district bird counts and short visible bird-flight windows; report findings without claiming studio quality. No gameplay/artwork changes made.
 - [x] Refine painted animation: correct gull/menu glide poses, soften slow object-pose changes, unify street and sky rendering, remove visitor double phase and replace static mist; 137 checks passed and ten districts at three heights reviewed without runtime errors, preserving existing paintings.
 - [x] Locked tiles no longer show saved stars; reproduced an isolated level-7 win with gaps, confirmed disabled and no star icons, and preserved earned progress.
