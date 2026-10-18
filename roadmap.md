@@ -91,3 +91,4 @@
 - [ ] District stamps reward for tours (after launch)
 - [x] Layered sky depth per height band and per-district sky moods (no clouds at street level; original clouds/birds kept)
 - [x] Animated sky spirits in every district
+- [x] Per-district painted skies (street + high)
