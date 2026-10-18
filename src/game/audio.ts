@@ -59,6 +59,7 @@ export function ambienceFor(district: DistrictId, spec: Pick<LevelSpec, "wind" |
 let ctx: AudioContext | null = null;
 const buffers = new Map<Sound, Promise<AudioBuffer | null>>();
 const loops = new Map<string, { src: AudioBufferSourceNode; gain: GainNode }>();
+let appPaused = false;
 let musicBus: GainNode | null = null, effectsBus: GainNode | null = null;
 
 /** All ongoing recordings respond immediately, independently, to player volume changes. */
@@ -77,7 +78,7 @@ function context() {
     musicBus.connect(ctx.destination); effectsBus.connect(ctx.destination);
     applyAudioSettings();
   } catch { return null; } }
-  if (ctx.state === "suspended" && document.visibilityState === "visible") void ctx.resume();
+  if (ctx.state === "suspended" && document.visibilityState === "visible" && !appPaused) void ctx.resume();
   return ctx;
 }
 function buffer(name: Sound) {
@@ -98,9 +99,18 @@ if (typeof window !== "undefined") {
   // Silence everything when the app is minimized, the screen locks, or another app covers it.
   const syncVisibility = () => {
     if (!ctx) return;
-    if (document.visibilityState === "hidden") void ctx.suspend();
+    if (document.visibilityState === "hidden" || appPaused) void ctx.suspend();
     else void ctx.resume();
   };
+  // Android WebView does not always report background; the native app state is authoritative.
+  void import("@capacitor/core").then(({ Capacitor }) => {
+    if (!Capacitor.isNativePlatform()) return;
+    return import("@capacitor/app").then(({ App }) => {
+      void App.addListener("pause", () => { appPaused = true; if (ctx) void ctx.suspend(); });
+      void App.addListener("resume", () => { appPaused = false; syncVisibility(); });
+      void App.addListener("appStateChange", ({ isActive }) => { appPaused = !isActive; syncVisibility(); });
+    });
+  }).catch(() => {});
   document.addEventListener("visibilitychange", syncVisibility);
   window.addEventListener("pagehide", () => { if (ctx) void ctx.suspend(); });
   window.addEventListener("blur", () => { if (ctx && document.hidden) void ctx.suspend(); });
