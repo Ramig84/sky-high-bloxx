@@ -142,8 +142,15 @@ export function spiritMotion(kind: SpiritKind, i: number, t: number, vw: number,
       scale: 0.8 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 4) };
   }
   if (kind === "butterfly") {
-    return { x: lane + Math.sin(t * 0.5 + ph) * vw * 0.07 + Math.sin(t * 1.3 + ph) * 10, y: vh * (0.3 + (i % 4) * 0.15) + Math.sin(t * 0.8 + ph * 2) * 30,
-      rot: Math.cos(t * 0.5 + ph) * 0.35, flip: 1, flap: 0.5 + 0.5 * Math.sin(t * 13 + ph), scale: 0.8 + (i % 2) * 0.3, alpha: 1 };
+    // A winding ascent with offscreen recycling, not wingbeats around a fixed perch.
+    const period = 19 + (i % 4) * 3, k = loop(period);
+    const bend = k * Math.PI * 4 + ph;
+    const dx = side * vw * (0.065 * Math.cos(bend) * Math.PI * 4 + 0.02 * Math.cos(bend * 2 + ph) * Math.PI * 8) / period;
+    const dy = -(vh + 100) / period;
+    return { x: vw / 2 + side * vw * (0.36 + 0.065 * Math.sin(bend) + 0.02 * Math.sin(bend * 2 + ph)),
+      y: vh + 50 - k * (vh + 100), rot: Math.atan2(dx, -dy) * 0.55, flip: dx < 0 ? -1 : 1,
+      flap: 0.5 + 0.5 * Math.sin(t * 13 + ph), scale: 0.8 + (i % 2) * 0.3,
+      alpha: skyBlend(k, 0, 0.07) * (1 - skyBlend(k, 0.93, 1)) };
   }
   if (kind === "leaf") {
     const k = loop(11 + i * 1.5);
@@ -193,6 +200,23 @@ export function highSkyGlow(altitude: number, strength: number, night: boolean) 
 }
 
 export type SkyVisitor = { wy: number; lane: number; depth: number; phase: number; size: number };
+/** Local object travel plus camera depth; authored poses still provide the material/wing motion. */
+export function visitorMotion(kind: Exclude<SkyLife, "none">, v: SkyVisitor, t: number, altitude: number, vw: number, vh: number, reduced = false) {
+  const baseY = cloudScreenY(v.wy, altitude, v.depth, 230), side = Math.sign(v.lane);
+  if (reduced) return { x: vw / 2 + v.lane * vw, y: baseY, rot: 0, alpha: 1 };
+  const period = kind === "balloon" ? 42 + v.phase * 2 : 27 + v.phase;
+  const k = (((t + v.phase * 5) / period) % 1 + 1) % 1;
+  const bend = k * Math.PI * 2 + v.phase;
+  if (kind === "balloon") return {
+    x: vw / 2 + side * vw * (0.36 + 0.07 * Math.sin(bend)),
+    y: baseY + vh * (0.38 - k * 0.76), rot: 0.035 * Math.sin(bend * 2),
+    alpha: skyBlend(k, 0, 0.08) * (1 - skyBlend(k, 0.92, 1)),
+  };
+  // A tethered kite sweeps a broad wind-driven arc, banking as it changes direction.
+  return { x: vw / 2 + side * vw * (0.37 + 0.075 * Math.sin(bend) + 0.012 * Math.sin(t * 1.1 + v.phase)),
+    y: baseY + vh * 0.17 * Math.cos(bend) + 8 * Math.sin(t * 0.7 + v.phase),
+    rot: side * (0.12 * Math.cos(bend) + 0.045 * Math.sin(t * 1.1 + v.phase)), alpha: 1 };
+}
 /** District visitors (balloons, kites) float between rooftop height and the low clouds, at the side lanes. */
 export function skyVisitors(count: number): SkyVisitor[] {
   return Array.from({ length: count }, (_, i) => ({

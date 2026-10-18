@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Replace hovering butterfly, balloon and kite paths with travelling painted motion, including street butterflies; 128 tests and 3 Android packaging checks passed, all ten districts captured at four heights and three animation times, real touch landed one floor without losing a life, no runtime errors.
+- [ ] Confirm travelling-spirit changes on GitHub and run Android workflow (waiting for automatic repository sync; do not build the older level-lock commit).
 - [x] Fix out-of-order campaign unlocks: require every earlier level cleared, preserve saved stars, reject isolated finale completion; 125 tests passed and phone map confirmed level 4 playable with levels 5–10 locked, no runtime errors.
 - [x] Verify level-lock fix on GitHub and run Android workflow: remote main matches local 4c36c48 "Fixed level 8 unlock logic"; Android build #49 started from that commit.
 - [x] Recheck all ten district screens at five heights and painted pose motion; exercise menus, audio settings, daily gift, Market, Tour, a 15-floor completed campaign, pause/leave cancellation, replay, three misses, test-ad extra life, Endless and public pages; 121 game tests and 3 Android packaging tests passed, with no browser runtime or artwork-request errors. Physical-phone Google sign-in and live ads remain unverified.

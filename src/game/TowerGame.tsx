@@ -7,7 +7,7 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, districtSkyMix, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
+import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, districtSkyMix, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion } from "./sky";
 import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, spiritPose, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
@@ -567,16 +567,15 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (!districtArt) drawSkyClouds(altC, false);
 
       // District sky visitors (balloons, kites) drifting at the side lanes.
-      if (visitors.length && ok(visitorArt)) for (const v of visitors) {
+      if (dsky.life !== "none" && visitors.length && ok(visitorArt)) for (const v of visitors) {
         const fade = skyBlend(alt, v.wy - 650, v.wy - 350) * (1 - skyBlend(alt, v.wy + 500, v.wy + 900));
         if (fade < 0.01) continue;
-        const m = reducedMotion ? 0 : 1, t = s.t + v.phase * 3;
-        const y = cloudScreenY(v.wy, alt, v.depth, 230) + m * (Math.sin(t * 0.6) * 6 + Math.sin(t * 1.7) * 1.5);
-        const x = vw / 2 + v.lane * vw;
+        const t = s.t + v.phase * 3;
+        const m = visitorMotion(dsky.life, v, s.t, alt, vw, VH, reducedMotion);
         const w = v.size * 1.6, h = w;
-        const pose = spiritPose(dsky.life === "kite" ? "kite" : "balloon", Math.floor(v.phase * 10), t);
+        const pose = spiritPose(dsky.life, Math.floor(v.phase * 10), reducedMotion ? 0 : t);
         const cw = visitorArt.naturalWidth / 4, ch = visitorArt.naturalHeight / 2;
-        ctx.save(); ctx.globalAlpha = fade * 0.9; ctx.translate(x, y);
+        ctx.save(); ctx.globalAlpha = fade * m.alpha * 0.9; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
         ctx.drawImage(visitorArt, pose % 4 * cw, Math.floor(pose / 4) * ch, cw, ch, -w / 2, -h / 2, w, h);
         ctx.restore();
       }
@@ -621,7 +620,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0, flipX = 1;
           if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 1.8 + p.ph) * 0.25; al *= fadeHi; }
           else if (L.kind === "mist") { y = p.y; al *= (0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph)) * fadeHi; }
-          else if (L.kind === "flutter") { y = gs - p.y - 40; cell = 2; flipX = Math.cos(p.age * 0.7 + p.ph) >= 0 ? 1 : -1; al *= fadeHi; }
+          else if (L.kind === "flutter") {
+            const m = spiritMotion("butterfly", Math.floor(p.ph * 10), reducedMotion ? 0 : p.age, vw, VH);
+            x = m.x; y = gs - VH * 0.65 - 40 + m.y * 0.65; cell = 2; rot = m.rot; al *= fadeHi * m.alpha;
+          }
           else if (L.kind === "boat") {
             // Only the harbour has an unobstructed water lane. Reuse the backdrop cover transform.
             const point = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH, 0.5 + Math.sin(p.age * 0.12 + p.ph) * 0.1, 0.704, alt);
