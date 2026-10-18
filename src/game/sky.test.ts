@@ -86,6 +86,34 @@ describe("district spirits", () => {
   it("spirits are present at street level", () => {
     for (const { kind } of Object.values(DISTRICT_SPIRIT)) expect(spiritPresence(kind, 0)).toBe(1);
   });
+  it("butterflies travel through the sky instead of hovering around a perch", () => {
+    for (let i = 0; i < 5; i++) {
+      const path = Array.from({ length: 360 }, (_, step) => spiritMotion("butterfly", i, step / 10, 390, 700));
+      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(700);
+      expect(path.every(p => Math.abs(p.x - 195) >= 390 * 0.275)).toBe(true);
+      expect(Math.max(...path.map(p => p.x)) - Math.min(...path.map(p => p.x))).toBeGreaterThan(40);
+    }
+  });
+});
+
+import { skyVisitors, visitorMotion } from "./sky";
+describe("travelling painted sky visitors", () => {
+  it("balloons rise and drift, and tethered kites sweep broad arcs without entering the stacking lane", () => {
+    for (const kind of ["balloon", "kite"] as const) for (const v of skyVisitors(2)) {
+      const path = Array.from({ length: 600 }, (_, step) => visitorMotion(kind, v, step / 10, 650, 390, 700));
+      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(kind === "balloon" ? 500 : 220);
+      expect(Math.max(...path.map(p => p.x)) - Math.min(...path.map(p => p.x))).toBeGreaterThan(50);
+      expect(path.every(p => Math.abs(p.x - 195) > 100)).toBe(true);
+    }
+  });
+  it("retains camera depth and holds visitor travel still with reduced motion", () => {
+    for (const v of skyVisitors(2)) {
+      const a = visitorMotion("balloon", v, 5, 500, 390, 700);
+      const b = visitorMotion("balloon", v, 5, 700, 390, 700);
+      expect(b.y - a.y).toBeCloseTo(200 * v.depth);
+      expect(visitorMotion("kite", v, 0, 500, 390, 700, true)).toEqual(visitorMotion("kite", v, 10, 500, 390, 700, true));
+    }
+  });
 });
 
 import { districtSkyMix } from "./sky";
