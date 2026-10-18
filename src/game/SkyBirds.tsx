@@ -18,7 +18,7 @@ export function SkyBirds({ src, count = 2, top = 0.14, band = 0.18 }: { src: str
           if (!b) return;
           const m = birdPath(i, t, vw, vh, top, band);
           b.style.transform = `translate(${m.x - 14}px, ${m.y - 36}px) rotate(${m.mirror ? -m.rot : m.rot}rad) scale(${m.mirror ? -m.scale : m.scale}, ${m.scale})`;
-          b.style.backgroundPosition = `${m.pose * 20}% 0`;
+          b.style.backgroundPosition = `${(m.pose === 5 ? 2 : m.pose) * 20}% 0`;
         });
       }
       frame = requestAnimationFrame(tick);

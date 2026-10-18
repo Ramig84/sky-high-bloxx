@@ -82,7 +82,7 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
           const sw = bird.naturalWidth / 6, s = 13 * m.scale;
           ctx.save(); ctx.globalAlpha = 0.68; ctx.translate(m.x, m.y); ctx.rotate(m.mirror ? -m.rot : m.rot);
           if (m.mirror) ctx.scale(-1, 1);
-          ctx.drawImage(bird, m.pose * sw, 0, sw, bird.naturalHeight, -s / 2, -s * 1.28, s, s * 1.28);
+          ctx.drawImage(bird, (m.pose === 5 ? 2 : m.pose) * sw, 0, sw, bird.naturalHeight, -s / 2, -s * 1.28, s, s * 1.28);
           ctx.restore();
         }
         // A few turning painted petals linger at the edges, never an endless confetti curtain.

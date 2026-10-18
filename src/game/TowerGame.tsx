@@ -603,7 +603,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const y = m.y + Math.min(alt, 900) * 0.12 * depth;
         ctx.globalAlpha = sky.birds * depth;
         ctx.save(); ctx.translate(m.x, y); ctx.rotate(m.mirror ? -m.rot : m.rot);
-        drawPose(bird, 6, reducedMotion ? 5 : m.pose, 0, 0, 20 * depth * m.scale, 25.6 * depth * m.scale, m.mirror);
+        drawPose(bird, 6, reducedMotion || m.pose === 5 ? 2 : m.pose, 0, 0, 20 * depth * m.scale, 25.6 * depth * m.scale, m.mirror);
         ctx.restore(); ctx.globalAlpha = 1;
       }
       // district life: painted leaves, petals, butterflies, steam, boats and mist
