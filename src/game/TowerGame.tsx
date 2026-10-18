@@ -7,7 +7,8 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { birdFlight, cloudHeight, skyProfile } from "./sky";
+import { DISTRICT_SKY, birdFlight, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
+import { skyArt } from "./skyArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
@@ -151,9 +152,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     api.current.mute = (m) => { isMuted = m; saveSettings({ ...loadSettings(), sound: !m }); setAmbience(m ? [] : ambienceFor(district.id, spec)); setMusic(!m, 0.22, DISTRICT_MUSIC[district.id]); };
     setAmbience(ambienceFor(district.id, spec)); setMusic(true, 0.22, DISTRICT_MUSIC[district.id]);
     api.current.start = () => { unlockAudio(); isStarted = true; };
-    // Ambient life: drifting clouds (world-anchored parallax) and birds crossing the sky.
-    const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
-    const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
+    // Layered sky: world-anchored clouds at several depths, district visitors and birds.
+    const dsky = DISTRICT_SKY[district.id];
+    const field = cloudField();
+    const visitors = skyVisitors(dsky.lifeCount);
+    const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
+    const visitorArt = load(dsky.life === "kite" ? skyArt.kiteSrc : skyArt.balloonSrc), aurora = load(skyArt.auroraSrc);
+    const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ x: -250 - i * 220, y: 140 + (i % 3) * 60 + i * 12, sp: (30 + Math.random() * 20) * dsky.birds.speed, ph: Math.random() * 6 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
     const starPigment = document.createElement("canvas");
@@ -184,6 +189,42 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
       c.globalCompositeOperation = "destination-out"; c.fillStyle = g;
       c.fillRect(0, 0, street.naturalWidth, street.naturalHeight * 0.3);
+    };
+    // Storm districts darken the same painted clouds (multiply grey kept inside the brushwork).
+    const shaded = new Map<HTMLImageElement, CanvasImageSource>();
+    const cloudArt = (img: HTMLImageElement): CanvasImageSource => {
+      if (dsky.cloudShade <= 0) return img;
+      const hit = shaded.get(img); if (hit) return hit;
+      const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext("2d"); if (!g) return img;
+      g.drawImage(img, 0, 0); g.globalCompositeOperation = "multiply";
+      const v = Math.round(255 * (1 - dsky.cloudShade * 0.55)); g.fillStyle = `rgb(${v},${v},${Math.min(255, v + 8)})`; g.fillRect(0, 0, c.width, c.height);
+      g.globalCompositeOperation = "destination-in"; g.drawImage(img, 0, 0);
+      shaded.set(img, c); return c;
+    };
+    /** Back pass: far wisps and mid clouds behind the tower. Front pass: a few near clouds at the very edges. */
+    const drawSkyClouds = (altC: number, front: boolean) => {
+      for (const [i, c] of field.entries()) {
+        const img = c.kind === "wisp" ? wisp : cloud;
+        if (!ok(img)) continue;
+        const isFront = c.kind === "puff" && i % 4 === 1;
+        if (isFront !== front) continue;
+        const dens = cloudDensity(c.kind, altC);
+        if (dens < 0.01) continue;
+        const depth = front ? 1.3 : c.depth;
+        const y = cloudScreenY(cloudWorldY(c.wy, altC), altC, depth);
+        const w = (c.kind === "wisp" ? 190 : 110) * c.scale * (0.55 + depth * (front ? 0.9 : 0.8));
+        const h = w * img.naturalHeight / img.naturalWidth;
+        if (y < -h - 40 || y > VH + 40) continue;
+        const drift = reducedMotion ? 0 : Math.sin(s.t * 0.035 * (0.5 + depth) + c.drift) * 18;
+        // Side lanes keep the crane, falling floor and landing area clear; near clouds hug the edges.
+        const lane = front ? Math.sign(c.lane) * (0.56 + Math.abs(c.lane) * 0.25) : c.lane;
+        const x = vw / 2 + lane * vw + drift;
+        const far = c.kind === "wisp" ? 0.5 : 0.28 + depth * 0.5; // far clouds paler
+        ctx.globalAlpha = dens * (front ? 0.42 : far);
+        ctx.drawImage(cloudArt(img), x - w / 2, y - h / 2, w, h);
+      }
+      ctx.globalAlpha = 1;
     };
 
     let scale = 1, vw = 360;
@@ -400,35 +441,70 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       const alt = s.camY;
       const sky = skyProfile(alt);
+      const altC = alt + dsky.cloudOffset; // cloud bands (Cloud Peak starts nearer the clouds)
+      const skyC = skyProfile(altC);
       drawCover(clouds, 1, 0);
       drawCover(sunset, sky.sunset, 0);
       drawCover(space, sky.space, 0);
-      if (!reducedMotion && sky.space > 0 && starPigment.width) {
+      // District light: a soft painted wash so each district's sky carries its own mood.
+      ctx.save(); ctx.globalCompositeOperation = "soft-light";
+      ctx.fillStyle = `rgba(${dsky.wash.join(",")},${dsky.washAlpha * 2.2})`; ctx.fillRect(0, 0, vw, VH);
+      ctx.restore();
+      const glow = highSkyGlow(alt, 1, Boolean(spec.night));
+      const starAlpha = Math.max(sky.space, glow * dsky.stars);
+      if (!reducedMotion && starAlpha > 0 && starPigment.width) {
         ctx.save(); ctx.globalCompositeOperation = "screen";
-        drawCover(starPigment, sky.space * (0.035 + 0.025 * Math.sin(s.t * 0.65)), 0);
+        drawCover(starPigment, starAlpha * (0.035 + 0.025 * Math.sin(s.t * 0.65)) + glow * dsky.stars * 0.05, 0);
         ctx.restore();
+      }
+      if (dsky.aurora > 0 && ok(aurora)) {
+        const a = highSkyGlow(altC, dsky.aurora, Boolean(spec.night));
+        if (a > 0.01) {
+          const aw = vw * 1.5, ah = aw * aurora.naturalHeight / aurora.naturalWidth;
+          const sway = reducedMotion ? 0 : Math.sin(s.t * 0.18) * vw * 0.04;
+          ctx.save(); ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = a * (0.42 + 0.08 * Math.sin(s.t * 0.5));
+          ctx.drawImage(aurora, vw / 2 - aw / 2 + sway, 30, aw, ah * (1 + 0.04 * Math.sin(s.t * 0.33)));
+          ctx.restore();
+        }
+      }
+      // Far city sinking into blue haze below the rising tower (slowest layer).
+      if (sky.cityHaze > 0.01 && ok(cityHaze)) {
+        const hw = vw * 1.7, hh = hw * cityHaze.naturalHeight / cityHaze.naturalWidth;
+        ctx.globalAlpha = sky.cityHaze * 0.55;
+        ctx.drawImage(cityHaze, vw / 2 - hw / 2, VH - hh * 1.05 + Math.max(0, alt - 500) * 0.12, hw, hh);
+        ctx.globalAlpha = 1;
       }
       if (!faded && ok(street)) buildFade();
       drawCover(faded ? streetFaded : street, sky.street, alt);
 
-      // drifting clouds (slower parallax than the tower) and birds
-      if (ok(cloud)) for (const [i, c] of puffs.entries()) {
-        const depth = 0.22 + (i % 3) * 0.19;
-        const sy = cloudHeight(260 + i * 212, alt, depth, VH);
-        // Side-lane clouds leave the crane and landing edges unobstructed.
-        const side = i % 2 ? 1 : -1;
-        const drift = reducedMotion ? 0 : Math.sin(s.t * c.sp * 0.004 + i * 1.7) * 20;
-        const x = vw / 2 + side * (vw * 0.48 + drift);
-        const w = 100 * c.sc * (0.7 + depth);
-        ctx.globalAlpha = (0.16 + depth * 0.3) * sky.clouds;
-        ctx.drawImage(cloud, x - w / 2, sy, w, w * cloud.naturalHeight / cloud.naturalWidth); ctx.globalAlpha = 1;
+      // Sea of cloud tops below the tower once it climbs above the clouds.
+      if (skyC.cloudSea > 0.01 && ok(cloudSea)) {
+        const cw = vw * 1.6, ch = cw * cloudSea.naturalHeight / cloudSea.naturalWidth;
+        const drift = reducedMotion ? 0 : Math.sin(s.t * 0.05) * vw * 0.06;
+        const sink = Math.max(0, altC - 2400) * 0.06;
+        ctx.globalAlpha = skyC.cloudSea * skyC.clouds * 0.92;
+        ctx.drawImage(cloudSea, vw / 2 - cw / 2 + drift, VH - ch * 0.82 + sink, cw, ch);
+        ctx.globalAlpha = 1;
+      }
+      drawSkyClouds(altC, false);
+
+      // District sky visitors (balloons, kites) drifting at the side lanes.
+      if (visitors.length && ok(visitorArt)) for (const v of visitors) {
+        const fade = skyBlend(alt, v.wy - 650, v.wy - 350) * (1 - skyBlend(alt, v.wy + 500, v.wy + 900));
+        if (fade < 0.01) continue;
+        const y = cloudScreenY(v.wy, alt, v.depth, 230) + (reducedMotion ? 0 : Math.sin(s.t * 0.6 + v.phase) * 6);
+        const x = vw / 2 + v.lane * vw + (reducedMotion ? 0 : Math.sin(s.t * 0.09 + v.phase) * 14);
+        const w = v.size, h = w * visitorArt.naturalHeight / visitorArt.naturalWidth;
+        ctx.save(); ctx.globalAlpha = fade * 0.9; ctx.translate(x, y);
+        if (dsky.life === "kite") ctx.rotate(Math.sin(s.t * 0.9 + v.phase) * 0.12);
+        ctx.drawImage(visitorArt, -w / 2, -h / 2, w, h); ctx.restore();
       }
       if (ok(bird)) for (const b of birds) {
         b.x += b.sp * dt; if (b.x > vw / 2 + 80) { b.x = -vw / 2 - 80 - Math.random() * 300; b.y = 120 + Math.random() * 160; }
         const pose = reducedMotion ? 5 : birdFlight(s.t, b.ph);
-        const depth = 0.65 + b.ph / 6 * 0.25;
+        const depth = (0.55 + b.ph / 6 * 0.45) * dsky.birds.size; // near birds larger and brighter
         const lane = Math.abs(b.x) < vw * 0.23 ? 0.18 : 1;
-        ctx.globalAlpha = sky.birds * depth * lane;
+        ctx.globalAlpha = sky.birds * Math.min(1, 0.45 + depth * 0.5) * lane;
         drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 0.7 + b.ph) * 5, 20 * depth, 25.6 * depth); ctx.globalAlpha = 1;
       }
       // district life: painted leaves, petals, butterflies, steam, boats and mist
@@ -519,6 +595,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      drawSkyClouds(altC, true); // near clouds pass in front at the screen edges
       if (spec.night) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
       if (spec.fog) {
         const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
