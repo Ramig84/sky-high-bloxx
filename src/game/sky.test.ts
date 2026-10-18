@@ -71,3 +71,19 @@ describe("layered sky depth", () => {
     expect(washes.size).toBe(DISTRICTS.length);
   });
 });
+
+import { DISTRICT_SPIRIT, spiritMotion, spiritPresence } from "./sky";
+describe("district spirits", () => {
+  it("every district has an animated spirit", () => {
+    expect(Object.keys(DISTRICT_SPIRIT)).toHaveLength(10);
+  });
+  it("spirits actually move between frames (no static art)", () => {
+    for (const { kind } of Object.values(DISTRICT_SPIRIT)) {
+      const a = spiritMotion(kind, 0, 1, 400, 800), b = spiritMotion(kind, 0, 1.5, 400, 800);
+      expect(Math.hypot(a.x - b.x, a.y - b.y) + Math.abs(a.flap - b.flap) + Math.abs(a.rot - b.rot)).toBeGreaterThan(0.01);
+    }
+  });
+  it("spirits are present at street level", () => {
+    for (const { kind } of Object.values(DISTRICT_SPIRIT)) expect(spiritPresence(kind, 0)).toBe(1);
+  });
+});

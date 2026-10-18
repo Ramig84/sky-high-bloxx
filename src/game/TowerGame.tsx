@@ -7,7 +7,7 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_SKY, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
+import { DISTRICT_SKY, DISTRICT_SPIRIT, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
 import { skyArt } from "./skyArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
@@ -156,6 +156,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const dsky = DISTRICT_SKY[district.id];
     const field = cloudField();
     const visitors = skyVisitors(dsky.lifeCount);
+    const spirit = DISTRICT_SPIRIT[district.id];
+    const spiritArt = load({ gull: skyArt.gullSrc, butterfly: skyArt.butterflySrc, leaf: skyArt.leafSrc, steam: skyArt.steamSrc, lantern: skyArt.lanternSrc }[spirit.kind]);
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
     const visitorArt = load(dsky.life === "kite" ? skyArt.kiteSrc : skyArt.balloonSrc), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
@@ -522,6 +524,32 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           ctx.save(); ctx.scale(breathe, 2 - breathe); ctx.drawImage(visitorArt, -w / 2, -h / 2, w, h); ctx.restore();
           ctx.globalCompositeOperation = "soft-light"; ctx.fillStyle = g; ctx.fillRect(-w / 2, gy - w * 0.45, w, w * 0.9);
           ctx.globalCompositeOperation = "source-over";
+        }
+        ctx.restore();
+      }
+      // Animated district spirits: flapping gulls/butterflies, tumbling leaves, rising steam and lanterns.
+      const spPres = spiritPresence(spirit.kind, alt);
+      if (spPres > 0.01 && ok(spiritArt) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
+        const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
+        const base = { gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20 }[spirit.kind] * m.scale;
+        const w = base, h = w * spiritArt.naturalHeight / spiritArt.naturalWidth, iw = spiritArt.naturalWidth, ih = spiritArt.naturalHeight;
+        ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
+        if (spirit.kind === "gull" || spirit.kind === "butterfly") {
+          // Real wingbeat: each painted wing half hinges at the body and foreshortens as it lifts.
+          const lift = spirit.kind === "gull" ? m.flap * 0.55 : 0;
+          const fold = spirit.kind === "butterfly" ? 0.2 + 0.8 * m.flap : 1 - m.flap * 0.3;
+          for (const sd of [-1, 1]) {
+            ctx.save(); ctx.rotate(-sd * lift); ctx.scale(fold, 1);
+            ctx.drawImage(spiritArt, sd < 0 ? 0 : iw / 2, 0, iw / 2, ih, sd < 0 ? -w / 2 : 0, -h / 2, w / 2, h);
+            ctx.restore();
+          }
+        } else if (spirit.kind === "lantern") {
+          const g = ctx.createRadialGradient(0, h * 0.2, 0, 0, h * 0.2, w * 1.2);
+          g.addColorStop(0, `rgba(255,200,110,${0.35 * m.flap})`); g.addColorStop(1, "rgba(255,170,80,0)");
+          ctx.fillStyle = g; ctx.fillRect(-w * 1.2, -w * 1.0, w * 2.4, w * 2.4);
+          ctx.drawImage(spiritArt, -w / 2, -h / 2, w, h);
+        } else {
+          ctx.scale(m.flip, 1); ctx.drawImage(spiritArt, -w / 2, -h / 2, w, h);
         }
         ctx.restore();
       }
