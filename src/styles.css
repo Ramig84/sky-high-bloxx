@@ -314,7 +314,7 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .home-gift { display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 999px; background: var(--hud-bg); color: var(--plaque-ink); padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 800; box-shadow: 0 2px 6px var(--hud-shadow); }
 .home-gift:disabled { opacity: 0.7; }
 .home-gift.is-ready { animation: gift-pulse 1.6s ease-in-out infinite; }
-@keyframes gift-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@keyframes gift-pulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.09); box-shadow: 0 0 12px var(--plaque-glow); } }
 .reward-backdrop { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 1rem; background: var(--hud-shadow); }
 .reward-map { width: 100%; max-width: 22rem; flex-direction: column; gap: 0.6rem; padding: 1rem; text-align: center; color: var(--plaque-ink); }
 .reward-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
