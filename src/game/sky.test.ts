@@ -38,3 +38,36 @@ describe("presentation-only altitude journey", () => {
     expect(birdFlight(5.6, 0)).toBe(0);
   });
 });
+import { DISTRICT_SKY, cloudDensity, cloudField, cloudScreenY, cloudWorldY } from "./sky";
+import { DISTRICTS } from "./levels";
+
+describe("layered sky depth", () => {
+  it("never shows clouds at street level (floors 1-5)", () => {
+    for (const alt of [0, 100, 250]) {
+      expect(cloudDensity("wisp", alt)).toBe(0);
+      expect(cloudDensity("puff", alt)).toBe(0);
+    }
+  });
+  it("brings thin wisps first (about floor 6+) and full clouds later (about floor 16+)", () => {
+    expect(cloudDensity("wisp", 650)).toBe(1);
+    expect(cloudDensity("puff", 650)).toBe(0);
+    expect(cloudDensity("puff", 1100)).toBe(1);
+  });
+  it("moves far clouds slower than near clouds as the tower climbs", () => {
+    const far = cloudScreenY(1000, 1200, 0.2) - cloudScreenY(1000, 1000, 0.2);
+    const near = cloudScreenY(1000, 1200, 0.9) - cloudScreenY(1000, 1000, 0.9);
+    expect(near).toBeGreaterThan(far * 4);
+  });
+  it("keeps clouds around the camera on very tall endless towers", () => {
+    const wy = cloudWorldY(500, 9000);
+    expect(Math.abs(wy - 9000)).toBeLessThanOrEqual(1700);
+  });
+  it("places every field cloud in a side lane, clear of the crane and landing column", () => {
+    for (const c of cloudField()) expect(Math.abs(c.lane)).toBeGreaterThanOrEqual(0.3);
+  });
+  it("gives every district its own sky", () => {
+    for (const d of DISTRICTS) expect(DISTRICT_SKY[d.id]).toBeDefined();
+    const washes = new Set(DISTRICTS.map(d => DISTRICT_SKY[d.id].wash.join()));
+    expect(washes.size).toBe(DISTRICTS.length);
+  });
+});
