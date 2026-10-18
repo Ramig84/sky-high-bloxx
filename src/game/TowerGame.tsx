@@ -7,7 +7,7 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_SKY, birdFlight, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyProfile, skyVisitors } from "./sky";
+import { DISTRICT_SKY, birdFlight, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
 import { skyArt } from "./skyArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
