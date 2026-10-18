@@ -64,11 +64,7 @@ export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus:
         </div>
         {/* Living map: drifting clouds and flapping birds above the paper */}
         {[0, 1, 2].map(i => <img key={`c${i}`} src={a.cloudSrc} alt="" aria-hidden className="map-cloud" style={{ top: `${18 + i * 26}%`, animationDelay: `${-i * 13}s`, animationDuration: `${38 + i * 9}s` }} />)}
-        {[0, 1].map(i => (
-          <div key={`b${i}`} className="map-bird-path" style={{ top: `${30 + i * 24}%`, animationDelay: `${-i * 7}s` }} aria-hidden>
-            <div className="map-bird" style={{ backgroundImage: `url(${a.birdSrc})` }} />
-          </div>
-        ))}
+        <SkyBirds src={a.birdSrc} count={2} top={0.3} band={0.3} />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           {onHome ? <button type="button" className="plaque pointer-events-auto px-6 py-3 font-extrabold" onClick={onHome}>‹ Home</button> : <img src={a.logoSrc} alt="Sky Bloxx" className="w-28 drop-shadow-md" />}
           <div className="hud-pill items-center"><span className="hud-label">STARS</span><span className="hud-value flex items-center gap-1"><Star className="h-4 w-4 fill-current" />{stars.reduce((x, y) => x + (y ?? 0), 0)}</span></div>
