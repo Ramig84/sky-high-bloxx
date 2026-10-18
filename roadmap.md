@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Resolve native Google sign-in return (blocked: managed OAuth rejects app.lovable.skyhighbloxx://oauth-callback; rejection reproduced directly; no supported custom-return registration exposed by available auth tools; a new APK alone cannot resolve this)
 - [ ] Start a new GitHub Android workflow after verified sky changes synchronize (blocked: GitHub main remains at 399fc01 and does not contain src/game/sky.ts; running now would build the old game)
 - [x] Refine altitude sky blends, continuous painted cloud depth, bird flight and altitude-appropriate scenery; verify without changing other design or mechanics (45 regression tests passed; ten-floor touch run and pause/resume checked)
 - [x] Correct account restoration on restart and regression-test saved sign-in (12 targeted tests passed; guest browser restart checked)
