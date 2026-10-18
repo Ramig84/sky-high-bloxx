@@ -99,3 +99,19 @@ describe("district painted skies", () => {
     for (let a = 0; a < 3000; a += 50) expect(districtSkyMix(a + 50).high - districtSkyMix(a).high).toBeLessThan(0.05);
   });
 });
+
+import { DISTRICT_ATMOS, cloudGlow, twinkle } from "./sky";
+describe("district living sky", () => {
+  it("every district has its own weather and light", () => {
+    for (const a of Object.values(DISTRICT_ATMOS)) expect(a.weather.length).toBeGreaterThan(0);
+    expect(DISTRICT_ATMOS.cloudpeak.weather).toContain("aurora");
+  });
+  it("cloud light breathes in place rather than sliding", () => {
+    const a = cloudGlow(1, 0, 400, 700), b = cloudGlow(1, 6, 400, 700);
+    expect(a.x).toBe(b.x); expect(a.y).toBe(b.y); expect(a.a).not.toBeCloseTo(b.a, 2);
+  });
+  it("stars twinkle in place", () => {
+    const a = twinkle(3, 0, 400, 700), b = twinkle(3, 1.3, 400, 700);
+    expect(a.x).toBe(b.x); expect(a.a).not.toBe(b.a);
+  });
+});
