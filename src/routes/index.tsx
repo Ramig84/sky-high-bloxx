@@ -12,7 +12,7 @@ import { DistrictCelebration } from "@/game/DistrictCelebration";
 import { celebrateAssets, homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
 import { blockSource, craneSource } from "@/game/shopArtwork";
 import { dailyLevel, loadLoadout } from "@/game/wallet";
-import { pushProgress, syncAccount } from "@/game/account";
+import { initNativeSignInReturn, pushProgress, syncAccount } from "@/game/account";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
@@ -43,6 +43,7 @@ function Home() {
     let disposed = false;
     let pending: ReturnType<typeof setTimeout> | undefined;
     const restore = () => { void syncAccount().then(() => { if (!disposed) setStars(loadStars()); }).catch(() => {}); };
+    void initNativeSignInReturn().catch(() => {});
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "INITIAL_SESSION" && event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED" && event !== "TOKEN_REFRESHED") return;
       // Leave the auth callback before any SDK/RPC calls (including initialization).

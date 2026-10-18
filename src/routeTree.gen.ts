@@ -14,6 +14,7 @@ import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TransitionPreviewRouteImport } from './routes/transition-preview'
+import { Route as AuthAppReturnRouteImport } from './routes/auth.app-return'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const TransitionPreviewRoute = TransitionPreviewRouteImport.update({
   path: '/transition-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthAppReturnRoute = AuthAppReturnRouteImport.update({
+  id: '/auth/app-return',
+  path: '/auth/app-return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/transition-preview': typeof TransitionPreviewRoute
+  '/auth/app-return': typeof AuthAppReturnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/transition-preview': typeof TransitionPreviewRoute
+  '/auth/app-return': typeof AuthAppReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,25 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/transition-preview': typeof TransitionPreviewRoute
+  '/auth/app-return': typeof AuthAppReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/delete-account' | '/privacy' | '/terms' | '/transition-preview'
+    | '/'
+    | '/delete-account'
+    | '/privacy'
+    | '/terms'
+    | '/transition-preview'
+    | '/auth/app-return'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/delete-account' | '/privacy' | '/terms' | '/transition-preview'
+  to:
+    | '/'
+    | '/delete-account'
+    | '/privacy'
+    | '/terms'
+    | '/transition-preview'
+    | '/auth/app-return'
   id:
     | '__root__'
     | '/'
@@ -76,6 +96,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/transition-preview'
+    | '/auth/app-return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -84,6 +105,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   TransitionPreviewRoute: typeof TransitionPreviewRoute
+  AuthAppReturnRoute: typeof AuthAppReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -123,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransitionPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/app-return': {
+      id: '/auth/app-return'
+      path: '/auth/app-return'
+      fullPath: '/auth/app-return'
+      preLoaderRoute: typeof AuthAppReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -132,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   TransitionPreviewRoute: TransitionPreviewRoute,
+  AuthAppReturnRoute: AuthAppReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
