@@ -2,7 +2,8 @@
 export function coinFlightAmounts(reward: number, reduced = false): number[] {
   const total = Math.max(0, Math.floor(reward));
   if (!total) return [];
-  const count = reduced ? 1 : Math.min(total, 12);
+  // One sprite per coin up to 30; larger rewards keep growing so different amounts never look alike.
+  const count = reduced ? 1 : total <= 30 ? total : Math.min(60, 30 + Math.round((total - 30) / 10));
   return Array.from({ length: count }, (_, i) => Math.floor(total / count) + (i < total % count ? 1 : 0));
 }
 

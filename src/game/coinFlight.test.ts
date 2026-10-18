@@ -15,7 +15,9 @@ describe("exact painted coin rewards", () => {
   });
   it("large reward bundles sum to the actual reward", () => {
     expect(coinFlightAmounts(100).reduce((a, b) => a + b, 0)).toBe(100);
-    expect(coinFlightAmounts(100).length).toBe(12);
+    expect(coinFlightAmounts(100).length).toBe(37);
+    expect(coinFlightAmounts(20)).toEqual(Array(20).fill(1));
+    expect(coinFlightAmounts(50).length).not.toBe(coinFlightAmounts(150).length);
   });
   it("reduced motion preserves the full reward", () => {
     expect(coinFlightAmounts(100, true)).toEqual([100]);

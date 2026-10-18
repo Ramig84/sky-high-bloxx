@@ -61,8 +61,8 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
       image.style.left = "0"; image.style.top = "0";
       sprite.appendChild(image);
       const amount = amounts[i] ?? 1;
-      if (amount > 1) {
-        const label = document.createElement("strong"); label.textContent = `+${amount}`;
+      if (i === 0) {
+        const label = document.createElement("strong"); label.textContent = `+${(to - from).toLocaleString()}`;
         sprite.appendChild(label);
       }
       root.appendChild(sprite);
