@@ -168,6 +168,6 @@ export function skyVisitors(count: number): SkyVisitor[] {
 
 /** Opacity of each district's painted street sky and high sky at an altitude: crossfade slowly, never swap. */
 export function districtSkyMix(altitude: number) {
-  const up = skyBlend(altitude, 700, 1600);
-  return { low: 0.9 * (1 - up), high: 0.9 * up };
+  const up = skyBlend(altitude, 250, 2400); // slow fade across many floors, no sudden swap
+  return { low: 1 - up, high: up };
 }

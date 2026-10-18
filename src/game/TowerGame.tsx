@@ -451,14 +451,17 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       drawCover(clouds, 1, 0);
       drawCover(sunset, sky.sunset, 0);
       drawCover(space, sky.space, 0);
-      // District's own painted sky: street sky crossfades into its high sky as the tower climbs; light breathes gently.
-      { const mix = districtSkyMix(alt), breathe = reducedMotion ? 1 : 1 + 0.04 * Math.sin(s.t * 0.25);
-        if (ok(dSkyLow) && mix.low > 0.01) drawCover(dSkyLow, mix.low * breathe * (1 - sky.space * 0.6), 0);
-        if (ok(dSkyHigh) && mix.high > 0.01) drawCover(dSkyHigh, Math.min(1, mix.high * breathe) * (1 - sky.space * 0.4), 0); }
-      // District light: a soft painted wash so each district's sky carries its own mood.
-      ctx.save(); ctx.globalCompositeOperation = "soft-light";
-      ctx.fillStyle = `rgba(${dsky.wash.join(",")},${dsky.washAlpha * 2.2})`; ctx.fillRect(0, 0, vw, VH);
-      ctx.restore();
+      // District's own painted sky: one continuous street-to-top journey, fully opaque (no grey veil).
+      const districtArt = ok(dSkyLow) && ok(dSkyHigh);
+      if (districtArt) { const mix = districtSkyMix(alt);
+        drawCover(dSkyLow, 1, 0);
+        if (mix.high > 0.005) drawCover(dSkyHigh, mix.high, 0); }
+      else { // fallback while district art decodes
+        ctx.save(); ctx.globalCompositeOperation = "soft-light";
+        ctx.fillStyle = `rgba(${dsky.wash.join(",")},${dsky.washAlpha * 2.2})`; ctx.fillRect(0, 0, vw, VH);
+        ctx.restore(); }
+      // Campaign night districts darken only the sky, never the crane or blocks.
+      if (spec.night && !endless) { ctx.fillStyle = "rgba(20,26,58,0.28)"; ctx.fillRect(0, 0, vw, VH); }
       const glow = highSkyGlow(alt, 1, Boolean(spec.night));
       const starAlpha = Math.max(sky.space, glow * dsky.stars);
       if (!reducedMotion && starAlpha > 0 && starPigment.width) {
@@ -493,7 +496,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.drawImage(cloudSea, vw / 2 - cw / 2, VH - ch * 0.82 + sink, cw, ch);
         ctx.globalAlpha = 1;
       }
-      drawSkyClouds(altC, false);
+      if (!districtArt) drawSkyClouds(altC, false);
 
       // District sky visitors (balloons, kites) drifting at the side lanes.
       if (visitors.length && ok(visitorArt)) for (const v of visitors) {
@@ -666,8 +669,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      drawSkyClouds(altC, true); // near clouds pass in front at the screen edges
-      if (spec.night) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
+      if (!(ok(dSkyLow) && ok(dSkyHigh))) drawSkyClouds(altC, true); // near clouds pass in front at the screen edges
+      if (spec.night && endless) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
       if (spec.fog) {
         const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
         g.addColorStop(0, `rgba(226,224,214,${spec.fog})`); g.addColorStop(1, "rgba(226,224,214,0)");
