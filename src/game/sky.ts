@@ -233,3 +233,28 @@ export function districtSkyMix(altitude: number) {
   const up = skyBlend(altitude, 250, 2400); // slow fade across many floors, no sudden swap
   return { low: 1 - up, high: up };
 }
+
+export type BirdState = { x: number; y: number; rot: number; pose: number; mirror: boolean; scale: number };
+/**
+ * Natural bird flight shared by every screen: each bird swoops in from its own screen edge,
+ * banks through an arc on its side of the sky and leaves again. It beats its wings while
+ * climbing (and surges forward), then glides and drifts down; it never crosses the centre lane.
+ */
+export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.12, band = 0.2): BirdState {
+  const side = i % 2 ? -1 : 1, ph = i * 2.37;
+  const period = 15 + (i % 3) * 4.5;
+  const at = (time: number) => {
+    const raw = (((time + ph * 3) / period) % 1 + 1) % 1;
+    const k = raw + 0.035 * Math.sin(raw * Math.PI * 6 + ph); // surges and slows within the flight
+    const inward = Math.sin(Math.PI * Math.min(1, Math.max(0, k))) * vw * (0.2 + (i % 3) * 0.025);
+    const x = vw / 2 + side * (vw / 2 + 45 - inward);
+    const y = vh * (top + band * ((i * 0.37) % 1)) + vh * 0.07 * Math.cos(k * Math.PI * 2 + ph) - vh * 0.05 * k;
+    return { x, y };
+  };
+  const a = at(t), b = at(t + 0.05);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const climbing = dy < -0.15;
+  const pose = climbing ? [0, 1, 2, 3, 2, 1][Math.floor((t + ph) * 11) % 6]! : 5;
+  const rot = Math.max(-0.45, Math.min(0.45, Math.atan2(dy, Math.abs(dx) + 0.001) * 0.6));
+  return { x: a.x, y: a.y, rot, pose, mirror: dx < 0, scale: 0.8 + (i % 3) * 0.15 };
+}
