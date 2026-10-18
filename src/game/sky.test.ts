@@ -183,7 +183,7 @@ describe("natural bird flight", () => {
   });
   it("flaps while climbing, glides while sinking, banks, and keeps out of the centre lane", () => {
     for (let i = 0; i < 4; i++) {
-      const path = Array.from({ length: 400 }, (_, s) => birdPath(i, s / 20, 390, 700));
+      const path = Array.from({ length: 1200 }, (_, s) => birdPath(i, s / 20, 390, 700));
       expect(path.some(p => p.pose === 5)).toBe(true);
       expect(path.some(p => p.pose < 5)).toBe(true);
       expect(path.every(p => Math.abs(p.x - 195) > 390 * 0.2)).toBe(true);
