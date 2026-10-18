@@ -61,7 +61,6 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
       }
       root.appendChild(sprite);
       const angle = i * Math.PI * 2 / count;
-      const spreadX = Math.cos(angle) * 22;
       const spreadY = -Math.abs(Math.sin(angle)) * 24 - 25;
       const animation = sprite.animate([
         { transform: "translate(-50%, -50%) scale(0.4)", opacity: 0 },

@@ -26,7 +26,7 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
     const tablet = window.matchMedia("(min-width: 600px)").matches;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const art = tablet ? tabletArtwork : phoneArtwork;
-    const cloud = getImage(art.cloudSrc), bird = getImage(art.birdSrc), ambient = getImage(ambientSrc);
+    const bird = getImage(art.birdSrc), ambient = getImage(ambientSrc);
     const paintedCloud = getImage(atmosphereArtwork.cloud);
     const from = { street: getImage(districtStreet(done.id, tablet)), floors: districtFloors(done.id, tablet).map(getImage) };
     const to = next ? { street: getImage(districtStreet(next.id, tablet)), floors: districtFloors(next.id, tablet).map(getImage) } : null;
@@ -72,7 +72,7 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
       if (to && reveal > 0) paint(to, 3, 0, reveal);
       // Painted sky life stays behind the tower silhouette and clear of the headings.
       for (let i = 0; i < 2; i++) {
-        const cw = 82 + i * 24, ch = cw * cloud.naturalHeight / cloud.naturalWidth;
+        const cw = 82 + i * 24;
         const x = i === 0 ? -32 : width - 70;
         drawAtmosphere(ctx, paintedCloud, reduce ? 0 : t, i * 2, x, 190 + i * 34, cw, 0.32);
       }
