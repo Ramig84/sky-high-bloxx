@@ -9,6 +9,7 @@ import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
 import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, districtSkyMix, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
 import { districtSkyArt, skyArt } from "./skyArtwork";
+import { spiritArtwork, spiritPose, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
@@ -139,6 +140,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
     const life = spawnAmbient(district.id, 360);
+    const ambientPoses = Object.fromEntries(Object.entries(spiritArtwork).map(([key, src]) => [key, load(src)])) as Record<PaintedSpirit, HTMLImageElement>;
     let flash = 0;
     const drawPose = (img: HTMLImageElement, count: number, pose: number, x: number, y: number, w: number, h: number, mirror = false) => {
       if (!ok(img)) return;
@@ -157,8 +159,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const field = cloudField();
     const visitors = skyVisitors(dsky.lifeCount);
     const spirit = DISTRICT_SPIRIT[district.id];
-    const dSkyLow = load(districtSkyArt[district.id]!.low), dSkyHigh = load(districtSkyArt[district.id]!.high);
-    const spiritSrcImg = load({ gull: skyArt.gullSrc, butterfly: skyArt.butterflySrc, leaf: skyArt.leafSrc, steam: skyArt.steamSrc, lantern: skyArt.lanternSrc }[spirit.kind]);
+    const dSkyLow = load(districtSkyArt[district.id].low), dSkyHigh = load(districtSkyArt[district.id].high);
+    const spiritSrcImg = load(spiritArtwork[spirit.kind]);
     const atmos = DISTRICT_ATMOS[district.id];
     // District-coloured copy of the painted creature (brushwork kept, palette shifted toward the district).
     let spiritTinted: HTMLCanvasElement | null = null;
@@ -166,14 +168,16 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (atmos.tint[3] <= 0 || !ok(spiritSrcImg)) return spiritSrcImg;
       if (!spiritTinted) {
         const c = document.createElement("canvas"); c.width = spiritSrcImg.naturalWidth; c.height = spiritSrcImg.naturalHeight;
-        const x = c.getContext("2d")!; x.drawImage(spiritSrcImg, 0, 0);
+        const x = c.getContext("2d");
+        if (!x) return spiritSrcImg;
+        x.drawImage(spiritSrcImg, 0, 0);
         x.globalCompositeOperation = "source-atop"; x.fillStyle = `rgba(${atmos.tint.join(",")})`; x.fillRect(0, 0, c.width, c.height);
         spiritTinted = c;
       }
       return Object.assign(spiritTinted, { naturalWidth: spiritTinted.width, naturalHeight: spiritTinted.height });
     };
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
-    const visitorArt = load(dsky.life === "kite" ? skyArt.kiteSrc : skyArt.balloonSrc), aurora = load(skyArt.auroraSrc);
+    const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
     const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
     const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
@@ -569,61 +573,24 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const m = reducedMotion ? 0 : 1, t = s.t + v.phase * 3;
         const y = cloudScreenY(v.wy, alt, v.depth, 230) + m * (Math.sin(t * 0.6) * 6 + Math.sin(t * 1.7) * 1.5);
         const x = vw / 2 + v.lane * vw;
-        const w = v.size, h = w * visitorArt.naturalHeight / visitorArt.naturalWidth;
+        const w = v.size * 1.6, h = w;
+        const pose = spiritPose(dsky.life === "kite" ? "kite" : "balloon", Math.floor(v.phase * 10), t);
+        const cw = visitorArt.naturalWidth / 4, ch = visitorArt.naturalHeight / 2;
         ctx.save(); ctx.globalAlpha = fade * 0.9; ctx.translate(x, y);
-        if (dsky.life === "kite") {
-          // Living kite: gusty flutter, wind-filled sail, waving painted tail and taut string.
-          const gust = Math.sin(t * 0.9) * 0.12 + Math.sin(t * 3.1) * 0.05 * m;
-          const tailLen = h * 1.6, segs = 14;
-          ctx.save(); ctx.lineCap = "round"; ctx.strokeStyle = "rgba(196,72,52,0.85)"; ctx.lineWidth = Math.max(1.2, w * 0.035);
-          ctx.beginPath(); ctx.moveTo(0, h * 0.42);
-          const pts: [number, number][] = [];
-          for (let i = 1; i <= segs; i++) { const k = i / segs; const px = Math.sin(t * 4 - k * 5) * w * 0.22 * k * m + k * w * 0.15; const py = h * 0.42 + k * tailLen; pts.push([px, py]); ctx.lineTo(px, py); }
-          ctx.stroke();
-          for (let i = 3; i < segs; i += 3) { const [bx, by] = pts[i]!; const flap = Math.sin(t * 6 + i) * m; ctx.fillStyle = i % 2 ? "rgba(236,190,80,0.9)" : "rgba(92,140,170,0.9)"; ctx.beginPath(); ctx.ellipse(bx - w * 0.06, by, w * 0.06, w * 0.03 * (0.6 + 0.4 * flap), -0.4 + flap * 0.3, 0, Math.PI * 2); ctx.ellipse(bx + w * 0.06, by, w * 0.06, w * 0.03 * (0.6 - 0.4 * flap), 0.4 - flap * 0.3, 0, Math.PI * 2); ctx.fill(); }
-          ctx.strokeStyle = "rgba(70,55,45,0.45)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(0, h * 0.2);
-          ctx.quadraticCurveTo(-w * 0.6 + Math.sin(t * 0.7) * 6 * m, h * 2.5, -w * 1.1, h * 5); ctx.stroke(); ctx.restore();
-          ctx.rotate(gust); ctx.scale(1 + Math.sin(t * 2.3) * 0.04 * m, 1 - Math.sin(t * 2.3) * 0.03 * m);
-          ctx.drawImage(visitorArt, -w / 2, -h / 2, w, h);
-        } else {
-          // Living balloon: basket swings from the envelope, envelope breathes, burner flickers.
-          const swing = Math.sin(t * 0.8) * 0.07 * m + Math.sin(t * 1.9) * 0.015 * m;
-          ctx.translate(0, -h * 0.35); ctx.rotate(swing); ctx.translate(0, h * 0.35);
-          const breathe = 1 + Math.sin(t * 1.3) * 0.025 * m;
-          const fl = m ? 0.35 + 0.35 * Math.abs(Math.sin(t * 7.3) * Math.sin(t * 3.1)) : 0.3;
-          const gy = h * 0.2, g = ctx.createRadialGradient(0, gy, 0, 0, gy, w * 0.45);
-          g.addColorStop(0, `rgba(255,190,90,${fl})`); g.addColorStop(1, "rgba(255,150,60,0)");
-          ctx.save(); ctx.scale(breathe, 2 - breathe); ctx.drawImage(visitorArt, -w / 2, -h / 2, w, h); ctx.restore();
-          ctx.globalCompositeOperation = "soft-light"; ctx.fillStyle = g; ctx.fillRect(-w / 2, gy - w * 0.45, w, w * 0.9);
-          ctx.globalCompositeOperation = "source-over";
-        }
+        ctx.drawImage(visitorArt, pose % 4 * cw, Math.floor(pose / 4) * ch, cw, ch, -w / 2, -h / 2, w, h);
         ctx.restore();
       }
-      // Animated district spirits: flapping gulls/butterflies, tumbling leaves, rising steam and lanterns.
+      // Authored painted poses: no wing hinges, axis stretching or single-image deformation.
       const spPres = spiritPresence(spirit.kind, alt);
       const spiritArt = spiritArtOf();
       if (spPres > 0.01 && ok(spiritSrcImg) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
         const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
         const base = { gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20 }[spirit.kind] * m.scale;
-        const w = base, h = w * spiritArt.naturalHeight / spiritArt.naturalWidth, iw = spiritArt.naturalWidth, ih = spiritArt.naturalHeight;
+        const w = base * 1.25, h = w, iw = spiritArt.naturalWidth / 4, ih = spiritArt.naturalHeight / 2;
+        const pose = spiritPose(spirit.kind, i, s.t);
         ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
-        if (spirit.kind === "gull" || spirit.kind === "butterfly") {
-          // Real wingbeat: each painted wing half hinges at the body and foreshortens as it lifts.
-          const lift = spirit.kind === "gull" ? m.flap * 0.55 : 0;
-          const fold = spirit.kind === "butterfly" ? 0.2 + 0.8 * m.flap : 1 - m.flap * 0.3;
-          for (const sd of [-1, 1]) {
-            ctx.save(); ctx.rotate(-sd * lift); ctx.scale(fold, 1);
-            ctx.drawImage(spiritArt, sd < 0 ? 0 : iw / 2, 0, iw / 2, ih, sd < 0 ? -w / 2 : 0, -h / 2, w / 2, h);
-            ctx.restore();
-          }
-        } else if (spirit.kind === "lantern") {
-          const g = ctx.createRadialGradient(0, h * 0.2, 0, 0, h * 0.2, w * 1.2);
-          g.addColorStop(0, `rgba(255,200,110,${0.35 * m.flap})`); g.addColorStop(1, "rgba(255,170,80,0)");
-          ctx.fillStyle = g; ctx.fillRect(-w * 1.2, -w * 1.0, w * 2.4, w * 2.4);
-          ctx.drawImage(spiritArt, -w / 2, -h / 2, w, h);
-        } else {
-          ctx.scale(m.flip, 1); ctx.drawImage(spiritArt, -w / 2, -h / 2, w, h);
-        }
+        if (spirit.kind === "gull" && m.flip < 0) ctx.scale(-1, 1);
+        ctx.drawImage(spiritArt, (pose % 4) * iw, Math.floor(pose / 4) * ih, iw, ih, -w / 2, -h / 2, w, h);
         ctx.restore();
       }
       // Original drifting clouds (only from rooftop height up, so none sit on the street) and birds.
@@ -652,9 +619,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         for (const p of life) {
           stepAmbient(p, dt, vw, spec.wind ? windDir * spec.wind : 0);
           const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0, flipX = 1;
-          if (L.kind === "fall") { y = p.y; rot = p.age * 1.8 * p.sp + p.ph; flipX = Math.cos(p.age * 3.1 + p.ph); al *= fadeHi; }
+          if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 1.8 + p.ph) * 0.25; al *= fadeHi; }
           else if (L.kind === "mist") { y = p.y; al *= (0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph)) * fadeHi; }
-          else if (L.kind === "flutter") { y = gs - p.y - 40; cell = Math.floor(p.age * 9) % 2 ? 3 : 2; flipX = Math.cos(p.age * 0.7 + p.ph) >= 0 ? 1 : -1; al *= fadeHi; }
+          else if (L.kind === "flutter") { y = gs - p.y - 40; cell = 2; flipX = Math.cos(p.age * 0.7 + p.ph) >= 0 ? 1 : -1; al *= fadeHi; }
           else if (L.kind === "boat") {
             // Only the harbour has an unobstructed water lane. Reuse the backdrop cover transform.
             const point = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH, 0.5 + Math.sin(p.age * 0.12 + p.ph) * 0.1, 0.704, alt);
@@ -663,9 +630,17 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           }
           else { const k = p.age / 4; x += Math.sin(p.age + p.ph) * 6 + k * 14; y = gs - 150 - k * 70; sz *= 0.5 + k; al *= (1 - k) * fadeHi; }
           if (al <= 0.01 || y < -150 || y > VH + 60) continue;
-          ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot); ctx.scale(Math.abs(flipX) < 0.15 ? 0.15 * Math.sign(flipX || 1) : flipX, 1);
-          if (L.kind === "mist" && ok(cloud)) ctx.drawImage(cloud, -sz / 2, -sz / 4, sz, sz * 0.5);
-          else ctx.drawImage(amb, cell * 160, 0, 160, 160, -sz / 2, -sz / 2, sz, sz);
+          ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot);
+          if (L.kind === "mist" && ok(cloud)) {
+            // Mist breathes in its original lane rather than translating a still cloud.
+            ctx.translate(-p.x + Math.sin(p.ph) * vw * 0.34, 0);
+            ctx.drawImage(cloud, -sz / 2, -sz / 4, sz, sz * 0.5);
+          } else {
+            const kind: PaintedSpirit = L.kind === "boat" ? "boat" : L.kind === "flutter" ? "butterfly" : L.kind === "steam" ? "steam" : cell === 1 ? "petal" : "leaf";
+            const img = ambientPoses[kind], pose = spiritPose(kind, Math.floor(p.ph * 10), p.age);
+            if (flipX < 0) ctx.scale(-1, 1);
+            if (ok(img)) ctx.drawImage(img, pose % 4 * img.naturalWidth / 4, Math.floor(pose / 4) * img.naturalHeight / 2, img.naturalWidth / 4, img.naturalHeight / 2, -sz * 0.7, -sz * 0.7, sz * 1.4, sz * 1.4);
+          }
           ctx.restore();
         }
       }

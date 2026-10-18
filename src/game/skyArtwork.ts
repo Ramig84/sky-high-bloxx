@@ -10,6 +10,7 @@ import butterflySrc from "@/assets/spirit-butterfly.webp";
 import leafSrc from "@/assets/spirit-leaf.webp";
 import steamSrc from "@/assets/spirit-steam.webp";
 import lanternSrc from "@/assets/spirit-lantern.webp";
+import type { DistrictId } from "./levels";
 
 import oldtownLow from "@/assets/dsky-oldtown-low.webp";
 import oldtownHigh from "@/assets/dsky-oldtown-high.webp";
@@ -35,7 +36,7 @@ export const skyArt = { wispSrc, cloudSeaSrc, cityHazeSrc, kiteSrc, balloonSrc, 
 export const SKY_IMAGES = Object.values(skyArt);
 
 /** Each district's own painted sky: one at street height, one at the top of the climb. */
-export const districtSkyArt: Record<string, { low: string; high: string }> = {
+export const districtSkyArt: Record<DistrictId, { low: string; high: string }> = {
   oldtown: { low: oldtownLow, high: oldtownHigh },
   harbour: { low: harbourLow, high: harbourHigh },
   market: { low: marketLow, high: marketHigh },

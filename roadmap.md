@@ -1,7 +1,8 @@
 # Roadmap
+- [x] Replace single-image spirit deformation across all ten districts, including street creatures, petals, boats, kites and balloons, with authored painted pose cycles; 121 checks pass, fifty phone-height captures reviewed, changing gull poses and real touch drop verified.
 - [x] Native Google sign-in return via accepted https return page /auth/app-return that hands tokens to the app link (sign-in service accepts it; 6 tests)
 - [ ] Publish the site so /auth/app-return is live, then confirm APK sign-in on a real phone (blocked: publish + phone install)
-- [ ] Start a new GitHub Android workflow after verified sky changes synchronize (blocked: GitHub main remains at 399fc01 and does not contain src/game/sky.ts; running now would build the old game)
+- [ ] Verify painted pose update on GitHub and start Android workflow (blocked: remote main is a8cbecf; new spiritArtwork.ts is absent, while local verified version is newer; cannot force Lovable automatic sync)
 - [x] Refine altitude sky blends, continuous painted cloud depth, bird flight and altitude-appropriate scenery; verify without changing other design or mechanics (45 regression tests passed; ten-floor touch run and pause/resume checked)
 - [x] Correct account restoration on restart and regression-test saved sign-in (12 targeted tests passed; guest browser restart checked)
 - [ ] Verify Google account restart on the updated Android app (blocked: latest APK installation and real phone sign-in required)

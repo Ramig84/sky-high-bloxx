@@ -12,6 +12,7 @@ import { DISTRICTS, type DistrictId } from "./levels";
 import { coin, SHOP_IMAGES } from "./shopArtwork";
 import { DISTRICT_MUSIC, preloadSounds, type Sound } from "./audio";
 import { SKY_IMAGES, districtSkyArt } from "./skyArtwork";
+import { spiritArtwork } from "./spiritArtwork";
 
 const cache = new Map<string, HTMLImageElement>();
 const ready = new Map<string, Promise<void>>();
@@ -54,7 +55,7 @@ export function levelAssets(district: DistrictId, extras: string[] = []): Screen
   const a = art(), t = isTablet();
   return {
     images: [coin, contactSrc, footingSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
-      a.birdSrc, a.rainSrc, windSrc, confettiSrc, roofSrc, ambientSrc, ...SKY_IMAGES, districtSkyArt[district]!.low, districtSkyArt[district]!.high, ...extras],
+      a.birdSrc, a.rainSrc, windSrc, confettiSrc, roofSrc, ambientSrc, ...SKY_IMAGES, districtSkyArt[district].low, districtSkyArt[district].high, ...Object.values(spiritArtwork), ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
 }
