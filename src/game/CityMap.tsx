@@ -89,7 +89,7 @@ export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus:
                       className={`level-tile ${open && st === 0 && (idx === 0 || (stars[idx - 1] ?? 0) > 0) ? "is-next" : ""}`}>
                       {open ? <span className="text-base font-semibold leading-none">{l + 1}</span> : <Lock className="h-4 w-4" />}
                       <span className="level-goal">{levelSpec(idx).goal}F</span>
-                      <span className="flex">{[0, 1, 2].map(k => <Star key={k} className={`h-2.5 w-2.5 ${k < st ? "fill-current" : "opacity-40"}`} />)}</span>
+                      <span className="flex">{open && [0, 1, 2].map(k => <Star key={k} className={`h-2.5 w-2.5 ${k < st ? "fill-current" : "opacity-40"}`} />)}</span>
                     </Button>
                   );
                 })}

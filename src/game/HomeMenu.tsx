@@ -58,10 +58,9 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
   }, []);
   useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
   useEffect(() => setGift(g => ({ ...g, available: giftAvailable(), day: nextRewardDay() })), []);
-  const [, setWoke] = useState(false);
   const art = tablet ? tabletArtwork : phoneArtwork;
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none" onPointerUp={() => setWoke(true)}>
+    <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none">
       <div className="game-viewport relative h-full overflow-hidden">
         <div className="map-pan absolute inset-0 bg-cover bg-bottom" style={{ backgroundImage: `url(${districtStreet("oldtown", tablet)})` }} aria-hidden />
         <PaintedClouds />
@@ -110,7 +109,7 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
           <Gift className="h-4 w-4" /> Day {gift.day}/7 · {gift.crane ? "crane won!" : gift.available ? label : "claimed"}
         </Button>
       </div>
-      <Button variant="ghost" className={big} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
+      <Button variant="ghost" className={`${big} home-play`} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={big} onClick={onDaily}><CalendarDays className="h-6 w-6" /><span className="flex flex-col items-start leading-tight">District tour<span className="text-xs font-semibold opacity-80">{tour.name}{tour.preview ? " preview" : ""} · next {tour.tomorrow}</span></span><span className="ml-auto text-sm font-semibold">3× coins</span></Button>
       <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-semibold opacity-80">best {best}</span></Button>
       <div className="grid grid-cols-2 gap-2">
@@ -122,7 +121,7 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
       {!isAccountReady()
         ? <Button variant="ghost" className="home-account" disabled>Restoring account…</Button>
         : isSignedIn()
-          ? <Button variant="ghost" className="home-account" onClick={() => void signOut()}>{loadSettings().name} · Sign out</Button>
+          ? <Button variant="ghost" className="home-account" onClick={() => setPanel("settings")}><Cog className="h-4 w-4" />{loadSettings().name}</Button>
           : <Button variant="ghost" className="home-account" onClick={() => void signIn().catch(() => {})}>Sign in with Google to save coins</Button>}
     </div>
   );
@@ -244,6 +243,7 @@ function SettingsPanel({ onBack, onReset }: { onBack: () => void; onReset: () =>
         <Slider aria-label="Sound effects volume" min={0} max={100} step={1} value={[s.sound ? Math.round(s.soundVolume * 100) : 0]} onValueChange={([v]) => update({ sound: true, soundVolume: (v ?? 0) / 100 })} onValueCommit={() => void sfx("drop", 0.55)} />
       </label>
       <Toggle label="Vibration" on={s.vibrate} set={v => update({ vibrate: v })} />
+      {isSignedIn() && <Button variant="ghost" className="paper-btn" onClick={() => void signOut().then(onBack)}>Sign out</Button>}
       {import.meta.env.DEV && <AdPlacementTests />}
       <div className="flex justify-center gap-4 text-sm underline">
         <a href="/privacy">Privacy Policy</a><a href="/terms">Terms</a>

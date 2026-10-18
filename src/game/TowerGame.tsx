@@ -29,6 +29,7 @@ import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 import { canBankRun } from "./runPolicy";
 import { atmosphereArtwork, drawAtmosphere } from "./paintedAtmosphere";
+import { starPainting } from "./derivedArtwork";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -94,7 +95,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const pause = () => { manualPaused.current = true; setPauseView("paused"); };
   const resume = () => { manualPaused.current = false; setPauseView(null); };
   useEffect(() => {
-    const hide = () => { if (document.hidden) pause(); };
+    const hide = () => { if (document.hidden && !adPaused.current) pause(); };
     document.addEventListener("visibilitychange", hide);
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
@@ -186,21 +187,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
-    const starPigment = document.createElement("canvas");
-    if (ok(space)) {
-      starPigment.width = space.naturalWidth; starPigment.height = space.naturalHeight;
-      const pigment = starPigment.getContext("2d", { willReadFrequently: true });
-      if (pigment) {
-        pigment.drawImage(space, 0, 0);
-        const pixels = pigment.getImageData(0, 0, starPigment.width, starPigment.height);
-        for (let i = 0; i < pixels.data.length; i += 4) {
-          const red = pixels.data[i] ?? 0, green = pixels.data[i + 1] ?? 0, blue = pixels.data[i + 2] ?? 0;
-          const y = Math.floor(i / 4 / starPigment.width);
-          pixels.data[i + 3] = y < starPigment.height * 0.78 ? Math.max(0, Math.min(255, (Math.min(red, green, blue) - 145) * 3)) : 0;
-        }
-        pigment.putImageData(pixels, 0, 0);
-      }
-    }
+    const starPigment = starPainting(space);
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
     let faded = false;
@@ -445,9 +432,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const lean = Math.max(-1.6, Math.min(1.6, com / (bw * 0.5)));
       const targetSway = targetTowerSway(lean, n, s.t);
       const balance = towerBalance(s.floors.map((_, i) => displayX(i)), bw);
-      if (balanceMeter.current) balanceMeter.current.value = balance.risk;
-      if (balanceLabel.current) balanceLabel.current.textContent = balance.state === "stable" ? "Stable" : `${balance.direction < 0 ? "←" : "→"} ${balance.state === "danger" ? "Collapse risk" : "Leaning"}`;
-      if (balancePanel.current) balancePanel.current.dataset['state'] = balance.state;
+      if (balanceMeter.current && Math.abs(balanceMeter.current.value - balance.risk) > 0.005) balanceMeter.current.value = balance.risk;
+      const balanceText = balance.state === "stable" ? "Stable" : `${balance.direction < 0 ? "←" : "→"} ${balance.state === "danger" ? "Collapse risk" : "Leaning"}`;
+      if (balanceLabel.current && balanceLabel.current.textContent !== balanceText) balanceLabel.current.textContent = balanceText;
+      if (balancePanel.current && balancePanel.current.dataset['state'] !== balance.state) balancePanel.current.dataset['state'] = balance.state;
       if (!s.over && isStarted) {
         s.sway += (targetSway - s.sway) * (1 - Math.exp(-dt * 3));
         checkCollapse();

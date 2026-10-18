@@ -1,4 +1,8 @@
 # Roadmap
+- [ ] Investigate stars displayed on locked levels and correct the inconsistent presentation without erasing earned progress.
+- [ ] Polish home composition and account access; correct birds and coin travel without changing rewards.
+- [ ] Investigate all spirit paths and post-ad/next-level animation stalls; test and report confirmed versus device-only findings.
+- [ ] Verify this motion update on GitHub and start a fresh Android workflow (requires connected GitHub access).
 - [x] Fix audit defects: natural Harbour gulls, seamless aurora, atmosphere behind gameplay, truthful score status, readable missions/reward previews and accessible release settings.
 - [x] Polish home, map, Market, results, scores and destination reveal without changing approved mechanics, payouts or artwork.
 - [x] Recheck all ten districts' first-level completion, pause and replay with automated touch events; recheck menus, Market inspection, mission spacing, accessible volume controls, truthful guest score status, legal pages, destination reveal and small-phone layout; 132 regression tests and 3 Android packaging checks passed, no browser errors; signed-in scores and account restoration verified. This is not all 100 levels, human difficulty testing, physical Android sign-in or live-ad verification.

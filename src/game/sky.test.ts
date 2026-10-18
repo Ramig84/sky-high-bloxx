@@ -146,6 +146,15 @@ describe("district living sky", () => {
 
 import { birdPath } from "./sky";
 describe("natural bird flight", () => {
+  it("never reverses facing in the visible sky or recycles while visible", () => {
+    for (let i = 0; i < 4; i++) for (let step = 0; step < 1200; step++) {
+      const a = birdPath(i, step / 20, 390, 700), b = birdPath(i, (step + 1) / 20, 390, 700);
+      if (a.x > 0 && a.x < 390 && a.y > 0 && a.y < 700) {
+        expect(a.mirror).toBe(b.mirror);
+        expect(Math.hypot(b.x - a.x, b.y - a.y)).toBeLessThan(5);
+      }
+    }
+  });
   it("Harbour gulls bank and alternate flapping with gliding while keeping the landing lane clear", () => {
     for (let i = 0; i < 4; i++) {
       const path = Array.from({ length: 600 }, (_, step) => spiritMotion("gull", i, step / 20, 390, 700));
