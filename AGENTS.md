@@ -26,4 +26,6 @@
 - The daily challenge is a District Tour: browser-safe src/game/tour.ts picks one shared district per UTC day (mirrored by SQL tour_district_for, which start_game_run checks), with the level inside it scaled by player progress, so previews tease locked districts fairly.
 - Keep altitude bands, layered cloud depth and per-district sky moods in browser-safe sky logic with tests; scenery consumes camera height only, never slides sideways as whole images, and never changes gameplay, weather rules or the original approved clouds and birds.
 - Preload district spirit pose atlases through spiritArtwork and animate by selecting whole authored poses, so painted motion never relies on stretching still artwork.
+- Clouds and aurora use preloaded whole painted atmosphere poses with in-place dissolves; keep fog and lightning behind gameplay, so no strip seams or washed-out landing silhouettes appear.
+- Endless result submission status follows the resolved leaderboard response and is reset per run, so guests and failed submissions never display success.
 - Native Google sign-in returns to the https page /auth/app-return (the managed sign-in service rejects custom app schemes), which forwards the result to the Android app link; browser-safe src/game/nativeAuth.ts checks the pending state and age, so only sign-ins started on this phone are accepted.

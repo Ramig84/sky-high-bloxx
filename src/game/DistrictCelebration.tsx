@@ -10,6 +10,7 @@ import { sfx } from "./audio";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";
 import ambientSrc from "@/assets/ambient.webp";
+import { atmosphereArtwork, drawAtmosphere } from "./paintedAtmosphere";
 
 const ease = (t: number) => { const n = Math.max(0, Math.min(1, t)); return n * n * (3 - 2 * n); };
 
@@ -26,6 +27,7 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const art = tablet ? tabletArtwork : phoneArtwork;
     const cloud = getImage(art.cloudSrc), bird = getImage(art.birdSrc), ambient = getImage(ambientSrc);
+    const paintedCloud = getImage(atmosphereArtwork.cloud);
     const from = { street: getImage(districtStreet(done.id, tablet)), floors: districtFloors(done.id, tablet).map(getImage) };
     const to = next ? { street: getImage(districtStreet(next.id, tablet)), floors: districtFloors(next.id, tablet).map(getImage) } : null;
     const roof = getImage(roofSrc), contact = getImage(contactSrc), footing = getImage(footingSrc), confetti = getImage(confettiSrc);
@@ -45,7 +47,8 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
       // Same stone footing, pigment joins and painted proportions as gameplay.
       ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha *= 0.35;
       ctx.drawImage(contact, width / 2 - 74, ground + 14, 148, 9); ctx.restore();
-      ctx.drawImage(footing, width / 2 - 56, ground - 1, 112, 25);
+      ctx.save(); ctx.globalAlpha *= 0.85;
+      ctx.drawImage(footing, width / 2 - 51, ground - 1, 102, 13); ctx.restore();
       for (let i = 0; i < count; i++) {
         const tile = scene.floors[i === 0 ? 3 : (i - 1) % 3];
         if (!tile) continue;
@@ -70,9 +73,8 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
       // Painted sky life stays behind the tower silhouette and clear of the headings.
       for (let i = 0; i < 2; i++) {
         const cw = 82 + i * 24, ch = cw * cloud.naturalHeight / cloud.naturalWidth;
-        const x = (i === 0 ? -32 : width - 70) + Math.sin(t * 0.16 + i * 2) * 18;
-        ctx.save(); ctx.globalAlpha = 0.42;
-        ctx.drawImage(cloud, x, 190 + i * 34, cw, ch); ctx.restore();
+        const x = i === 0 ? -32 : width - 70;
+        drawAtmosphere(ctx, paintedCloud, reduce ? 0 : t, i * 2, x, 190 + i * 34, cw, 0.32);
       }
       if (!reduce) {
         for (let i = 0; i < 2; i++) {
