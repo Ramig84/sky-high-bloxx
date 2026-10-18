@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { sfx, setMusic, currentMusic } from "./audio";
 import { districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
+import { SkyBirds } from "./SkyBirds";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
 import { topScores, type ScoreRow } from "./leaderboard";
 import { ENDLESS_STAGES } from "./endless";
