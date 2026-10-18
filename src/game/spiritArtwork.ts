@@ -13,12 +13,12 @@ import type { SpiritKind } from "./sky";
 export type PaintedSpirit = SpiritKind | "kite" | "balloon" | "boat" | "petal";
 export const spiritArtwork: Record<PaintedSpirit, string> = { gull, butterfly, leaf, steam, lantern, kite, balloon, boat, petal };
 const cycles: Record<PaintedSpirit, readonly number[]> = {
-  gull: [0, 3, 2, 4, 2, 3], butterfly: [0, 1, 2, 3, 4, 5, 6, 7],
+  gull: [0, 1, 2, 3, 2, 1], butterfly: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
   leaf: [0, 1, 2, 3, 4, 5, 6, 7], steam: [0, 1, 2, 3, 4, 5, 6, 7],
-  lantern: [0, 1, 2, 3, 4, 5, 6, 7],
-  kite: [0,1,2,3,4,5,6,7], balloon: [0,1,2,3,4,5,6,7], boat: [0,1,2,3,4,5,6,7], petal: [0,1,2,3,4,5,6,7],
+  lantern: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
+  kite: [0,1,2,3,4,5,6,7,6,5,4,3,2,1], balloon: [0,1,2,3,4,5,6,7,6,5,4,3,2,1], boat: [0,1,2,3,4,5,6,7,6,5,4,3,2,1], petal: [0,1,2,3,4,5,6,7],
 };
-const rates: Record<PaintedSpirit, number> = { gull: 9, butterfly: 18, leaf: 8, steam: 3, lantern: 7, kite: 8, balloon: 6, boat: 6, petal: 8 };
+const rates: Record<PaintedSpirit, number> = { gull: 8, butterfly: 18, leaf: 6, steam: 3, lantern: 3, kite: 5, balloon: 3, boat: 3, petal: 6 };
 export function spiritPose(kind: PaintedSpirit, index: number, time: number) {
   const cycle = cycles[kind];
   const step = Math.floor(Math.max(0, time) * rates[kind] + index * 2.73) % cycle.length;

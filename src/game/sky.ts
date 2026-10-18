@@ -154,7 +154,7 @@ export function spiritMotion(kind: SpiritKind, i: number, t: number, vw: number,
   }
   if (kind === "leaf") {
     const k = loop(11 + i * 1.5);
-    return { x: lane + Math.sin(t * 1.1 + ph) * vw * 0.08, y: -40 + k * (vh + 80), rot: t * 0.9 + ph + Math.sin(t * 1.6) * 0.6,
+    return { x: lane + Math.sin(t * 0.65 + ph) * vw * 0.06, y: -40 + k * (vh + 80), rot: Math.sin(t * 0.65 + ph) * 0.22,
       flip: Math.cos(t * 2.2 + ph), flap: 0, scale: 0.7 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 3) };
   }
   if (kind === "steam") {
@@ -237,24 +237,27 @@ export function districtSkyMix(altitude: number) {
 export type BirdState = { x: number; y: number; rot: number; pose: number; mirror: boolean; scale: number };
 /**
  * Natural bird flight shared by every screen: each bird swoops in from its own screen edge,
- * banks through an arc on its side of the sky and leaves again. It beats its wings while
- * climbing (and surges forward), then glides and drifts down; it never crosses the centre lane.
+ * banks through an arc on its side of the sky and leaves above the screen. Short wingbeat
+ * bursts alternate with glides, without reversing facing in view or crossing the centre lane.
  */
 export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.12, band = 0.2): BirdState {
   const side = i % 2 ? -1 : 1, ph = i * 2.37;
   const period = 15 + (i % 3) * 4.5;
   const at = (time: number) => {
-    const raw = (((time + ph * 3) / period) % 1 + 1) % 1;
-    const k = raw + 0.035 * Math.sin(raw * Math.PI * 6 + ph); // surges and slows within the flight
-    const inward = Math.sin(Math.PI * Math.min(1, Math.max(0, k))) * vw * (0.2 + (i % 3) * 0.025);
-    const x = vw / 2 + side * (vw / 2 + 45 - inward);
-    const y = vh * (top + band * ((i * 0.37) % 1)) + vh * 0.07 * Math.cos(k * Math.PI * 2 + ph) - vh * 0.05 * k;
-    return { x, y };
+    const k = (((time + ph * 3) / period) % 1 + 1) % 1;
+    // One continuous departure: enter at the side, climb out above the sky.
+    // Never turn/mirror in view; recycling occurs only when fully offscreen.
+    const travel = k + 0.012 * Math.sin(k * Math.PI * 4);
+    const x = vw / 2 + side * (vw / 2 + 35 - travel * vw * 0.31);
+    const y = vh * (top + band * ((i * 0.37) % 1)) - k * vh * (top + band + 0.2)
+      + Math.sin(k * Math.PI * 2) * vh * 0.065;
+    return { x, y, k };
   };
-  const a = at(t), b = at(t + 0.05);
+  const a = at(t), b = at(t + 0.001);
   const dx = b.x - a.x, dy = b.y - a.y;
-  const climbing = dy < -0.15;
-  const pose = climbing ? ([0, 1, 2, 3, 2, 1][Math.floor((t + ph) * 11) % 6] ?? 2) : 5;
-  const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.001) * 0.35));
-  return { x: a.x, y: a.y, rot, pose, mirror: dx < 0, scale: 0.8 + (i % 3) * 0.15 };
+  // Short wingbeat bursts alternate with supported glides, not threshold flicker.
+  const beat = ((t + ph) % 4.8 + 4.8) % 4.8;
+  const pose = beat < 1.5 ? ([0, 1, 2, 3, 2, 1][Math.floor(beat * 8) % 6] ?? 2) : 5;
+  const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.00001) * 0.22));
+  return { x: a.x, y: a.y, rot, pose, mirror: side > 0, scale: 0.65 + (i % 3) * 0.12 };
 }

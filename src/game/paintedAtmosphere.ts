@@ -17,7 +17,7 @@ export function drawAtmosphere(ctx: CanvasRenderingContext2D, img: HTMLImageElem
   const pose = atmospherePose(time, phase);
   ctx.save();
   for (const [frame, weight] of [[pose.from, 1 - pose.blend], [pose.to, pose.blend]]) {
-    if (frame === undefined || weight === undefined) continue;
+    if (frame === undefined || weight === undefined || weight <= 0) continue;
     ctx.globalAlpha = alpha * weight;
     ctx.drawImage(img, frame % 4 * cell, Math.floor(frame / 4) * height, cell, height, x, y, width, width * height / cell);
   }

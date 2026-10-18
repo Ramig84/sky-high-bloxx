@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { createPortal } from "react-dom";
 import { coin } from "./shopArtwork";
 import { sfx } from "./audio";
-import { coinFlightAmounts } from "./coinFlight";
+import { coinFlightAmounts, coinFlightPoint } from "./coinFlight";
 
 export type CoinCollection = {
   source: { x: number; y: number };
@@ -19,28 +19,34 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
   const layer = useRef<HTMLDivElement>(null);
   const active = useRef(new Set<Animation>());
   const generation = useRef(0);
+  const counters = useRef(new WeakMap<HTMLElement, { value: number; pending: number }>());
   const clear = () => {
     generation.current++;
     active.current.forEach(animation => animation.cancel());
     active.current.clear();
+    counters.current = new WeakMap();
     layer.current?.replaceChildren();
   };
   useEffect(() => clear, []);
   useImperativeHandle(ref, () => ({ clear, collect: ({ source, target, counter, from, to, onComplete }) => {
     const root = layer.current;
     if (!root || to <= from) { onComplete?.(); return; }
-    clear();
     const token = generation.current;
     const bounds = target.getBoundingClientRect();
     const dx = bounds.left + bounds.width / 2 - source.x;
     const dy = bounds.top + bounds.height / 2 - source.y;
-    const corridor = bounds.left < window.innerWidth / 2 ? 12 - source.x : window.innerWidth - 12 - source.x;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const amounts = coinFlightAmounts(to - from, reduced);
     const count = amounts.length;
     let landed = 0;
-    let received = 0;
-    counter.textContent = from.toLocaleString();
+    let counterState = counters.current.get(counter);
+    if (!counterState || counterState.pending === 0) {
+      counterState = { value: from, pending: 0 };
+      counters.current.set(counter, counterState);
+      counter.textContent = from.toLocaleString();
+    }
+    const currentCounter = counterState;
+    currentCounter.pending++;
     void sfx("coins", 0.55);
     for (let i = 0; i < count; i++) {
       const image = document.createElement("img");
@@ -60,23 +66,22 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
         sprite.appendChild(label);
       }
       root.appendChild(sprite);
-      const angle = i * Math.PI * 2 / count;
-      const spreadY = -Math.abs(Math.sin(angle)) * 24 - 25;
-      const animation = sprite.animate([
-        { transform: "translate(-50%, -50%) scale(0.4)", opacity: 0 },
-        { transform: `translate(calc(-50% + ${corridor}px), calc(-50% + ${spreadY}px)) scale(1)`, opacity: 1, offset: 0.25 },
-        { transform: `translate(calc(-50% + ${corridor}px), calc(-50% + ${dy * 0.4 - 65}px)) scale(0.95)`, opacity: 1, offset: 0.58 },
-        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.45)`, opacity: 1 },
-      ], { duration: reduced ? 120 : 780, delay: reduced ? 0 : i * 42, easing: "cubic-bezier(0.3,0,0.6,1)", fill: "both" });
+      const frames = Array.from({ length: 25 }, (_, step) => {
+        const t = step / 24, p = coinFlightPoint(dx, dy, i, count, t);
+        const size = t < 0.15 ? 0.65 + t / 0.15 * 0.35 : 1 - Math.max(0, (t - 0.75) / 0.25) * 0.5;
+        return { transform: `translate(calc(-50% + ${p.x}px), calc(-50% + ${p.y}px)) scale(${size})`, opacity: Math.min(1, t * 12 + 0.2), offset: t };
+      });
+      const animation = sprite.animate(frames, { duration: reduced ? 120 : 680, delay: reduced ? 0 : i * 28, easing: "cubic-bezier(0.25,0.1,0.4,1)", fill: "both" });
       active.current.add(animation);
       animation.onfinish = () => {
         active.current.delete(animation);
         sprite.remove();
         if (token !== generation.current) return;
         landed++;
-        received += amount;
-        counter.textContent = (from + received).toLocaleString();
+        currentCounter.value += amount;
+        counter.textContent = currentCounter.value.toLocaleString();
         if (landed === count) {
+          currentCounter.pending--;
           const pulse = target.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: reduced ? 0 : 230 });
           active.current.add(pulse);
           pulse.onfinish = () => active.current.delete(pulse);

@@ -1,4 +1,8 @@
 # Roadmap
+- [x] Locked tiles no longer show saved stars; reproduced an isolated level-7 win with gaps, confirmed disabled and no star icons, and preserved earned progress.
+- [x] Polish home composition and account access; correct bird facing/recycling and curved overlapping coin travel without changing rewards or sound.
+- [x] Investigate spirit paths and post-ad/next-level stalls: authored pose timing, star-painting reuse, unchanged balance DOM, hidden-screen scheduling, next-level preloading and ad/manual pause separation; 135 checks pass, ten districts reviewed at three heights, real touch landing/pause/resume/leave verified. Real Android frame pacing and ad return remain unverified.
+- [ ] Verify this motion update on GitHub and start a fresh Android workflow (blocked: GitHub main still has pre-update 7b04bac; automatic project sync has not delivered current edits, so dispatching now would build old code).
 - [x] Fix audit defects: natural Harbour gulls, seamless aurora, atmosphere behind gameplay, truthful score status, readable missions/reward previews and accessible release settings.
 - [x] Polish home, map, Market, results, scores and destination reveal without changing approved mechanics, payouts or artwork.
 - [x] Recheck all ten districts' first-level completion, pause and replay with automated touch events; recheck menus, Market inspection, mission spacing, accessible volume controls, truthful guest score status, legal pages, destination reveal and small-phone layout; 132 regression tests and 3 Android packaging checks passed, no browser errors; signed-in scores and account restoration verified. This is not all 100 levels, human difficulty testing, physical Android sign-in or live-ad verification.

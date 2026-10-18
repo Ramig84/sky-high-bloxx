@@ -59,6 +59,17 @@ function Home() {
   // Quietly warm the map in the background so opening it is instant.
   useEffect(() => { const t = window.setTimeout(() => void preload(mapAssets()), 2500); return () => window.clearTimeout(t); }, []);
   useEffect(() => {
+    if (screen.kind !== "level" || screen.daily || screen.level + 1 >= TOTAL_LEVELS) return;
+    const nextDistrict = DISTRICTS[levelSpec(screen.level + 1).district];
+    if (!nextDistrict) return;
+    const t = window.setTimeout(() => {
+      const loadout = loadLoadout();
+      const extras = [craneSource(loadout.crane), blockSource(loadout.block)].filter((src): src is string => Boolean(src));
+      void preload(levelAssets(nextDistrict.id, extras));
+    }, 1800);
+    return () => window.clearTimeout(t);
+  }, [screen]);
+  useEffect(() => {
     const onDown = (e: PointerEvent) => { unlockAudio(); if ((e.target as HTMLElement).closest("button")) void sfx("tap", 0.6); if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } };
     window.addEventListener("pointerdown", onDown);
     return () => window.removeEventListener("pointerdown", onDown);

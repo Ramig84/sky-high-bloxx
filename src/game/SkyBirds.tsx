@@ -7,11 +7,13 @@ export function SkyBirds({ src, count = 2, top = 0.14, band = 0.18 }: { src: str
   const birds = useRef<(HTMLDivElement | null)[]>([]);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let frame = 0; const start = performance.now();
+    let frame = 0, time = 0, last = performance.now();
     const tick = (now: number) => {
+      time += Math.min(0.05, Math.max(0, (now - last) / 1000));
+      last = now;
       const el = box.current;
       if (el && !document.hidden) {
-        const vw = el.clientWidth, vh = el.clientHeight, t = (now - start) / 1000;
+        const vw = el.clientWidth, vh = el.clientHeight, t = time;
         birds.current.forEach((b, i) => {
           if (!b) return;
           const m = birdPath(i, t, vw, vh, top, band);
@@ -21,8 +23,14 @@ export function SkyBirds({ src, count = 2, top = 0.14, band = 0.18 }: { src: str
       }
       frame = requestAnimationFrame(tick);
     };
+    const visibility = () => {
+      cancelAnimationFrame(frame);
+      last = performance.now();
+      if (!document.hidden) frame = requestAnimationFrame(tick);
+    };
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    document.addEventListener("visibilitychange", visibility);
+    return () => { cancelAnimationFrame(frame); document.removeEventListener("visibilitychange", visibility); };
   }, [top, band]);
   return (
     <div ref={box} className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
