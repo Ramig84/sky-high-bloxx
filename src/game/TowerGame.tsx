@@ -496,7 +496,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.drawImage(cloudSea, vw / 2 - cw / 2, VH - ch * 0.82 + sink, cw, ch);
         ctx.globalAlpha = 1;
       }
-      drawSkyClouds(altC, false);
+      if (!districtArt) drawSkyClouds(altC, false);
 
       // District sky visitors (balloons, kites) drifting at the side lanes.
       if (visitors.length && ok(visitorArt)) for (const v of visitors) {
