@@ -75,12 +75,11 @@ export function DistrictCelebration({ district, stars, onNext, onMap }: { distri
       }
       if (!reduce) {
         for (let i = 0; i < 2; i++) {
-          const cycle = (t * 13 + i * (width + 70) / 2) % (width + 70);
-          const pose = Math.floor(t * 7 + i * 2) % 6;
-          const sw = bird.naturalWidth / 6;
-          ctx.save(); ctx.globalAlpha = 0.68;
-          ctx.drawImage(bird, pose * sw, 0, sw, bird.naturalHeight,
-            cycle - 35, 203 + i * 32 + Math.sin(t * 1.8 + i) * 4, 13, 16.6);
+          const m = birdPath(i, t, width, 700, 0.27, 0.08);
+          const sw = bird.naturalWidth / 6, s = 13 * m.scale;
+          ctx.save(); ctx.globalAlpha = 0.68; ctx.translate(m.x, m.y); ctx.rotate(m.mirror ? -m.rot : m.rot);
+          if (m.mirror) ctx.scale(-1, 1);
+          ctx.drawImage(bird, m.pose * sw, 0, sw, bird.naturalHeight, -s / 2, -s * 1.28, s, s * 1.28);
           ctx.restore();
         }
         // A few turning painted petals linger at the edges, never an endless confetti curtain.

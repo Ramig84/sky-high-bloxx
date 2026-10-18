@@ -610,7 +610,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         // Birds sit slightly lower as the tower climbs, so they belong to the sky rather than the screen.
         const y = m.y + Math.min(alt, 900) * 0.12 * depth;
         ctx.globalAlpha = sky.birds * depth;
-        ctx.save(); ctx.translate(vw / 2 + 0 * b.x + (m.x - vw / 2), y); ctx.rotate(m.mirror ? -m.rot : m.rot);
+        ctx.save(); ctx.translate(m.x, y); ctx.rotate(m.mirror ? -m.rot : m.rot);
         drawPose(bird, 6, reducedMotion ? 5 : m.pose, 0, 0, 20 * depth * m.scale, 25.6 * depth * m.scale, m.mirror);
         ctx.restore(); ctx.globalAlpha = 1;
       }
