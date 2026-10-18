@@ -1,12 +1,13 @@
 # Roadmap
+- [x] Recheck all ten district screens at five heights and painted pose motion; exercise menus, audio settings, daily gift, Market, Tour, a 15-floor completed campaign, pause/leave cancellation, replay, three misses, test-ad extra life, Endless and public pages; 121 game tests and 3 Android packaging tests passed, with no browser runtime or artwork-request errors. Physical-phone Google sign-in and live ads remain unverified.
 - [x] Replace single-image spirit deformation across all ten districts, including street creatures, petals, boats, kites and balloons, with authored painted pose cycles; 121 checks pass, fifty phone-height captures reviewed, changing gull poses and real touch drop verified.
 - [x] Native Google sign-in return via accepted https return page /auth/app-return that hands tokens to the app link (sign-in service accepts it; 6 tests)
 - [ ] Publish the site so /auth/app-return is live, then confirm APK sign-in on a real phone (blocked: publish + phone install)
-- [ ] Verify painted pose update on GitHub and start Android workflow (blocked: remote main is a8cbecf; new spiritArtwork.ts is absent, while local verified version is newer; cannot force Lovable automatic sync)
+- [x] Verify painted pose update on GitHub and start Android workflow: remote and local match 02cf0ce; build #45 succeeded, fresh post-check Android build #47 started at https://github.com/Ramig84/sky-high-bloxx/actions/runs/39130063065 (still running at last check).
 - [x] Refine altitude sky blends, continuous painted cloud depth, bird flight and altitude-appropriate scenery; verify without changing other design or mechanics (45 regression tests passed; ten-floor touch run and pause/resume checked)
 - [x] Correct account restoration on restart and regression-test saved sign-in (12 targeted tests passed; guest browser restart checked)
 - [ ] Verify Google account restart on the updated Android app (blocked: latest APK installation and real phone sign-in required)
-- [ ] Confirm the latest living-transition edits appear in GitHub (waiting on automatic synchronization; remote file still showed earlier transition)
+- [x] Confirm the latest living-transition edits appear in GitHub; synced main matches the local tested version.
 - [x] Rework district transitions as cohesive animated painted scenes; verify phone layouts and onward navigation without changing approved rules
 - [x] Replace default Android launcher/splash artwork and verify generated resources
 - [x] Audit active game images, sounds and screen preloading; fix concrete failures
@@ -86,7 +87,7 @@
 - [x] Restore painted contact pigment at tower joins; remove synthetic grounding shadows
 - [x] Review major phone screens and all district paintings; restore painted joins, paper surfaces, Market previews and celebration proportions
 - [ ] Verify final storybook presentation on physical Android phone (blocked: latest APK must be installed)
-- [ ] Re-run the Android build on GitHub after these fixes sync (blocked: GitHub still on the older commit whose packaging step fails)
+- [x] Re-run the Android build on GitHub after these fixes sync; build #45 passed packaging, APK and release AAB steps; post-check build #47 started.
 - [x] District Tour daily challenge (shared rotating district, preview of locked districts, tomorrow teaser)
 - [x] Leaderboard accepts only signed-in, server-checked Endless runs
 - [ ] District stamps reward for tours (after launch)
