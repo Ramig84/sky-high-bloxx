@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
 import { SkyBirds } from "./SkyBirds";
+import { PaintedClouds } from "./PaintedClouds";
 import { DISTRICTS, LEVELS_PER_DISTRICT, districtCleared, districtStars, isDistrictUnlocked as lockedDistrict, isLevelUnlocked as lockedLevel, levelSpec, type DistrictId, type Stars } from "./levels";
 
 const isTablet = () => typeof window !== "undefined" && window.matchMedia("(min-width: 600px)").matches;
@@ -51,22 +52,22 @@ export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus:
               const open = isDistrictUnlocked(stars, i);
               const st = districtStars(stars, i);
               return (
-                <button key={z.id} type="button" onClick={() => setSel(i)} aria-label={`${z.name} details`}
+                <Button variant="ghost" key={z.id} type="button" onClick={() => setSel(i)} aria-label={`${z.name} details`}
                   className={`map-pin absolute -translate-x-1/2 -translate-y-full ${i === current ? "map-pin-live" : ""} ${!open ? "map-pin-locked" : ""}`}
                   style={{ left: `${z.mapX}%`, top: `${z.mapY}%` }}>
                   {open && st > 0 && <MiniTower id={z.id} stars={st} />}
                   <span className="map-pin-name plaque">{i + 1}. {z.name}{!open && <Lock className="h-3 w-3" />}</span>
                   {open && <span className="map-pin-stars"><Star className="h-3 w-3 fill-current" />{st}/30</span>}
-                </button>
+                </Button>
               );
             })}
           </div>
         </div>
         {/* Living map: drifting clouds and flapping birds above the paper */}
-        {[0, 1, 2].map(i => <img key={`c${i}`} src={a.cloudSrc} alt="" aria-hidden className="map-cloud" style={{ top: `${18 + i * 26}%`, animationDelay: `${-i * 13}s`, animationDuration: `${38 + i * 9}s` }} />)}
+        <PaintedClouds map />
         <SkyBirds src={a.birdSrc} count={2} top={0.3} band={0.3} />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          {onHome ? <button type="button" className="plaque pointer-events-auto px-6 py-3 font-extrabold" onClick={onHome}>‹ Home</button> : <img src={a.logoSrc} alt="Sky Bloxx" className="w-28 drop-shadow-md" />}
+          {onHome ? <Button variant="ghost" type="button" className="plaque pointer-events-auto px-6 py-3 font-extrabold" onClick={onHome}>‹ Home</Button> : <img src={a.logoSrc} alt="Sky Bloxx" className="w-28 drop-shadow-md" />}
           <div className="hud-pill items-center"><span className="hud-label">STARS</span><span className="hud-value flex items-center gap-1"><Star className="h-4 w-4 fill-current" />{stars.reduce((x, y) => x + (y ?? 0), 0)}</span></div>
         </div>
         {d && sel !== null && (
@@ -84,16 +85,16 @@ export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus:
                 {Array.from({ length: LEVELS_PER_DISTRICT }, (_, l) => {
                   const idx = sel * LEVELS_PER_DISTRICT + l, open = isLevelUnlocked(stars, idx), st = stars[idx] ?? 0;
                   return (
-                    <button key={l} type="button" disabled={!open} onClick={() => onPlay(idx)} aria-label={`Level ${l + 1}, ${levelSpec(idx).goal} floors`}
-                      className="level-tile">
+                    <Button variant="ghost" key={l} type="button" disabled={!open} onClick={() => onPlay(idx)} aria-label={`Level ${l + 1}, ${levelSpec(idx).goal} floors`}
+                      className={`level-tile ${open && st === 0 && (idx === 0 || (stars[idx - 1] ?? 0) > 0) ? "is-next" : ""}`}>
                       {open ? <span className="text-base font-semibold leading-none">{l + 1}</span> : <Lock className="h-4 w-4" />}
-                      <span className="text-[10px] leading-none opacity-80">{levelSpec(idx).goal}F</span>
+                      <span className="level-goal">{levelSpec(idx).goal}F</span>
                       <span className="flex">{[0, 1, 2].map(k => <Star key={k} className={`h-2.5 w-2.5 ${k < st ? "fill-current" : "opacity-40"}`} />)}</span>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
-              {!isDistrictUnlocked(stars, sel) && <p className="hud-label text-center">Clear level 10 of {DISTRICTS[sel - 1]?.name} to unlock.</p>}
+              {!isDistrictUnlocked(stars, sel) && <p className="hud-label text-center">Complete all ten levels of {DISTRICTS[sel - 1]?.name} to unlock.</p>}
             </div>
           </div>
         )}
