@@ -58,4 +58,27 @@ describe("campaign levels", () => {
   it("keeps the best star count", () => {
     expect(recordStars(recordStars([], 3, 2), 3, 1)[3]).toBe(2);
   });
+  it("keeps level 8 locked when levels 4–7 are unfinished, even with an isolated level 7 win", () => {
+    const saved = [2, 2, 1, 0, 0, 0, 3];
+    expect(isLevelUnlocked(saved, 3)).toBe(true);
+    for (let level = 4; level <= 9; level++) expect(isLevelUnlocked(saved, level)).toBe(false);
+    expect(saved[6]).toBe(3);
+    expect(isLevelUnlocked([2, 2, 1, 1, 1, 1, 3], 7)).toBe(true);
+  });
+  it("does not open later districts across a gap in any earlier district", () => {
+    for (let district = 1; district < 10; district++) {
+      const saved = Array(district * 10).fill(1);
+      saved[0] = 0;
+      expect(isDistrictUnlocked(saved, district)).toBe(false);
+      saved[0] = 1;
+      expect(isDistrictUnlocked(saved, district)).toBe(true);
+    }
+  });
+  it("does not count a district as cleared from an isolated finale win", () => {
+    expect(districtCleared([2, 2, 1, 0, 0, 0, 3, 0, 0, 1], 0)).toBe(false);
+    expect(districtCleared(Array(10).fill(1), 0)).toBe(true);
+  });
+  it("rejects campaign level indexes outside the 100-level campaign", () => {
+    for (const index of [-1, 0.5, 100, NaN]) expect(isLevelUnlocked(Array(100).fill(3), index)).toBe(false);
+  });
 });

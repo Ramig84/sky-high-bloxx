@@ -64,10 +64,18 @@ export function starsFor(spec: LevelSpec, floors: number, perfects: number, live
 }
 
 export type Stars = number[]; // best stars per level index
-export const isLevelUnlocked = (stars: Stars, index: number) => index <= 0 || (stars[index - 1] ?? 0) > 0;
+export function isLevelUnlocked(stars: Stars, index: number): boolean {
+  if (!Number.isInteger(index) || index < 0 || index >= TOTAL_LEVELS) return false;
+  // Old saves and merged progress may contain isolated later wins. They must
+  // never bypass an unfinished earlier level; retain their stars for replay.
+  for (let i = 0; i < index; i++) {
+    if (!((stars[i] ?? 0) > 0)) return false;
+  }
+  return true;
+}
 export const isDistrictUnlocked = (stars: Stars, d: number) => isLevelUnlocked(stars, d * LEVELS_PER_DISTRICT);
 export const districtStars = (stars: Stars, d: number) => stars.slice(d * LEVELS_PER_DISTRICT, (d + 1) * LEVELS_PER_DISTRICT).reduce((a, b) => a + (b ?? 0), 0);
-export const districtCleared = (stars: Stars, d: number) => (stars[(d + 1) * LEVELS_PER_DISTRICT - 1] ?? 0) > 0;
+export const districtCleared = (stars: Stars, d: number) => isDistrictUnlocked(stars, d) && Array.from({ length: LEVELS_PER_DISTRICT }, (_, l) => (stars[d * LEVELS_PER_DISTRICT + l] ?? 0) > 0).every(Boolean);
 export function recordStars(stars: Stars, index: number, value: number): Stars {
   if ((stars[index] ?? 0) >= value) return stars;
   const next = [...stars]; next[index] = value; return next;
