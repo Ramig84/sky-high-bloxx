@@ -7,8 +7,8 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_SKY, DISTRICT_SPIRIT, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
-import { skyArt } from "./skyArtwork";
+import { DISTRICT_SKY, DISTRICT_SPIRIT, districtSkyMix, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
+import { districtSkyArt, skyArt } from "./skyArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
@@ -157,6 +157,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const field = cloudField();
     const visitors = skyVisitors(dsky.lifeCount);
     const spirit = DISTRICT_SPIRIT[district.id];
+    const dSkyLow = load(districtSkyArt[district.id]!.low), dSkyHigh = load(districtSkyArt[district.id]!.high);
     const spiritArt = load({ gull: skyArt.gullSrc, butterfly: skyArt.butterflySrc, leaf: skyArt.leafSrc, steam: skyArt.steamSrc, lantern: skyArt.lanternSrc }[spirit.kind]);
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
     const visitorArt = load(dsky.life === "kite" ? skyArt.kiteSrc : skyArt.balloonSrc), aurora = load(skyArt.auroraSrc);
@@ -450,6 +451,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       drawCover(clouds, 1, 0);
       drawCover(sunset, sky.sunset, 0);
       drawCover(space, sky.space, 0);
+      // District's own painted sky: street sky crossfades into its high sky as the tower climbs; light breathes gently.
+      { const mix = districtSkyMix(alt), breathe = reducedMotion ? 1 : 1 + 0.04 * Math.sin(s.t * 0.25);
+        if (ok(dSkyLow) && mix.low > 0.01) drawCover(dSkyLow, mix.low * breathe * (1 - sky.space * 0.6), 0);
+        if (ok(dSkyHigh) && mix.high > 0.01) drawCover(dSkyHigh, Math.min(1, mix.high * breathe) * (1 - sky.space * 0.4), 0); }
       // District light: a soft painted wash so each district's sky carries its own mood.
       ctx.save(); ctx.globalCompositeOperation = "soft-light";
       ctx.fillStyle = `rgba(${dsky.wash.join(",")},${dsky.washAlpha * 2.2})`; ctx.fillRect(0, 0, vw, VH);
