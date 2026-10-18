@@ -604,13 +604,15 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.globalAlpha = (0.16 + depth * 0.3) * sky.clouds * sky.wisps;
         ctx.drawImage(cloud, x - w / 2, sy, w, w * cloud.naturalHeight / cloud.naturalWidth); ctx.globalAlpha = 1;
       }
-      if (ok(bird)) for (const b of birds) {
-        b.x += b.sp * dt; if (b.x > vw / 2 + 80) { b.x = -vw / 2 - 80 - Math.random() * 300; b.y = 120 + Math.random() * 160; }
-        const pose = reducedMotion ? 5 : birdFlight(s.t, b.ph);
+      if (ok(bird)) for (const [i, b] of birds.entries()) {
+        const m = birdPath(i, reducedMotion ? b.ph : s.t, vw, VH);
         const depth = 0.65 + b.ph / 6 * 0.25;
-        const lane = Math.abs(b.x) < vw * 0.23 ? 0.18 : 1;
-        ctx.globalAlpha = sky.birds * depth * lane;
-        drawPose(bird, 6, pose, vw / 2 + b.x, b.y + Math.sin(s.t * 0.7 + b.ph) * 5, 20 * depth, 25.6 * depth); ctx.globalAlpha = 1;
+        // Birds sit slightly lower as the tower climbs, so they belong to the sky rather than the screen.
+        const y = m.y + Math.min(alt, 900) * 0.12 * depth;
+        ctx.globalAlpha = sky.birds * depth;
+        ctx.save(); ctx.translate(vw / 2 + 0 * b.x + (m.x - vw / 2), y); ctx.rotate(m.mirror ? -m.rot : m.rot);
+        drawPose(bird, 6, reducedMotion ? 5 : m.pose, 0, 0, 20 * depth * m.scale, 25.6 * depth * m.scale, m.mirror);
+        ctx.restore(); ctx.globalAlpha = 1;
       }
       // district life: painted leaves, petals, butterflies, steam, boats and mist
       if (ok(amb)) {
@@ -622,7 +624,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           else if (L.kind === "mist") { y = p.y; al *= (0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph)) * fadeHi; }
           else if (L.kind === "flutter") {
             const m = spiritMotion("butterfly", Math.floor(p.ph * 10), reducedMotion ? 0 : p.age, vw, VH);
-            x = m.x; y = gs - VH * 0.65 - 40 + m.y * 0.65; cell = 2; rot = m.rot; al *= fadeHi * m.alpha;
+            x = m.x; y = gs - VH - 50 + m.y; cell = 2; rot = m.rot; al *= fadeHi * m.alpha;
           }
           else if (L.kind === "boat") {
             // Only the harbour has an unobstructed water lane. Reuse the backdrop cover transform.
