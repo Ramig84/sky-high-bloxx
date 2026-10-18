@@ -595,6 +595,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      drawSkyClouds(altC, true); // near clouds pass in front at the screen edges
       if (spec.night) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
       if (spec.fog) {
         const g = ctx.createLinearGradient(0, 0, 0, VH * 0.55);
