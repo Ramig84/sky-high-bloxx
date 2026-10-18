@@ -20,7 +20,7 @@ describe("presentation-only altitude journey", () => {
     expect(skyBlend(1600, 1200, 2000)).toBe(0.5);
     expect(skyBlend(1201, 1200, 2000)).toBeLessThan(0.00001);
     expect(1 - skyBlend(1999, 1200, 2000)).toBeLessThan(0.00001);
-    expect(skyProfile(1600)).toEqual(skyProfile(1600));
+    expect(skyProfile(1600).sunset).toBeGreaterThan(skyProfile(1599).sunset);
   });
   it("replenishes painted clouds throughout ascent and descent, outside the viewport", () => {
     for (const altitude of [0, 800, 1600, 2400, 3200, 2400, 800, 0]) {
@@ -32,7 +32,7 @@ describe("presentation-only altitude journey", () => {
   });
   it("uses changing painted wing poses then a glide with independent phases", () => {
     expect(birdFlight(0, 0)).toBe(0);
-    expect(birdFlight(0.3, 0)).toBe(3);
+    expect(birdFlight(0.35, 0)).toBe(3);
     expect(birdFlight(2, 0)).toBe(5);
     expect(birdFlight(0, 2)).toBe(5);
     expect(birdFlight(5.6, 0)).toBe(0);
