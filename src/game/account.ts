@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import { LOADOUT_KEY, WALLET_KEY, addCoins, coins, loadLoadout, type DailyReward } from "./wallet";
 import { loadSettings, saveSettings } from "./settings";
 import { loadStars, saveStars, type Stars } from "./levels";
+import { APP_RETURN_PATH, PENDING_KEY, readAppReturn, type Pending } from "./nativeAuth";
 
 type Profile = { name: string; coins: number; owned_cranes: string[]; owned_blocks: string[]; crane: string; block: string; stars: number[]; endless_best: number };
 export const ACCOUNT_EVENT = "bloxx-account";
@@ -53,41 +54,37 @@ export async function signIn() {
   if (r.error) throw r.error;
 }
 
-/** Native APK: Google sign-in runs in the phone browser and returns via the app deep link, never leaving the player on the website. */
-const NATIVE_CALLBACK = "app.lovable.skyhighbloxx://oauth-callback";
+/**
+ * Native APK: Google sign-in runs in the phone browser. The sign-in service only
+ * returns to our own https site, so it lands on the return page, which hands the
+ * result straight back into the app through its app link.
+ */
 async function signInNative(): Promise<void> {
-  const { App } = await import("@capacitor/app");
   const state = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join("");
-  const params = new URLSearchParams({ provider: "google", redirect_uri: NATIVE_CALLBACK, state });
-  const url = `${window.location.origin}/~oauth/initiate?${params.toString()}`;
-  return new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const finish = (error?: Error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      void handle.then(h => h.remove());
-      if (error) reject(error); else resolve();
-    };
-    const handle = App.addListener("appUrlOpen", ({ url: callback }) => {
-      if (!callback.startsWith(NATIVE_CALLBACK)) return;
-      // Tokens arrive as query params or in the hash fragment.
-      const q = callback.indexOf("?") >= 0 ? callback.slice(callback.indexOf("?") + 1) : "";
-      const h = callback.indexOf("#") >= 0 ? callback.slice(callback.indexOf("#") + 1) : "";
-      const data = new URLSearchParams(q.includes("=") ? q : h);
-      const dataHash = new URLSearchParams(h);
-      const pick = (key: string) => data.get(key) ?? dataHash.get(key);
-      if (pick("state") !== state) return;
-      const err = pick("error");
-      if (err) { finish(new Error(pick("error_description") ?? err)); return; }
-      const access = pick("access_token"), refresh = pick("refresh_token");
-      if (!access || !refresh) { finish(new Error("Sign in failed")); return; }
-      void supabase.auth.setSession({ access_token: access, refresh_token: refresh })
-        .then(({ error }) => finish(error ? new Error(error.message) : undefined));
-    });
-    const timer = setTimeout(() => finish(new Error("Sign in was cancelled")), 120_000);
-    window.open(url, "_blank");
-  });
+  const pending: Pending = { state, at: Date.now() };
+  localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+  const params = new URLSearchParams({ provider: "google", redirect_uri: `${window.location.origin}${APP_RETURN_PATH}`, state });
+  window.open(`${window.location.origin}/~oauth/initiate?${params.toString()}`, "_blank");
+}
+
+let nativeReturnReady = false;
+/** Listens for the sign-in result coming back into the app (also when Android restarted the app for it). */
+export async function initNativeSignInReturn() {
+  if (nativeReturnReady || !Capacitor.isNativePlatform()) return;
+  nativeReturnReady = true;
+  const { App } = await import("@capacitor/app");
+  const handle = (url?: string | null) => {
+    if (!url) return;
+    let pending: Pending | null = null;
+    try { pending = JSON.parse(localStorage.getItem(PENDING_KEY) || "null"); } catch { pending = null; }
+    const result = readAppReturn(url, pending, Date.now());
+    if (!result) return;
+    localStorage.removeItem(PENDING_KEY);
+    if (result.kind === "tokens") void supabase.auth.setSession({ access_token: result.access_token, refresh_token: result.refresh_token });
+  };
+  void App.addListener("appUrlOpen", ({ url }) => handle(url));
+  const launch = await App.getLaunchUrl().catch(() => undefined);
+  handle(launch?.url);
 }
 export async function signOut() {
   await supabase.auth.signOut();
