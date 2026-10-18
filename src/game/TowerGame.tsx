@@ -184,7 +184,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
     const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
-    const birds = Array.from({ length: 3 }, (_, i) => ({ x: -250 - i * 260, y: 150 + i * 60, sp: 30 + Math.random() * 20, ph: Math.random() * 6 }));
+    const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ ph: i * 1.37 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
     const starPigment = starPainting(space);
@@ -577,6 +577,12 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const spiritArt = spiritArtOf();
       if (spPres > 0.01 && ok(spiritSrcImg) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
         const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
+        if (spirit.kind === "steam") {
+          const source = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH, 0.07, 0.43, alt);
+          m.x = source.x + (m.x - vw / 2) * 0.08;
+          m.y = source.y + m.y - VH * 0.43;
+          m.alpha *= sky.street;
+        }
         const base = { gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20 }[spirit.kind] * m.scale;
         const w = base * 1.25;
         ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
@@ -593,17 +599,17 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const drift = reducedMotion ? 0 : Math.sin(s.t * c.sp * 0.004 + i * 1.7) * 20;
         const x = vw / 2 + side * (vw * 0.48 + drift);
         const w = 100 * c.sc * (0.7 + depth);
-        ctx.globalAlpha = (0.16 + depth * 0.3) * sky.clouds * sky.wisps;
+        ctx.globalAlpha = (0.16 + depth * 0.3) * sky.clouds * sky.wisps * (1 - skyBlend(sy, VH * 0.55, VH * 0.72));
         drawAtmosphere(ctx, cloudPoses, reducedMotion ? 0 : s.t, i * 1.7, x - w / 2, sy, w, ctx.globalAlpha); ctx.globalAlpha = 1;
       }
       if (ok(bird)) for (const [i, b] of birds.entries()) {
-        const m = birdPath(i, reducedMotion ? b.ph : s.t, vw, VH);
-        const depth = 0.65 + b.ph / 6 * 0.25;
+        const m = birdPath(i, reducedMotion ? b.ph : s.t * dsky.birds.speed, vw, VH);
+        const depth = 0.75 + (i % 3) * 0.08;
         // Birds sit slightly lower as the tower climbs, so they belong to the sky rather than the screen.
         const y = m.y + Math.min(alt, 900) * 0.12 * depth;
         ctx.globalAlpha = sky.birds * depth;
         ctx.save(); ctx.translate(m.x, y); ctx.rotate(m.mirror ? -m.rot : m.rot);
-        drawPose(bird, 6, reducedMotion || m.pose === 5 ? 2 : m.pose, 0, 0, 20 * depth * m.scale, 25.6 * depth * m.scale, m.mirror);
+        drawPose(bird, 6, reducedMotion || m.pose === 5 ? 2 : m.pose, 0, 0, 26 * depth * m.scale * dsky.birds.size, 33.28 * depth * m.scale * dsky.birds.size, m.mirror);
         ctx.restore(); ctx.globalAlpha = 1;
       }
       // district life: painted leaves, petals, butterflies, steam, boats and mist
@@ -612,11 +618,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         for (const p of life) {
           stepAmbient(p, dt, vw, spec.wind ? windDir * spec.wind : 0);
           const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0, flipX = 1;
-          if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 1.8 + p.ph) * 0.25; al *= fadeHi; }
+          if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 1.8 + p.ph) * 0.25; al *= fadeHi * (1 - skyBlend(y, VH * 0.6, VH * 0.76)); }
           else if (L.kind === "mist") { y = p.y; al *= (0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph)) * fadeHi; }
           else if (L.kind === "flutter") {
             const m = spiritMotion("butterfly", Math.floor(p.ph * 10), reducedMotion ? 0 : p.age, vw, VH);
-            x = m.x; y = gs - VH - 50 + m.y; cell = 2; rot = m.rot; al *= fadeHi * m.alpha;
+            x = m.x; y = m.y; cell = 2; rot = m.rot; al *= fadeHi * m.alpha;
           }
           else if (L.kind === "boat") {
             // Only the harbour has an unobstructed water lane. Reuse the backdrop cover transform.
@@ -624,7 +630,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             x = point.x; y = point.y + p.y; sz = 16;
             rot = Math.sin(p.age * 1.6 + p.ph) * 0.05; al *= sky.street;
           }
-          else { const k = p.age / 4; x += Math.sin(p.age + p.ph) * 6 + k * 14; y = gs - 150 - k * 70; sz *= 0.5 + k; al *= (1 - k) * fadeHi; }
+          else {
+            const k = p.age / 4;
+            const source = backdropPoint(street.naturalWidth, street.naturalHeight, vw, VH,
+              district.id === "railyard" ? 0.07 : 0.17, district.id === "railyard" ? 0.43 : 0.47, alt);
+            x = source.x + Math.sin(p.ph) * 5 + k * 10; y = source.y - k * 65;
+            sz *= 0.4 + k * 0.6; al *= Math.sin(k * Math.PI) ** 2 * sky.street;
+          }
           if (al <= 0.01 || y < -150 || y > VH + 60) continue;
           ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot);
           if (L.kind === "mist" && ok(cloud)) {

@@ -142,28 +142,29 @@ export function spiritMotion(kind: SpiritKind, i: number, t: number, vw: number,
       scale: flight.scale, alpha: 1 };
   }
   if (kind === "butterfly") {
-    // A winding ascent with offscreen recycling, not wingbeats around a fixed perch.
+    // Enter from the sky edge, explore a winding arc, then leave above the frame.
     const period = 19 + (i % 4) * 3, k = loop(period);
-    const bend = k * Math.PI * 4 + ph;
-    const dx = side * vw * (0.065 * Math.cos(bend) * Math.PI * 4 + 0.02 * Math.cos(bend * 2 + ph) * Math.PI * 8) / period;
-    const dy = -(vh + 100) / period;
-    return { x: vw / 2 + side * vw * (0.36 + 0.065 * Math.sin(bend) + 0.02 * Math.sin(bend * 2 + ph)),
-      y: vh + 50 - k * (vh + 100), rot: Math.atan2(dx, -dy) * 0.55, flip: dx < 0 ? -1 : 1,
+    const bend = k * Math.PI * 4 + ph, envelope = Math.sin(k * Math.PI);
+    return { x: vw / 2 + side * (vw * (0.55 - 0.22 * envelope) + 9 * envelope * Math.sin(bend)),
+      y: vh * (0.28 + (i % 3) * 0.075 + 0.17 * Math.sin(k * Math.PI)) - skyBlend(k, 0.68, 1) * vh * 0.8,
+      rot: Math.sin(bend) * 0.16, flip: -side,
       flap: 0.5 + 0.5 * Math.sin(t * 13 + ph), scale: 0.8 + (i % 2) * 0.3,
       alpha: skyBlend(k, 0, 0.07) * (1 - skyBlend(k, 0.93, 1)) };
   }
   if (kind === "leaf") {
     const k = loop(11 + i * 1.5);
-    return { x: lane + Math.sin(t * 0.65 + ph) * vw * 0.06, y: -40 + k * (vh + 80), rot: Math.sin(t * 0.65 + ph) * 0.22,
+    return { x: lane + Math.sin(k * Math.PI * 3 + ph) * vw * 0.045, y: -40 + k * (vh * 0.76 + 40), rot: Math.sin(k * Math.PI * 3 + ph) * 0.38,
       flip: Math.cos(t * 2.2 + ph), flap: 0, scale: 0.7 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 3) };
   }
   if (kind === "steam") {
     const k = loop(9 + (i % 3)), sx = vw / 2 + side * vw * (0.36 + (i % 3) * 0.04);
-    return { x: sx + Math.sin(k * 5 + ph) * 14 + side * k * 30, y: vh * 1.02 - k * vh * 0.8, rot: k * side * 0.8, flip: 1, flap: 0,
-      scale: 0.5 + k * 1.6, alpha: Math.sin(k * Math.PI) * 0.6 };
+    return { x: sx + Math.sin(k * 5 + ph) * 7 + side * k * 12, y: vh * 0.43 - k * vh * 0.19, rot: k * side * 0.12, flip: 1, flap: 0,
+      scale: 0.5 + k * 0.65, alpha: Math.sin(k * Math.PI) ** 2 * 0.28 };
   }
   const k = loop(26 + i * 3);
-  return { x: lane + Math.sin(t * 0.4 + ph) * 18, y: vh * 1.05 - k * vh * 1.15, rot: Math.sin(t * 0.9 + ph) * 0.07, flip: 1,
+  // Lanterns enter from a roof-height side lane, never through the pavement or HUD.
+  return { x: vw / 2 + side * (vw * (0.58 - 0.22 * Math.sin(k * Math.PI)) + Math.sin(k * Math.PI * 3 + ph) * 5),
+    y: vh * (0.48 + (i % 3) * 0.035 - k * 0.62), rot: Math.sin(t * 0.35 + ph) * 0.035, flip: 1,
     flap: 0.7 + 0.3 * Math.abs(Math.sin(t * 6.1 + ph) * Math.sin(t * 2.3 + ph)), scale: 0.7 + (i % 3) * 0.2, alpha: Math.min(1, Math.sin(k * Math.PI) * 3) };
 }
 
@@ -242,15 +243,15 @@ export type BirdState = { x: number; y: number; rot: number; pose: number; mirro
  */
 export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.12, band = 0.2): BirdState {
   const side = i % 2 ? -1 : 1, ph = i * 2.37;
-  const period = 15 + (i % 3) * 4.5;
+  const period = 24 + (i % 3) * 4.5;
   const at = (time: number) => {
     const k = (((time + ph * 3) / period) % 1 + 1) % 1;
     // One continuous departure: enter at the side, climb out above the sky.
     // Never turn/mirror in view; recycling occurs only when fully offscreen.
-    const travel = k + 0.012 * Math.sin(k * Math.PI * 4);
+    const travel = skyBlend(k, 0, 0.7);
     const x = vw / 2 + side * (vw / 2 + 35 - travel * vw * 0.31);
-    const y = vh * (top + band * ((i * 0.37) % 1)) - k * vh * (top + band + 0.2)
-      + Math.sin(k * Math.PI * 2) * vh * 0.065;
+    const y = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1))
+      + Math.sin(k * Math.PI * 1.6) * vh * 0.085 - skyBlend(k, 0.64, 1) * vh * 0.65;
     return { x, y, k };
   };
   const a = at(t), b = at(t + 0.001);
