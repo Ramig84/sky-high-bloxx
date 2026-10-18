@@ -89,3 +89,4 @@
 - [x] District Tour daily challenge (shared rotating district, preview of locked districts, tomorrow teaser)
 - [x] Leaderboard accepts only signed-in, server-checked Endless runs
 - [ ] District stamps reward for tours (after launch)
+- [x] Layered sky depth per height band and per-district sky moods (no clouds at street level; original clouds/birds kept)
