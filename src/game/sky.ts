@@ -92,6 +92,44 @@ export function spiritPresence(kind: SpiritKind, altitude: number) {
   const top = kind === "lantern" ? 4200 : kind === "gull" ? 2600 : 2000;
   return 1 - skyBlend(altitude, top - 600, top);
 }
+
+/**
+ * Living sky per district, drawn in fixed layers (back to front):
+ *  1 painted sky  ->  2 cloud light (glow pools breathing over the painted clouds)
+ *  3 weather (rays / mist / twinkle / aurora wave)  ->  4 city + tower  ->  5 spirits at the edges.
+ * Spirit tint carries the district palette onto the shared painted creature (rgb + strength).
+ */
+export type SkyWeather = "rays" | "mist" | "twinkle" | "aurora";
+export type DistrictAtmos = { glow: [number, number, number]; weather: SkyWeather[]; tint: [number, number, number, number] };
+export const DISTRICT_ATMOS: Record<DistrictId, DistrictAtmos> = {
+  oldtown:    { glow: [255, 214, 150], weather: ["rays"],            tint: [214, 132, 52, 0.4] },
+  harbour:    { glow: [235, 248, 255], weather: ["mist"],            tint: [0, 0, 0, 0] },
+  market:     { glow: [255, 176, 96],  weather: ["rays"],            tint: [214, 64, 44, 0.45] },
+  riverside:  { glow: [220, 240, 230], weather: ["mist", "rays"],    tint: [96, 150, 70, 0.45] },
+  gardens:    { glow: [255, 210, 235], weather: ["mist"],            tint: [236, 128, 178, 0.45] },
+  university: { glow: [240, 246, 255], weather: ["rays"],            tint: [150, 70, 40, 0.45] },
+  railyard:   { glow: [255, 196, 120], weather: ["rays", "mist"],    tint: [0, 0, 0, 0] },
+  downtown:   { glow: [255, 160, 170], weather: ["twinkle"],         tint: [255, 168, 60, 0.4] },
+  skyline:    { glow: [170, 190, 255], weather: ["twinkle"],         tint: [150, 190, 255, 0.45] },
+  cloudpeak:  { glow: [255, 190, 210], weather: ["aurora", "twinkle"], tint: [168, 120, 230, 0.45] },
+};
+
+/** Glow pool i: stays in place, slowly swells and dims so painted clouds look lit by moving light. */
+export function cloudGlow(i: number, t: number, vw: number, vh: number) {
+  const seed = (i * 97.3) % 1;
+  const side = i % 2 === 0 ? 0.18 : 0.82;
+  return {
+    x: vw * (side + 0.08 * Math.sin(i * 2.1)), y: vh * (0.18 + ((i * 0.23) % 0.62)),
+    r: vw * (0.32 + 0.1 * Math.sin(t * 0.21 + i * 1.7)),
+    a: 0.5 + 0.5 * Math.sin(t * (0.17 + seed * 0.08) + i * 2.4),
+  };
+}
+
+/** Twinkling star i: fixed position, its own pulse. */
+export function twinkle(i: number, t: number, vw: number, vh: number) {
+  const x = ((i * 0.6180339) % 1) * vw, y = ((i * 0.4142135) % 1) * vh * 0.7;
+  return { x, y, a: Math.max(0, Math.sin(t * (0.8 + (i % 5) * 0.23) + i * 3.1)) ** 3, r: 0.8 + (i % 3) * 0.5 };
+}
 export type SpiritState = { x: number; y: number; rot: number; flip: number; flap: number; scale: number; alpha: number };
 /** Deterministic motion for spirit i at time t on a vw x vh screen. Always keeps the centre lane clear. */
 export function spiritMotion(kind: SpiritKind, i: number, t: number, vw: number, vh: number): SpiritState {

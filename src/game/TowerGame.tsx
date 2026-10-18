@@ -7,7 +7,7 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_SKY, DISTRICT_SPIRIT, districtSkyMix, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
+import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, districtSkyMix, spiritMotion, spiritPresence, birdFlight, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors } from "./sky";
 import { districtSkyArt, skyArt } from "./skyArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, levelSpec, starsFor } from "./levels";
@@ -158,7 +158,20 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const visitors = skyVisitors(dsky.lifeCount);
     const spirit = DISTRICT_SPIRIT[district.id];
     const dSkyLow = load(districtSkyArt[district.id]!.low), dSkyHigh = load(districtSkyArt[district.id]!.high);
-    const spiritArt = load({ gull: skyArt.gullSrc, butterfly: skyArt.butterflySrc, leaf: skyArt.leafSrc, steam: skyArt.steamSrc, lantern: skyArt.lanternSrc }[spirit.kind]);
+    const spiritSrcImg = load({ gull: skyArt.gullSrc, butterfly: skyArt.butterflySrc, leaf: skyArt.leafSrc, steam: skyArt.steamSrc, lantern: skyArt.lanternSrc }[spirit.kind]);
+    const atmos = DISTRICT_ATMOS[district.id];
+    // District-coloured copy of the painted creature (brushwork kept, palette shifted toward the district).
+    let spiritTinted: HTMLCanvasElement | null = null;
+    const spiritArtOf = (): (HTMLImageElement | HTMLCanvasElement) & { naturalWidth: number; naturalHeight: number } => {
+      if (atmos.tint[3] <= 0 || !ok(spiritSrcImg)) return spiritSrcImg;
+      if (!spiritTinted) {
+        const c = document.createElement("canvas"); c.width = spiritSrcImg.naturalWidth; c.height = spiritSrcImg.naturalHeight;
+        const x = c.getContext("2d")!; x.drawImage(spiritSrcImg, 0, 0);
+        x.globalCompositeOperation = "source-atop"; x.fillStyle = `rgba(${atmos.tint.join(",")})`; x.fillRect(0, 0, c.width, c.height);
+        spiritTinted = c;
+      }
+      return Object.assign(spiritTinted, { naturalWidth: spiritTinted.width, naturalHeight: spiritTinted.height });
+    };
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
     const visitorArt = load(dsky.life === "kite" ? skyArt.kiteSrc : skyArt.balloonSrc), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
@@ -469,7 +482,58 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         drawCover(starPigment, starAlpha * (0.035 + 0.025 * Math.sin(s.t * 0.65)) + glow * dsky.stars * 0.05, 0);
         ctx.restore();
       }
-      if (dsky.aurora > 0 && ok(aurora)) {
+      // Layer 2 — cloud light: glow pools breathe in place over the painted clouds in the district's light colour.
+      if (!reducedMotion && districtArt) {
+        ctx.save(); ctx.globalCompositeOperation = "soft-light";
+        for (let i = 0; i < 4; i++) { const g0 = cloudGlow(i, s.t, vw, VH);
+          const g = ctx.createRadialGradient(g0.x, g0.y, 0, g0.x, g0.y, g0.r);
+          g.addColorStop(0, `rgba(${atmos.glow.join(",")},${0.5 * g0.a})`); g.addColorStop(1, `rgba(${atmos.glow.join(",")},0)`);
+          ctx.fillStyle = g; ctx.fillRect(g0.x - g0.r, g0.y - g0.r, g0.r * 2, g0.r * 2); }
+        ctx.restore();
+      }
+      // Layer 3 — district weather.
+      if (!reducedMotion && districtArt) for (const w of atmos.weather) {
+        ctx.save();
+        if (w === "rays") { // light shafts fanning from above, each swelling and fading on its own beat
+          ctx.globalCompositeOperation = "screen";
+          for (let i = 0; i < 4; i++) {
+            const a = 0.07 * (0.5 + 0.5 * Math.sin(s.t * (0.23 + i * 0.05) + i * 1.9)), ang = -0.35 + i * 0.22 + 0.03 * Math.sin(s.t * 0.11 + i);
+            ctx.save(); ctx.translate(vw * 0.72, -20); ctx.rotate(ang);
+            const g = ctx.createLinearGradient(0, 0, 0, VH * 0.75);
+            g.addColorStop(0, `rgba(${atmos.glow.join(",")},${a})`); g.addColorStop(1, `rgba(${atmos.glow.join(",")},0)`);
+            ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(28 + i * 6, VH * 0.75); ctx.lineTo(-28 - i * 6, VH * 0.75); ctx.fill();
+            ctx.restore();
+          }
+        } else if (w === "mist") { // soft wisps at the sides that swell, thin and re-form in place
+          const low = 1 - skyBlend(alt, 600, 2200);
+          for (let i = 0; i < 5 && low > 0.02; i++) {
+            const x = i % 2 ? vw * (0.88 + 0.04 * Math.sin(i)) : vw * (0.12 - 0.04 * Math.sin(i)), y = VH * (0.42 + i * 0.1);
+            const b = 0.5 + 0.5 * Math.sin(s.t * (0.19 + i * 0.04) + i * 2.3), rx = vw * (0.22 + 0.08 * b), ry = 26 + 14 * b;
+            ctx.save(); ctx.translate(x, y); ctx.scale(1, ry / rx);
+            const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+            g.addColorStop(0, `rgba(${atmos.glow.join(",")},${0.22 * b * low})`); g.addColorStop(1, `rgba(${atmos.glow.join(",")},0)`);
+            ctx.fillStyle = g; ctx.fillRect(-rx, -rx, rx * 2, rx * 2); ctx.restore();
+          }
+        } else if (w === "twinkle") {
+          const vis = Math.max(spec.night ? 1 : 0, skyBlend(alt, 300, 1500));
+          ctx.globalCompositeOperation = "screen";
+          for (let i = 1; i < 34 && vis > 0.02; i++) { const st = twinkle(i, s.t, vw, VH);
+            if (Math.abs(st.x - vw / 2) < 60) continue;
+            const g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, st.r * 4);
+            g.addColorStop(0, `rgba(255,250,235,${0.9 * st.a * vis})`); g.addColorStop(1, "rgba(255,250,235,0)");
+            ctx.fillStyle = g; ctx.fillRect(st.x - st.r * 4, st.y - st.r * 4, st.r * 8, st.r * 8); }
+        } else if (w === "aurora" && ok(aurora)) { // the painted aurora curtain ripples: vertical strips sway on a travelling wave
+          const a = Math.max(0.5, highSkyGlow(altC, 1, true));
+          const aw = vw * 1.5, ah = aw * aurora.naturalHeight / aurora.naturalWidth, strips = 24, sw = aurora.naturalWidth / strips;
+          ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = a * (0.35 + 0.1 * Math.sin(s.t * 0.4));
+          for (let k = 0; k < strips; k++) {
+            const dy = 10 * Math.sin(s.t * 0.6 + k * 0.45), sh = 1 + 0.06 * Math.sin(s.t * 0.5 + k * 0.3);
+            ctx.drawImage(aurora, k * sw, 0, sw + 1, aurora.naturalHeight, vw / 2 - aw / 2 + (k * aw) / strips, 30 + dy, aw / strips + 1, ah * sh);
+          }
+        }
+        ctx.restore();
+      }
+      if (dsky.aurora > 0 && ok(aurora) && !districtArt) {
         const a = highSkyGlow(altC, dsky.aurora, Boolean(spec.night));
         if (a > 0.01) {
           const aw = vw * 1.5, ah = aw * aurora.naturalHeight / aurora.naturalWidth;
@@ -537,7 +601,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       // Animated district spirits: flapping gulls/butterflies, tumbling leaves, rising steam and lanterns.
       const spPres = spiritPresence(spirit.kind, alt);
-      if (spPres > 0.01 && ok(spiritArt) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
+      const spiritArt = spiritArtOf();
+      if (spPres > 0.01 && ok(spiritSrcImg) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
         const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
         const base = { gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20 }[spirit.kind] * m.scale;
         const w = base, h = w * spiritArt.naturalHeight / spiritArt.naturalWidth, iw = spiritArt.naturalWidth, ih = spiritArt.naturalHeight;
