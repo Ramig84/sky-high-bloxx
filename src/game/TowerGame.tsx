@@ -189,8 +189,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
     // Downtown and Skyline Heights are modern high-rise cities, so their far skyline is painted towers.
     const towersHaze = load(skyArt.cityHazeTowersSrc);
-    const cityHazeArt = district.id === "downtown" || district.id === "skyline" ? towersHaze : cityHaze;
-    const cityHazeSpan = cityHazeArt === towersHaze ? 1.2 : 1.7;
+    // Cloud Peak sits above the clouds among mountains, so its far horizon is a painted alpine range.
+    const mountainsHaze = load(skyArt.cityHazeMountainsSrc);
+    const cityHazeArt = district.id === "cloudpeak" ? mountainsHaze : district.id === "downtown" || district.id === "skyline" ? towersHaze : cityHaze;
+    const cityHazeSpan = cityHazeArt === cityHaze ? 1.7 : 1.2;
     const cloudPoses = load(atmosphereArtwork.cloud), auroraPoses = load(atmosphereArtwork.aurora);
     const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
