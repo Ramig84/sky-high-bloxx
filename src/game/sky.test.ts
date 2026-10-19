@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { birdFlight, cloudHeight, skyBlend, skyProfile } from "./sky";
+import { birdFlight, cloudHeight, cloudSeaTint, skyBlend, skyProfile } from "./sky";
 
 describe("presentation-only altitude journey", () => {
   it("retains the existing street, sunset and stratosphere altitude boundaries", () => {

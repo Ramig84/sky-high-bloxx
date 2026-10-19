@@ -7,7 +7,7 @@ import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdFlight, birdPath, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion } from "./sky";
+import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, DISTRICT_CLOUD_TINT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdFlight, birdPath, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion } from "./sky";
 import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, drawSpirit, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
@@ -46,6 +46,22 @@ type Hud = { score: number; floors: number; lives: number; combo: number; best: 
 
 const load = getImage;
 const ok = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
+
+// Wash the shared painted cloud sea to a district's light: keep the painted luminance, shift only the hue.
+function tintedCloudSea(img: HTMLImageElement, tint: readonly [number, number, number]): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const x = c.getContext("2d");
+  if (!x) return c;
+  x.drawImage(img, 0, 0, c.width, c.height);
+  x.globalCompositeOperation = "color";
+  x.fillStyle = `rgb(${tint[0]},${tint[1]},${tint[2]})`;
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = "destination-in";
+  x.drawImage(img, 0, 0, c.width, c.height);
+  x.globalCompositeOperation = "source-over";
+  return c;
+}
 
 // The painted stone plinth fades out at its ends so it melts into the street painting.
 const featheredPlinth = new Map<string, HTMLCanvasElement>();
@@ -193,6 +209,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const mountainsHaze = load(skyArt.cityHazeMountainsSrc);
     const cityHazeArt = district.id === "cloudpeak" ? mountainsHaze : district.id === "downtown" || district.id === "skyline" ? towersHaze : cityHaze;
     const cityHazeSpan = cityHazeArt === cityHaze ? 1.7 : 1.2;
+    let cloudSeaLayer: HTMLCanvasElement | null = null;
     const cloudPoses = load(atmosphereArtwork.cloud), auroraPoses = load(atmosphereArtwork.aurora);
     const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
@@ -567,10 +584,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // Sea of cloud tops below the tower once it climbs above the clouds.
       if (skyC.cloudSea > 0.01 && ok(cloudSea)) {
+        if (!cloudSeaLayer) cloudSeaLayer = tintedCloudSea(cloudSea, DISTRICT_CLOUD_TINT[district.id]);
         const cw = vw * 1.6, ch = cw * cloudSea.naturalHeight / cloudSea.naturalWidth;
         const sink = Math.max(0, altC - 2400) * 0.06;
         ctx.globalAlpha = skyC.cloudSea * skyC.clouds * 0.92;
-        ctx.drawImage(cloudSea, vw / 2 - cw / 2, VH - ch * 0.82 + sink, cw, ch);
+        ctx.drawImage(cloudSeaLayer ?? cloudSea, vw / 2 - cw / 2, VH - ch * 0.82 + sink, cw, ch);
         ctx.globalAlpha = 1;
       }
       if (!districtArt) drawSkyClouds(altC, false);
