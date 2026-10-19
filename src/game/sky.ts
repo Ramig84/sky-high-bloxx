@@ -250,29 +250,34 @@ export function restingBird(i: number, vw: number, vh: number, top = 0.14, band 
     rot: 0, pose: 5, mirror: side > 0, scale: 0.65 + (i % 3) * 0.12 };
 }
 /**
- * Natural bird flight shared by every screen: each bird swoops in from its own screen edge,
- * banks through an arc on its side of the sky and leaves above the screen. Short wingbeat
- * bursts alternate with glides, without reversing facing in view or crossing the centre lane.
+ * Natural bird flight shared by every screen. Each cycle a bird takes one of two routes on its
+ * own side of the sky: (A) swoop in from the side edge, soar with rising and falling glides,
+ * then climb out above; (B) dive in from above, pull up into a level glide and sail out the
+ * side edge. Facing only changes offscreen between cycles; the centre lane stays clear.
  */
 export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.12, band = 0.2): BirdState {
   const side = i % 2 ? -1 : 1, ph = i * 2.37;
   const period = 24 + (i % 3) * 4.5;
+  const startY = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1));
   const at = (time: number) => {
-    const k = (((time + ph * 3) / period) % 1 + 1) % 1;
-    // One continuous departure: enter at the side, climb out above the sky.
-    // Never turn/mirror in view; recycling occurs only when fully offscreen.
-    const travel = skyBlend(k, 0, 1);
-    const x = vw / 2 + side * (vw / 2 + 35 - travel * vw * 0.31);
-    const startY = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1));
-    const y = startY + Math.sin(k * Math.PI * 1.6) * vh * 0.085
-      - skyBlend(k, 0.64, 1) * (startY + 60);
-    return { x, y, k };
+    const raw = (time + ph * 3) / period, cycle = Math.floor(raw), k = raw - cycle;
+    const route = ((cycle + i) % 2 + 2) % 2;
+    if (route === 0) {
+      const travel = skyBlend(k, 0, 1);
+      const x = vw / 2 + side * (vw / 2 + 35 - travel * vw * 0.31);
+      const y = startY + Math.sin(k * Math.PI * 2.6 + i) * vh * 0.07 - skyBlend(k, 0.64, 1) * (startY + 60);
+      return { x, y, inward: true };
+    }
+    const x = vw / 2 + side * (vw * 0.3 + skyBlend(k, 0.12, 1) * (vw * 0.2 + 40));
+    const low = startY + vh * 0.09;
+    const y = -60 + (low + 60) * skyBlend(k, 0, 0.42) - vh * 0.09 * skyBlend(k, 0.42, 0.75)
+      + Math.sin(k * Math.PI * 3 + i) * vh * 0.02 * skyBlend(k, 0.3, 0.6);
+    return { x, y, inward: false };
   };
   const a = at(t), b = at(t + 0.001);
   const dx = b.x - a.x, dy = b.y - a.y;
-  // Short wingbeat bursts alternate with supported glides, not threshold flicker.
-  const climbing = dy / 0.001 < -6;
+  const climbing = dy / 0.001 < -3;
   const pose = birdWingPose(t, ph, climbing);
   const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.00001) * 0.22));
-  return { x: a.x, y: a.y, rot, pose, mirror: side > 0, scale: 0.65 + (i % 3) * 0.12 };
+  return { x: a.x, y: a.y, rot, pose, mirror: a.inward ? side > 0 : side < 0, scale: 0.65 + (i % 3) * 0.12 };
 }
