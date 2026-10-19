@@ -187,6 +187,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     { const x = twinkleSprite.getContext("2d"); if (x) { const g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
       g.addColorStop(0, "rgba(255,250,235,1)"); g.addColorStop(1, "rgba(255,250,235,0)"); x.fillStyle = g; x.fillRect(0, 0, 32, 32); } }
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
+    // Downtown and Skyline Heights are modern high-rise cities, so their far skyline is painted towers.
+    const towersHaze = load(skyArt.cityHazeTowersSrc);
+    const cityHazeArt = district.id === "downtown" || district.id === "skyline" ? towersHaze : cityHaze;
+    const cityHazeSpan = cityHazeArt === towersHaze ? 1.2 : 1.7;
     const cloudPoses = load(atmosphereArtwork.cloud), auroraPoses = load(atmosphereArtwork.aurora);
     const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
     // Original drifting clouds and birds are kept exactly as approved.
@@ -550,10 +554,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
       // Far city sinking into blue haze below the rising tower (slowest layer).
-      if (sky.cityHaze > 0.01 && ok(cityHaze)) {
-        const hw = vw * 1.7, hh = hw * cityHaze.naturalHeight / cityHaze.naturalWidth;
+      if (sky.cityHaze > 0.01 && ok(cityHazeArt)) {
+        const hw = vw * cityHazeSpan, hh = hw * cityHazeArt.naturalHeight / cityHazeArt.naturalWidth;
         ctx.globalAlpha = sky.cityHaze * 0.85;
-        ctx.drawImage(cityHaze, vw / 2 - hw / 2, VH - hh * 1.05 + Math.max(0, alt - 500) * 0.12, hw, hh);
+        ctx.drawImage(cityHazeArt, vw / 2 - hw / 2, VH - hh * 1.05 + Math.max(0, alt - 500) * 0.12, hw, hh);
         ctx.globalAlpha = 1;
       }
       if (!faded && ok(street)) buildFade();
