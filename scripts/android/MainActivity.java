@@ -1,6 +1,7 @@
 package app.lovable.skyhighbloxx;
 
 import android.os.Bundle;
+import android.view.View;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -56,5 +57,16 @@ public class MainActivity extends BridgeActivity {
         // Reload after installing the client so even the initial document is local.
         getBridge().getWebView().stopLoading();
         getBridge().getWebView().loadUrl("https://sky-high-bloxx.lovable.app/");
+    }
+
+    /** Full-screen ads pause WebView timers/GPU layer; restore both so the game runs at full speed afterwards. */
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getBridge() == null) return;
+        WebView web = getBridge().getWebView();
+        web.resumeTimers();
+        web.onResume();
+        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
     }
 }
