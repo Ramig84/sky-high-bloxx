@@ -13,7 +13,7 @@ export function atmospherePose(time: number, phase = 0) {
 
 export function drawAtmosphere(ctx: CanvasRenderingContext2D, img: HTMLImageElement, time: number, phase: number, x: number, y: number, width: number, alpha: number) {
   const cell = img.naturalWidth / 4, height = img.naturalHeight / 2;
-  if (!cell || !height) return;
+  if (!cell || !height || alpha <= 0.004) return; // invisible layers cost a full paint, skip them
   const pose = atmospherePose(time, phase);
   ctx.save();
   for (const [frame, weight] of [[pose.from, 1 - pose.blend], [pose.to, pose.blend]]) {

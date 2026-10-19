@@ -183,6 +183,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       };
       return { ...sp, src, art, signature };
     });
+    const twinkleSprite = document.createElement("canvas"); twinkleSprite.width = twinkleSprite.height = 32;
+    { const x = twinkleSprite.getContext("2d"); if (x) { const g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+      g.addColorStop(0, "rgba(255,250,235,1)"); g.addColorStop(1, "rgba(255,250,235,0)"); x.fillStyle = g; x.fillRect(0, 0, 32, 32); } }
     const wisp = load(skyArt.wispSrc), cloudSea = load(skyArt.cloudSeaSrc), cityHaze = load(skyArt.cityHazeSrc);
     const cloudPoses = load(atmosphereArtwork.cloud), auroraPoses = load(atmosphereArtwork.aurora);
     const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
@@ -526,9 +529,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           ctx.globalCompositeOperation = "screen";
           for (let i = 1; i < 34 && vis > 0.02; i++) { const st = twinkle(i, s.t, vw, VH);
             if (Math.abs(st.x - vw / 2) < 60) continue;
-            const g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, st.r * 4);
-            g.addColorStop(0, `rgba(255,250,235,${0.9 * st.a * vis})`); g.addColorStop(1, "rgba(255,250,235,0)");
-            ctx.fillStyle = g; ctx.fillRect(st.x - st.r * 4, st.y - st.r * 4, st.r * 8, st.r * 8); }
+            // One pre-painted glow reused for every star: same look, no per-frame gradient building.
+            ctx.globalAlpha = 0.9 * st.a * vis;
+            ctx.drawImage(twinkleSprite, st.x - st.r * 4, st.y - st.r * 4, st.r * 8, st.r * 8); }
+          ctx.globalAlpha = 1;
         } else if (w === "aurora" && ok(auroraPoses)) {
           ctx.globalCompositeOperation = "screen";
           const strength = Math.max(0.5, highSkyGlow(altC, 1, true));
@@ -588,7 +592,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           m.y = source.y + m.y - VH * 0.43;
           m.alpha *= sky.street;
         }
-        const base = ({ gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20, dragonfly: 24, pigeon: 30, swallow: 26, firefly: 28, eagle: 54 } as const)[spirit.kind] * m.scale;
+        const base = ({ gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20, dragonfly: 24, pigeon: 30, swallow: 26, firefly: 28, eagle: 54, owl: 38 } as const)[spirit.kind] * m.scale;
         const w = base * 1.25;
         const turns = spirit.kind === "gull" || spirit.signature;
         ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
