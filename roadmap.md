@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Inspect current painted motion, refine demonstrated defects without changing approved gameplay/art/audio, verify phone-sized motion and tests, confirm GitHub sync and manually dispatch new Android test workflow.
 - [x] Review all phone screens and ten districts; corrected bird climb/wingbeat and Tour text overflow, 147 tests passed, real touch landings in ten districts and Old Town completion verified. Inspected all 21 Market previews and ten district skies at three heights. Physical-phone smoothness, Google sign-in and live ads remain unverified; browser review does not establish premium animation quality.
 - [x] Unlock all 100 levels and ten districts for temporary testing only; tests and phone checks passed, GitHub matched af5aee43 and manually requested Android build #78 started.
 - [x] Corrected lantern/butterfly sky-edge paths, rooftop steam anchoring, leaf/cloud fade above pavement and shared bird visibility/settings; 56 focused tests passed, ten districts reviewed in 60 timed captures without errors, touch landing/pause/resume verified; obstacle logic and painted wind/rain rendering unchanged.
