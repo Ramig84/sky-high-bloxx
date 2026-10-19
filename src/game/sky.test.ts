@@ -145,8 +145,23 @@ describe("district living sky", () => {
   });
 });
 
-import { birdPath } from "./sky";
+import { birdPath, birdWingPose, restingBird } from "./sky";
 describe("natural bird flight", () => {
+  it("does not restart a climbing wing stroke when the burst clock wraps", () => {
+    expect(birdWingPose(4.799, 0, true)).toBe(2);
+    expect(birdWingPose(4.801, 0, true)).toBe(2);
+    expect(birdWingPose(4.9, 0, true)).toBe(3);
+    expect(birdWingPose(2, 0, false)).toBe(5);
+  });
+  it("keeps reduced-motion birds stationary inside the sky side lanes", () => {
+    for (const [w, h] of [[320, 640], [411, 792], [390, 844]] as const) for (let i = 0; i < 6; i++) {
+      const m = restingBird(i, w, h);
+      expect(m.x).toBeGreaterThan(28); expect(m.x).toBeLessThan(w - 28);
+      expect(m.y).toBeGreaterThan(70); expect(m.y).toBeLessThan(h * 0.5);
+      expect(Math.abs(m.x - w / 2)).toBeGreaterThan(w * 0.3);
+      expect(m.rot).toBe(0); expect(m.pose).toBe(5);
+    }
+  });
   it("keeps lateral travel during the visible climb and uses wingbeats rather than an upward glide", () => {
     for (let i = 0; i < 4; i++) for (let s = 0; s < 2400; s++) {
       const a = birdPath(i, s / 20, 411, 792), b = birdPath(i, s / 20 + 0.05, 411, 792);
