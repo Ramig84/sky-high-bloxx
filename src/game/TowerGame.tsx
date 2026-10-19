@@ -593,8 +593,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const turns = spirit.kind === "gull" || spirit.signature;
         ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);
         if (turns && m.flip < 0) ctx.scale(-1, 1);
-        // Fireflies add light to the night sky instead of sitting on it.
-        if (spirit.kind === "firefly") ctx.globalCompositeOperation = "lighter";
         drawSpirit(ctx, spiritArt, spirit.kind, i, s.t, w, turns && spirit.kind !== "dragonfly" && spirit.kind !== "firefly" && m.flap === 0);
         ctx.restore();
       }
