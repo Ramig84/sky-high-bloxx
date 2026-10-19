@@ -176,6 +176,24 @@ export const DISTRICT_ATMOS: Record<DistrictId, DistrictAtmos> = {
   cloudpeak:  { glow: [255, 190, 210], weather: ["aurora", "twinkle"], tint: [168, 120, 230, 0.45] },
 };
 
+/** Hue the shared painted sea of clouds is washed to, so it matches each district's own light. */
+export const DISTRICT_CLOUD_TINT: Record<DistrictId, readonly [number, number, number]> = {
+  oldtown:    [140, 180, 230], // soft morning blue
+  harbour:    [128, 178, 224], // sea blue
+  market:     [148, 182, 226], // warm day blue
+  riverside:  [142, 190, 224], // fresh day blue
+  gardens:    [150, 182, 230], // blossom day blue
+  university: [138, 176, 228], // clear day blue
+  railyard:   [150, 170, 195], // rain-washed steel
+  downtown:   [146, 168, 198], // fog-washed steel
+  skyline:    [80, 95, 185],   // night indigo
+  cloudpeak:  [72, 88, 178],   // high-night indigo
+};
+
+export function cloudSeaTint(id: DistrictId): readonly [number, number, number] {
+  return DISTRICT_CLOUD_TINT[id];
+}
+
 /** Glow pool i: stays in place, slowly swells and dims so painted clouds look lit by moving light. */
 export function cloudGlow(i: number, t: number, vw: number, vh: number) {
   const seed = (i * 97.3) % 1;
