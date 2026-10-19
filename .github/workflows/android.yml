@@ -135,7 +135,6 @@ jobs:
             -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
             android/app/build/outputs/bundle/release/app-release.aab "$ALIAS"
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
-          retention-days: 7
 
       - name: Upload APK (testing)
         uses: actions/upload-artifact@v4
@@ -149,3 +148,4 @@ jobs:
         with:
           name: sky-bloxx-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 7
