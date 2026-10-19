@@ -1,7 +1,7 @@
 name: Android build
 
 # Builds the Sky Bloxx Android APK (testing) and AAB (Play Store upload).
-# Runs on every push to main, or manually from the Actions tab.
+# Runs only when started manually from the Actions tab (no automatic runs).
 #
 # GitHub-only setup (no coding needed):
 #   1. Repo → Settings → Secrets and variables → Actions → New repository secret:
@@ -16,12 +16,7 @@ name: Android build
 #   5. KEEP the downloaded sky-bloxx.jks file safe forever (never lose it).
 
 on:
-  push:
-    branches: [main]
-    # Notes, plans and to-do edits never need a new phone build.
-    paths-ignore:
-      - "**/*.md"
-      - ".lovable/**"
+  # Manual only: edits never start a build automatically.
   workflow_dispatch:
 
 # A newer push cancels an older running build instead of piling up runs.
@@ -176,12 +171,14 @@ jobs:
             -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
             android/app/build/outputs/bundle/release/app-release.aab "$ALIAS"
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 7
 
       - name: Upload APK (testing)
         uses: actions/upload-artifact@v4
         with:
           name: sky-bloxx-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
 
       - name: Upload AAB (Play Store)
         uses: actions/upload-artifact@v4
