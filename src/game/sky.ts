@@ -251,7 +251,7 @@ export const DISTRICT_SKY: Record<DistrictId, DistrictSky> = {
   gardens:    { wash: [215, 185, 235], washAlpha: 0.15, life: "balloon", lifeCount: 2, birds: { count: 3, size: 0.8, speed: 1.2 }, cloudShade: 0, aurora: 0, stars: 0, cloudOffset: 0 },
   university: { wash: [200, 220, 245], washAlpha: 0.1, life: "kite", lifeCount: 1, birds: { count: 4, size: 1.1, speed: 0.9 }, cloudShade: 0.05, aurora: 0, stars: 0, cloudOffset: 0 },
   railyard:   { wash: [190, 170, 140], washAlpha: 0.18, life: "none", lifeCount: 0, birds: { count: 2, size: 1.1, speed: 0.9 }, cloudShade: 0.35, aurora: 0, stars: 0, cloudOffset: 0 },
-  downtown:   { wash: [255, 190, 110], washAlpha: 0.17, life: "balloon", lifeCount: 1, birds: { count: 2, size: 1, speed: 1 }, cloudShade: 0.15, aurora: 0, stars: 0, cloudOffset: 0 },
+  downtown:   { wash: [255, 190, 110], washAlpha: 0.17, life: "none", lifeCount: 0, birds: { count: 2, size: 1, speed: 1 }, cloudShade: 0.15, aurora: 0, stars: 0, cloudOffset: 0 },
   skyline:    { wash: [120, 140, 210], washAlpha: 0.16, life: "none", lifeCount: 0, birds: { count: 1, size: 1, speed: 1 }, cloudShade: 0.2, aurora: 0.35, stars: 0.6, cloudOffset: 0 },
   cloudpeak:  { wash: [245, 175, 175], washAlpha: 0.16, life: "none", lifeCount: 0, birds: { count: 2, size: 1, speed: 0.8 }, cloudShade: 0, aurora: 0.85, stars: 0.4, cloudOffset: 500 },
 };
