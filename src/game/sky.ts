@@ -113,7 +113,7 @@ const WANDER: Record<WanderKind, WanderCfg> = {
   firefly: { dur: 4.2, hover: true, x: [0.2, 0.47], y: [0.16, 0.62], dart: false, tilt: 0.15 },
   swallow: { dur: 1.7, hover: false, x: [-0.12, 1.12], y: [0.07, 0.4], dart: false, tilt: 0.55 },
   pigeon: { dur: 2.8, hover: false, x: [-0.1, 1.1], y: [0.1, 0.36], dart: false, tilt: 0.35 },
-  eagle: { dur: 5.2, hover: false, x: [-0.15, 1.15], y: [0.05, 0.3], dart: false, tilt: 0.3 },
+  eagle: { dur: 5.2, hover: false, x: [-0.15, 1.15], y: [0.14, 0.38], dart: false, tilt: 0.3 },
 };
 /** Random waypoint i,k for a creature: hoverers keep to their own side lane; birds roam the upper sky band. */
 function waypoint(kind: WanderKind, i: number, k: number, vw: number, vh: number) {
