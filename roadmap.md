@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Unlock all 100 levels and ten districts for temporary testing only; verify unchanged progression and sync GitHub before manually starting Android workflow.
 - [x] Corrected lantern/butterfly sky-edge paths, rooftop steam anchoring, leaf/cloud fade above pavement and shared bird visibility/settings; 56 focused tests passed, ten districts reviewed in 60 timed captures without errors, touch landing/pause/resume verified; obstacle logic and painted wind/rain rendering unchanged.
 - [ ] Verify corrected district animation reaches GitHub and start Android workflow (blocked: automatic GitHub sync still shows a53876b while tested local code is c075c736; do not build old code).
 - [x] Re-audited all ten districts at street and elevated camera heights in an isolated phone-sized browser (60 timed captures, no artwork failures/runtime errors). Confirmed bottom-origin lanterns in Market/Downtown/Skyline, source-less steam, ignored district bird counts and short visible bird-flight windows; report findings without claiming studio quality. No gameplay/artwork changes made.
