@@ -109,47 +109,11 @@ jobs:
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/keystore.jks"
           echo "SIGNING_READY=true" >> "$GITHUB_ENV"
 
-      - name: Create signing key and info file (first run only)
+      - name: Require saved signing key (never create a new one)
         if: ${{ env.KEYSTORE_B64 == '' }}
         run: |
-          # Uses your saved passwords if present, otherwise makes strong random ones.
-          SP="${KEYSTORE_PASSWORD:-$(openssl rand -hex 16)}"
-          KP="${KEY_PASSWORD:-$SP}"
-          ALIAS="${KEY_ALIAS:-skybloxx}"
-          echo "::add-mask::$SP"; echo "::add-mask::$KP"
-          keytool -genkeypair -v \
-            -keystore "$RUNNER_TEMP/sky-bloxx.jks" \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -alias "$ALIAS" -storepass "$SP" -keypass "$KP" \
-            -dname "CN=Sky Bloxx, OU=Games, O=Sky Bloxx, C=QA"
-          cp "$RUNNER_TEMP/sky-bloxx.jks" "$RUNNER_TEMP/keystore.jks"
-          B64=$(base64 -w 0 "$RUNNER_TEMP/sky-bloxx.jks")
-          echo "$B64" > "$RUNNER_TEMP/keystore-base64.txt"
-          {
-            echo "SKY BLOXX - ANDROID SIGNING INFO (KEEP SAFE FOREVER, NEVER SHARE)"
-            echo ""
-            echo "Add these 4 in GitHub: repo > Settings > Secrets and variables > Actions > New repository secret"
-            echo "Copy each value exactly, with no spaces before or after."
-            echo ""
-            echo "1) Name: ANDROID_KEYSTORE_PASSWORD"
-            echo "   Value: $SP"
-            echo ""
-            echo "2) Name: ANDROID_KEY_PASSWORD"
-            echo "   Value: $KP"
-            echo ""
-            echo "3) Name: ANDROID_KEY_ALIAS"
-            echo "   Value: $ALIAS"
-            echo ""
-            echo "4) Name: ANDROID_KEYSTORE_BASE64"
-            echo "   Value (one long line below):"
-            echo "$B64"
-            echo ""
-            echo "Also keep the file sky-bloxx.jks from this same download. Losing it means"
-            echo "the app can never be updated on Google Play."
-          } > "$RUNNER_TEMP/SIGNING-INFO.txt"
-          echo "KEYSTORE_PASSWORD=$SP" >> "$GITHUB_ENV"
-          echo "KEY_PASSWORD=$KP" >> "$GITHUB_ENV"
-          echo "SIGNING_READY=true" >> "$GITHUB_ENV"
+          echo "::error::Signing key secret ANDROID_KEYSTORE_BASE64 is missing. The SAME key must sign every update forever. Restore it from your backup (sky-bloxx.jks) into GitHub Secrets instead of creating a new one — a new key would make Google Play reject all future updates."
+          exit 1
 
       - name: Upload signing key backup (keep forever)
         if: ${{ env.SIGNING_READY == 'true' && env.KEYSTORE_B64 == '' }}
