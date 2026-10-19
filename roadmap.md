@@ -114,3 +114,10 @@
 
 - [x] Natural bird flight on every screen (game, celebration, home, map); street butterflies full travel; home light + shape-changing clouds
 - [x] GitHub sync + Android workflow for natural-bird update: remote main matches local 5e6be54 "Dedicated bird layer added"; Android build #55 queued at https://github.com/Ramig84/sky-high-bloxx/actions/runs/39135069543.
+
+## Across the Painted City film
+- [x] Approve four replacement scene paintings for animation.
+- [x] Generate the four approved district scenes at 1080×1920 (served lengths 5.035, 6.037, 6.037 and 10.027 seconds); review sampled poses, roof contact and endpoint frames. All contain audio, but synchronization is not established.
+- [ ] Repair failed continuity before composition: Old Town ends with the gull visible rather than occluded; Harbour ends behind a roof but Market opens unobstructed with a differently positioned gull. Blocked: no paid retries without approval.
+- [ ] Insert verified real Perfect gameplay and the original music/logo. Blocked: the previously verified source recording is unavailable and must be recaptured; do not substitute synthetic gameplay.
+- [ ] Review full motion, synchronized sound and both sides of every transition after repairs; generated scene audio currently measures -34.9 to -26.2 LUFS before mixing. Do not deliver these intermediate clips as a studio-quality finished film.
