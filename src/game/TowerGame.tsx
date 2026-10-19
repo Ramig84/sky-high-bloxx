@@ -592,7 +592,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           m.y = source.y + m.y - VH * 0.43;
           m.alpha *= sky.street;
         }
-        const base = ({ gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20, dragonfly: 24, pigeon: 30, swallow: 26, firefly: 28, eagle: 54 } as const)[spirit.kind] * m.scale;
+        const base = ({ gull: 34, butterfly: 18, leaf: 14, steam: 46, lantern: 20, dragonfly: 24, pigeon: 30, swallow: 26, firefly: 28, eagle: 54, owl: 38 } as const)[spirit.kind] * m.scale;
         const w = base * 1.25;
         const turns = spirit.kind === "gull" || spirit.signature;
         ctx.save(); ctx.globalAlpha = Math.max(0, m.alpha) * spPres; ctx.translate(m.x, m.y); ctx.rotate(m.rot);

@@ -233,6 +233,7 @@ describe("signature spirits wander naturally", () => {
     expect(DISTRICT_SPIRIT.downtown.kind).toBe("swallow");
     expect(DISTRICT_SPIRIT.skyline.kind).toBe("firefly");
     expect(DISTRICT_SPIRIT.cloudpeak.kind).toBe("eagle");
+    expect(DISTRICT_SPIRIT.university.kind).toBe("owl");
   });
   it("headings change at random: creatures face both ways and climb and dive", () => {
     for (const kind of WANDER_KINDS) for (let i = 0; i < 3; i++) {
