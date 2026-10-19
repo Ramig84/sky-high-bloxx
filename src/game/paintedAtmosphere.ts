@@ -3,6 +3,10 @@ import aurora from "@/assets/aurora-animation.webp";
 
 export const atmosphereArtwork = { cloud, aurora };
 
+/** Softer jade the approved aurora poses are washed toward, so the lights read painted, not neon. */
+export const AURORA_JADE = "rgb(120, 178, 156)";
+export const AURORA_JADE_MIX = 0.55;
+
 /** Whole authored poses dissolve in place; neither the painting nor its axes are deformed. */
 export function atmospherePose(time: number, phase = 0) {
   const cycle = Math.max(0, time * 0.42 + phase);
@@ -11,8 +15,31 @@ export function atmospherePose(time: number, phase = 0) {
   return { from: frame % 8, to: (frame + 1) % 8, blend: fraction * fraction * (3 - 2 * fraction) };
 }
 
-export function drawAtmosphere(ctx: CanvasRenderingContext2D, img: HTMLImageElement, time: number, phase: number, x: number, y: number, width: number, alpha: number) {
-  const cell = img.naturalWidth / 4, height = img.naturalHeight / 2;
+type AtmosphereSource = HTMLImageElement | HTMLCanvasElement;
+const size = (img: AtmosphereSource) => img instanceof HTMLImageElement ? [img.naturalWidth, img.naturalHeight] : [img.width, img.height];
+
+const tinted = new WeakMap<HTMLImageElement, HTMLCanvasElement>();
+/** One-time jade wash of the same painting (cached), keeping every brushstroke and its transparency. */
+export function jadeTinted(img: HTMLImageElement): AtmosphereSource {
+  const hit = tinted.get(img);
+  if (hit) return hit;
+  if (typeof document === "undefined" || !img.naturalWidth) return img;
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext("2d");
+  if (!g) return img;
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = "source-atop";
+  g.globalAlpha = AURORA_JADE_MIX;
+  g.fillStyle = AURORA_JADE;
+  g.fillRect(0, 0, c.width, c.height);
+  tinted.set(img, c);
+  return c;
+}
+
+export function drawAtmosphere(ctx: CanvasRenderingContext2D, img: AtmosphereSource, time: number, phase: number, x: number, y: number, width: number, alpha: number) {
+  const [w, h] = size(img);
+  const cell = w / 4, height = h / 2;
   if (!cell || !height || alpha <= 0.004) return; // invisible layers cost a full paint, skip them
   const pose = atmospherePose(time, phase);
   ctx.save();

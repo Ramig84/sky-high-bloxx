@@ -28,7 +28,7 @@ import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 import { canBankRun } from "./runPolicy";
-import { atmosphereArtwork, drawAtmosphere } from "./paintedAtmosphere";
+import { atmosphereArtwork, drawAtmosphere, jadeTinted } from "./paintedAtmosphere";
 import { starPainting } from "./derivedArtwork";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
@@ -559,7 +559,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         } else if (w === "aurora" && ok(auroraPoses)) {
           ctx.globalCompositeOperation = "screen";
           const strength = Math.max(0.5, highSkyGlow(altC, 1, true));
-          drawAtmosphere(ctx, auroraPoses, s.t * 0.6, 0, -vw * 0.15, -vw * 0.2, vw * 1.3, strength * 0.3);
+          // Same painting and movement, washed to a softer jade and blended gently into the night.
+          drawAtmosphere(ctx, jadeTinted(auroraPoses), s.t * 0.6, 0, -vw * 0.15, -vw * 0.2, vw * 1.3, strength * 0.2);
         }
         ctx.restore();
       }
