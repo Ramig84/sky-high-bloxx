@@ -248,17 +248,19 @@ export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.1
     const k = (((time + ph * 3) / period) % 1 + 1) % 1;
     // One continuous departure: enter at the side, climb out above the sky.
     // Never turn/mirror in view; recycling occurs only when fully offscreen.
-    const travel = skyBlend(k, 0, 0.7);
+    const travel = skyBlend(k, 0, 1);
     const x = vw / 2 + side * (vw / 2 + 35 - travel * vw * 0.31);
-    const y = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1))
-      + Math.sin(k * Math.PI * 1.6) * vh * 0.085 - skyBlend(k, 0.64, 1) * vh * 0.65;
+    const startY = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1));
+    const y = startY + Math.sin(k * Math.PI * 1.6) * vh * 0.085
+      - skyBlend(k, 0.64, 1) * (startY + 60);
     return { x, y, k };
   };
   const a = at(t), b = at(t + 0.001);
   const dx = b.x - a.x, dy = b.y - a.y;
   // Short wingbeat bursts alternate with supported glides, not threshold flicker.
   const beat = ((t + ph) % 4.8 + 4.8) % 4.8;
-  const pose = beat < 1.5 ? ([0, 1, 2, 3, 2, 1][Math.floor(beat * 8) % 6] ?? 2) : 5;
+  const climbing = dy / 0.001 < -6;
+  const pose = climbing || beat < 1.5 ? ([0, 1, 2, 3, 2, 1][Math.floor(beat * 8) % 6] ?? 2) : 5;
   const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.00001) * 0.22));
   return { x: a.x, y: a.y, rot, pose, mirror: side > 0, scale: 0.65 + (i % 3) * 0.12 };
 }

@@ -147,6 +147,15 @@ describe("district living sky", () => {
 
 import { birdPath } from "./sky";
 describe("natural bird flight", () => {
+  it("keeps lateral travel during the visible climb and uses wingbeats rather than an upward glide", () => {
+    for (let i = 0; i < 4; i++) for (let s = 0; s < 2400; s++) {
+      const a = birdPath(i, s / 20, 411, 792), b = birdPath(i, s / 20 + 0.05, 411, 792);
+      if (a.x > 0 && a.x < 411 && a.y > 0 && a.y < 792 && b.y < a.y - 0.3) {
+        expect(Math.abs(b.x - a.x)).toBeGreaterThan(0.01);
+        expect(a.pose).toBeLessThan(5);
+      }
+    }
+  });
   it("keeps every bird visible below the score bar for at least a third of its flight", () => {
     for (let i = 0; i < 6; i++) {
       const path = Array.from({ length: 2400 }, (_, s) => birdPath(i, s * 0.05, 390, 700));
