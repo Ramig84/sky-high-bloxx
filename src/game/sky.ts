@@ -236,6 +236,19 @@ export function districtSkyMix(altitude: number) {
 }
 
 export type BirdState = { x: number; y: number; rot: number; pose: number; mirror: boolean; scale: number };
+/** Keep the wing stroke clock continuous when a flight switches between beats and glides. */
+export function birdWingPose(time: number, phase: number, climbing: boolean) {
+  const clock = Math.max(0, time + phase);
+  const burst = clock % 4.8;
+  return climbing || burst < 1.5 ? ([0, 1, 2, 3, 2, 1][Math.floor(clock * 8) % 6] ?? 2) : 5;
+}
+
+/** Reduced motion keeps painted birds visible, but entirely still and clear of the centre. */
+export function restingBird(i: number, vw: number, vh: number, top = 0.14, band = 0.18): BirdState {
+  const side = i % 2 ? -1 : 1;
+  return { x: vw * (side > 0 ? 0.86 : 0.14), y: vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1)),
+    rot: 0, pose: 5, mirror: side > 0, scale: 0.65 + (i % 3) * 0.12 };
+}
 /**
  * Natural bird flight shared by every screen: each bird swoops in from its own screen edge,
  * banks through an arc on its side of the sky and leaves above the screen. Short wingbeat
@@ -258,9 +271,8 @@ export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.1
   const a = at(t), b = at(t + 0.001);
   const dx = b.x - a.x, dy = b.y - a.y;
   // Short wingbeat bursts alternate with supported glides, not threshold flicker.
-  const beat = ((t + ph) % 4.8 + 4.8) % 4.8;
   const climbing = dy / 0.001 < -6;
-  const pose = climbing || beat < 1.5 ? ([0, 1, 2, 3, 2, 1][Math.floor(beat * 8) % 6] ?? 2) : 5;
+  const pose = birdWingPose(t, ph, climbing);
   const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.00001) * 0.22));
   return { x: a.x, y: a.y, rot, pose, mirror: side > 0, scale: 0.65 + (i % 3) * 0.12 };
 }
