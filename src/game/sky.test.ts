@@ -154,7 +154,7 @@ describe("natural bird flight", () => {
     expect(birdWingPose(2, 0, false)).toBe(5);
   });
   it("keeps reduced-motion birds stationary inside the sky side lanes", () => {
-    for (const [w, h] of [[320, 640], [411, 792], [390, 844]]) for (let i = 0; i < 6; i++) {
+    for (const [w, h] of [[320, 640], [411, 792], [390, 844]] as const) for (let i = 0; i < 6; i++) {
       const m = restingBird(i, w, h);
       expect(m.x).toBeGreaterThan(28); expect(m.x).toBeLessThan(w - 28);
       expect(m.y).toBeGreaterThan(70); expect(m.y).toBeLessThan(h * 0.5);
