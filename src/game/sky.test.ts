@@ -224,3 +224,33 @@ describe("natural bird flight", () => {
     }
   });
 });
+
+import { WANDER_KINDS, districtSpirits } from "./sky";
+describe("signature spirits wander naturally", () => {
+  it("each signature district shows its own creature", () => {
+    expect(DISTRICT_SPIRIT.riverside.kind).toBe("dragonfly");
+    expect(districtSpirits("railyard").map(s => s.kind)).toEqual(["steam", "pigeon"]);
+    expect(DISTRICT_SPIRIT.downtown.kind).toBe("swallow");
+    expect(DISTRICT_SPIRIT.skyline.kind).toBe("firefly");
+    expect(DISTRICT_SPIRIT.cloudpeak.kind).toBe("eagle");
+  });
+  it("headings change at random: creatures face both ways and climb and dive", () => {
+    for (const kind of WANDER_KINDS) for (let i = 0; i < 3; i++) {
+      const path = Array.from({ length: 900 }, (_, s) => spiritMotion(kind, i, s / 15, 390, 700));
+      const ys = path.map(p => p.y);
+      let ups = 0, downs = 0;
+      for (let s = 1; s < path.length; s++) { if (ys[s]! < ys[s - 1]! - 0.5) ups++; else if (ys[s]! > ys[s - 1]! + 0.5) downs++; }
+      expect(ups).toBeGreaterThan(30); expect(downs).toBeGreaterThan(30);
+      if (kind === "dragonfly" || kind === "firefly") {
+        expect(path.every(p => Math.abs(p.x - 195) > 390 * 0.17)).toBe(true);
+      } else {
+        expect(new Set(path.map(p => p.flip)).size).toBe(2);
+        expect(path.every(p => p.y < 700 * 0.48)).toBe(true);
+      }
+    }
+  });
+  it("signature creatures persist into the upper floors", () => {
+    expect(spiritPresence("eagle", 6000)).toBe(1);
+    expect(spiritPresence("firefly", 4000)).toBe(1);
+  });
+});
