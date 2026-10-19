@@ -34,7 +34,7 @@ import skylineLow from "@/assets/dsky-skyline-low.webp";
 import skylineHigh from "@/assets/dsky-skyline-high.webp";
 import cloudpeakLow from "@/assets/dsky-cloudpeak-low.webp";
 import cloudpeakHigh from "@/assets/dsky-cloudpeak-high.webp";
-export const skyArt = { wispSrc, cloudSeaSrc, cityHazeSrc, cityHazeTowersSrc, kiteSrc, balloonSrc, auroraSrc, gullSrc, butterflySrc, leafSrc, steamSrc, lanternSrc };
+export const skyArt = { wispSrc, cloudSeaSrc, cityHazeSrc, cityHazeTowersSrc, cityHazeMountainsSrc, kiteSrc, balloonSrc, auroraSrc, gullSrc, butterflySrc, leafSrc, steamSrc, lanternSrc };
 export const SKY_IMAGES = Object.values(skyArt);
 
 /** Each district's own painted sky: one at street height, one at the top of the climb. */
