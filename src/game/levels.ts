@@ -19,6 +19,14 @@ export const DISTRICTS: District[] = [
 export const LEVELS_PER_DISTRICT = 10;
 export const TOTAL_LEVELS = DISTRICTS.length * LEVELS_PER_DISTRICT;
 
+// Temporary map access only; never fabricate stars or alter earned progression.
+export const OPEN_ALL_FOR_TESTING = true;
+export const isTestingLevelAvailable = (stars: Stars, index: number) =>
+  Number.isInteger(index) && index >= 0 && index < TOTAL_LEVELS &&
+  (OPEN_ALL_FOR_TESTING || isLevelUnlocked(stars, index));
+export const isTestingDistrictAvailable = (stars: Stars, district: number) =>
+  Number.isInteger(district) && isTestingLevelAvailable(stars, district * LEVELS_PER_DISTRICT);
+
 export type LevelSpec = {
   index: number; district: number; level: number;
   goal: number;        // floors needed to clear the level (never below 10)

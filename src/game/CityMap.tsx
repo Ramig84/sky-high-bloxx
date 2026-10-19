@@ -5,7 +5,7 @@ import contactSrc from "@/assets/painted-ground-contact.webp";
 import { districtFloors, phoneArtwork, tabletArtwork } from "./artwork";
 import { SkyBirds } from "./SkyBirds";
 import { PaintedClouds } from "./PaintedClouds";
-import { DISTRICTS, LEVELS_PER_DISTRICT, districtCleared, districtStars, isDistrictUnlocked as lockedDistrict, isLevelUnlocked as lockedLevel, levelSpec, type DistrictId, type Stars } from "./levels";
+import { DISTRICTS, LEVELS_PER_DISTRICT, districtCleared, districtStars, isTestingDistrictAvailable as isDistrictUnlocked, isTestingLevelAvailable as isLevelUnlocked, levelSpec, type DistrictId, type Stars } from "./levels";
 
 const isTablet = () => typeof window !== "undefined" && window.matchMedia("(min-width: 600px)").matches;
 
@@ -22,11 +22,6 @@ function MiniTower({ id, stars }: { id: DistrictId; stars: number }) {
     </div>
   );
 }
-
-// Set true only to review every district; false keeps the release unlock chain.
-const OPEN_ALL_FOR_TESTING = false;
-const isDistrictUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedDistrict(st, i);
-const isLevelUnlocked = (st: Stars, i: number) => OPEN_ALL_FOR_TESTING || lockedLevel(st, i);
 
 export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus: number; onPlay: (level: number) => void; onHome?: () => void }) {
   const [sel, setSel] = useState<number | null>(null);

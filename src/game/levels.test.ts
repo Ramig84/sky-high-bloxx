@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { DISTRICTS, TOTAL_LEVELS, districtCleared, isDistrictUnlocked, isLevelUnlocked, levelSpec, recordStars, starsFor } from "./levels";
+import { DISTRICTS, TOTAL_LEVELS, districtCleared, isDistrictUnlocked, isLevelUnlocked, isTestingDistrictAvailable, isTestingLevelAvailable, levelSpec, recordStars, starsFor } from "./levels";
 
 describe("campaign levels", () => {
+  it("opens all 100 levels for testing without earning stars or clearing districts", () => {
+    const stars: number[] = [];
+    for (let i = 0; i < 100; i++) expect(isTestingLevelAvailable(stars, i)).toBe(true);
+    expect(stars).toEqual([]);
+    for (let d = 0; d < 10; d++) expect(districtCleared(stars, d)).toBe(false);
+    for (const i of [-1, 0.5, 100, NaN]) expect(isTestingLevelAvailable(stars, i)).toBe(false);
+  });
+  it("opens all 10 districts for testing while retaining normal release locks", () => {
+    for (let d = 0; d < 10; d++) expect(isTestingDistrictAvailable([], d)).toBe(true);
+    expect(isLevelUnlocked([], 99)).toBe(false);
+    for (const d of [-1, 0.5, 10, NaN]) expect(isTestingDistrictAvailable([], d)).toBe(false);
+  });
   it("has 10 districts with 10 levels each", () => {
     expect(DISTRICTS).toHaveLength(10);
     expect(TOTAL_LEVELS).toBe(100);
