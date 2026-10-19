@@ -216,4 +216,11 @@ describe("natural bird flight", () => {
       expect(path.some(p => p.x < -20 || p.x > 410)).toBe(true); // enters and leaves off-screen
     }
   });
+  it("varies routes: some birds climb out the top, others dive in from above and leave by the side", () => {
+    for (let i = 0; i < 4; i++) {
+      const path = Array.from({ length: 2400 }, (_, s) => birdPath(i, s / 10, 390, 700));
+      expect(path.some(p => p.mirror)).toBe(true);
+      expect(path.some(p => !p.mirror)).toBe(true);
+    }
+  });
 });
