@@ -16,7 +16,7 @@ export function atmospherePose(time: number, phase = 0) {
 }
 
 type AtmosphereSource = HTMLImageElement | HTMLCanvasElement;
-const size = (img: AtmosphereSource) => img instanceof HTMLImageElement ? [img.naturalWidth, img.naturalHeight] : [img.width, img.height];
+const size = (img: AtmosphereSource): [number, number] => img instanceof HTMLImageElement ? [img.naturalWidth, img.naturalHeight] : [img.width, img.height];
 
 const tinted = new WeakMap<HTMLImageElement, HTMLCanvasElement>();
 /** One-time jade wash of the same painting (cached), keeping every brushstroke and its transparency. */
