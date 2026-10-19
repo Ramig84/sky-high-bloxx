@@ -18,7 +18,16 @@ name: Android build
 on:
   push:
     branches: [main]
+    # Notes, plans and to-do edits never need a new phone build.
+    paths-ignore:
+      - "**/*.md"
+      - ".lovable/**"
   workflow_dispatch:
+
+# A newer push cancels an older running build instead of piling up runs.
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   GRADLE_VERSION: "8.14.3"
