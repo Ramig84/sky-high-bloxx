@@ -80,17 +80,77 @@ export function birdFlight(time: number, phase: number) {
 
 export type SkyLife = "balloon" | "kite" | "none";
 /** Animated district spirits: each moves with its own painted motion (flapping, tumbling, rising). */
-export type SpiritKind = "gull" | "butterfly" | "leaf" | "steam" | "lantern";
-export const DISTRICT_SPIRIT: Record<DistrictId, { kind: SpiritKind; count: number }> = {
+export type SpiritKind = "gull" | "butterfly" | "leaf" | "steam" | "lantern" | WanderKind;
+/** Signature creatures with free, randomly wandering flight (approved painted pose sheets). */
+export type WanderKind = "dragonfly" | "pigeon" | "swallow" | "firefly" | "eagle";
+export type DistrictSpirit = { kind: SpiritKind; count: number; companion?: { kind: SpiritKind; count: number } };
+export const DISTRICT_SPIRIT: Record<DistrictId, DistrictSpirit> = {
   oldtown: { kind: "leaf", count: 5 }, harbour: { kind: "gull", count: 4 }, market: { kind: "lantern", count: 4 },
-  riverside: { kind: "leaf", count: 6 }, gardens: { kind: "butterfly", count: 5 }, university: { kind: "leaf", count: 4 },
-  railyard: { kind: "steam", count: 6 }, downtown: { kind: "lantern", count: 4 }, skyline: { kind: "lantern", count: 6 },
-  cloudpeak: { kind: "butterfly", count: 4 },
+  riverside: { kind: "dragonfly", count: 4 }, gardens: { kind: "butterfly", count: 5 }, university: { kind: "leaf", count: 4 },
+  railyard: { kind: "steam", count: 6, companion: { kind: "pigeon", count: 3 } }, downtown: { kind: "swallow", count: 4 },
+  skyline: { kind: "firefly", count: 7 }, cloudpeak: { kind: "eagle", count: 2 },
 };
+/** Every creature drawn for a district (main spirit plus an optional companion). */
+export function districtSpirits(id: DistrictId) {
+  const s = DISTRICT_SPIRIT[id];
+  return s.companion ? [{ kind: s.kind, count: s.count }, s.companion] : [{ kind: s.kind, count: s.count }];
+}
+export const WANDER_KINDS: readonly WanderKind[] = ["dragonfly", "pigeon", "swallow", "firefly", "eagle"];
+const isWander = (k: SpiritKind): k is WanderKind => (WANDER_KINDS as readonly string[]).includes(k);
 /** Spirits accompany the whole climb: present from the street and thinning only in the high sky. */
 export function spiritPresence(kind: SpiritKind, altitude: number) {
-  const top = kind === "lantern" ? 4200 : kind === "gull" ? 2600 : 2000;
+  const tops: Partial<Record<SpiritKind, number>> = { lantern: 4200, gull: 2600, dragonfly: 2600, pigeon: 3000, swallow: 3600, firefly: 5200, eagle: 9000 };
+  const top = tops[kind] ?? 2000;
   return 1 - skyBlend(altitude, top - 600, top);
+}
+
+const rand = (a: number, b: number) => { const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return v - Math.floor(v); };
+const catmull = (p0: number, p1: number, p2: number, p3: number, u: number) =>
+  0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
+type WanderCfg = { dur: number; hover: boolean; x: [number, number]; y: [number, number]; dart: boolean; tilt: number };
+const WANDER: Record<WanderKind, WanderCfg> = {
+  dragonfly: { dur: 2.6, hover: true, x: [0.22, 0.46], y: [0.24, 0.58], dart: true, tilt: 0.25 },
+  firefly: { dur: 4.2, hover: true, x: [0.2, 0.47], y: [0.16, 0.62], dart: false, tilt: 0.15 },
+  swallow: { dur: 1.7, hover: false, x: [-0.12, 1.12], y: [0.07, 0.4], dart: false, tilt: 0.55 },
+  pigeon: { dur: 2.8, hover: false, x: [-0.1, 1.1], y: [0.1, 0.36], dart: false, tilt: 0.35 },
+  eagle: { dur: 5.2, hover: false, x: [-0.15, 1.15], y: [0.05, 0.3], dart: false, tilt: 0.3 },
+};
+/** Random waypoint i,k for a creature: hoverers keep to their own side lane; birds roam the upper sky band. */
+function waypoint(kind: WanderKind, i: number, k: number, vw: number, vh: number) {
+  const c = WANDER[kind], seed = WANDER_KINDS.indexOf(kind) * 31 + i * 7.3;
+  const rx = rand(seed, k), ry = rand(seed + 3.1, k * 1.7 + 0.4);
+  if (c.hover) {
+    const side = i % 2 ? -1 : 1;
+    return [vw * (0.5 + side * (c.x[0] + rx * (c.x[1] - c.x[0]))), vh * (c.y[0] + ry * (c.y[1] - c.y[0]))];
+  }
+  return [vw * (c.x[0] + rx * (c.x[1] - c.x[0])), vh * (c.y[0] + ry * (c.y[1] - c.y[0]))];
+}
+function wanderPoint(kind: WanderKind, i: number, t: number, vw: number, vh: number) {
+  const c = WANDER[kind], dur = c.dur * (0.8 + rand(i, 9.1) * 0.45);
+  const p = t / dur + rand(i, 2.2) * 50, k = Math.floor(p);
+  let u = p - k;
+  // Dragonflies hover with a tremble, then dart quickly to a new random perch.
+  if (c.dart) { const d = Math.max(0, Math.min(1, (u - 0.62) / 0.38)); u = d * d * (3 - 2 * d); }
+  const a = waypoint(kind, i, k - 1, vw, vh), b = waypoint(kind, i, k, vw, vh), q = waypoint(kind, i, k + 1, vw, vh), r = waypoint(kind, i, k + 2, vw, vh);
+  let x = catmull(a[0]!, b[0]!, q[0]!, r[0]!, u), y = catmull(a[1]!, b[1]!, q[1]!, r[1]!, u);
+  if (c.hover) { x += Math.sin(t * 7.3 + i * 2) * (c.dart ? 2.2 : 3.5); y += Math.sin(t * 5.1 + i) * (c.dart ? 2 : 4); }
+  if (kind === "swallow") y += Math.sin(t * 2.4 + i * 1.3) * vh * 0.025;
+  return { x, y };
+}
+/** Free flight with headings that change at random: no creature keeps one direction. */
+export function wanderMotion(kind: WanderKind, i: number, t: number, vw: number, vh: number): SpiritState {
+  const c = WANDER[kind], p = wanderPoint(kind, i, t, vw, vh), n = wanderPoint(kind, i, t + 0.08, vw, vh);
+  const vx = n.x - p.x, vy = n.y - p.y, speed = Math.hypot(vx, vy);
+  // Hoverers turn to face the side of the screen they belong to when nearly still, so they never flicker.
+  const flip = speed < 0.4 && c.hover ? (i % 2 ? 1 : -1) : vx < 0 ? -1 : 1;
+  const ang = Math.max(-c.tilt, Math.min(c.tilt, Math.atan2(vy, Math.abs(vx) + 0.001)));
+  const rot = (c.hover && speed < 0.4 ? Math.sin(t * 1.3 + i) * 0.06 : ang) * flip;
+  let flap = 1;
+  if (kind === "eagle") flap = ((t + i * 2.9) % 7 + 7) % 7 < 1.9 ? 1 : 0;
+  else if (kind === "pigeon" || kind === "swallow") flap = vy > speed * 0.35 ? 0 : 1;
+  const edge = Math.min(p.x + vw * 0.06, vw * 1.06 - p.x) / (vw * 0.08);
+  const alpha = c.hover ? 1 : Math.max(0, Math.min(1, edge));
+  return { x: p.x, y: p.y, rot, flip, flap, scale: kind === "eagle" ? 0.85 + (i % 2) * 0.3 : 0.85 + (i % 3) * 0.15, alpha };
 }
 
 /**
@@ -133,6 +193,7 @@ export function twinkle(i: number, t: number, vw: number, vh: number) {
 export type SpiritState = { x: number; y: number; rot: number; flip: number; flap: number; scale: number; alpha: number };
 /** Deterministic motion for spirit i at time t on a vw x vh screen. Always keeps the centre lane clear. */
 export function spiritMotion(kind: SpiritKind, i: number, t: number, vw: number, vh: number): SpiritState {
+  if (isWander(kind)) return wanderMotion(kind, i, t, vw, vh);
   const side = i % 2 ? -1 : 1, ph = i * 1.73, lane = vw / 2 + side * vw * (0.3 + (i % 3) * 0.06);
   const loop = (period: number) => (((t + ph * period / 6.28) / period) % 1 + 1) % 1;
   if (kind === "gull") {
