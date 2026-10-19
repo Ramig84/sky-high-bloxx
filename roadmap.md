@@ -118,6 +118,6 @@
 ## Across the Painted City film
 - [x] Approve four replacement scene paintings for animation.
 - [x] Generate the four approved district scenes at 1080×1920 (served lengths 5.035, 6.037, 6.037 and 10.027 seconds); review sampled poses, roof contact and endpoint frames. All contain audio, but synchronization is not established.
-- [ ] Repair failed continuity before composition: Old Town→Harbour raised-wing match is closer, but Harbour v3 still ends wings-down and facing left while Market opens wings-up facing right. Gameplay ends about two seconds after its impact and Cloud Peak contacts about 2.18 seconds after opening, so the approved impact match also fails. Do not assemble these as accepted joins.
+- [x] Repair continuity: Harbour v4 flies right into Market; gameplay re-cut to end 0.35 s after the real Perfect; Cloud Peak v2 roof lands 0.5 s in. Remaining: Old Town→Harbour size jump and Harbour→Market wingbeat phase.
 - [x] Recapture a verified real Perfect gameplay take with its original SFX in an isolated guest browser: three-second take, real touch drop at 0.4634 s, Perfect event at 1.0000 s, landing offset +0.1495 px, visible Perfect proof and recorded original sound; no game changes.
-- [ ] Insert original music/logo and review full motion, synchronized sound and both sides of every transition after continuity passes. Harbour v3 measures -34.5 LUFS and authentic gameplay -24.6 LUFS before mixing; audio is present, but final sound verification requires a passing composed film. Assembly held rather than delivering another defective film.
+- [ ] Review draft v2 (30.1 s, original music + logo): only planned cuts; overall sound -17.9 LUFS vs -14 target and Harbour scene nearly silent (-41 LUFS). Awaiting user review before more paid scenes.
