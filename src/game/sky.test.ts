@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { birdFlight, cloudHeight, cloudSeaTint, skyBlend, skyProfile } from "./sky";
 
+describe("sea of clouds takes each district's light", () => {
+  it("day districts wash the cloud sea blue, never pink", () => {
+    for (const d of ["oldtown", "harbour", "market", "riverside", "gardens", "university"] as const) {
+      const [r, , b] = cloudSeaTint(d);
+      expect(b).toBeGreaterThan(r);
+    }
+  });
+  it("night districts wash the cloud sea indigo", () => {
+    for (const d of ["skyline", "cloudpeak"] as const) {
+      const [r, , b] = cloudSeaTint(d);
+      expect(b).toBeGreaterThan(r + 60);
+    }
+  });
+  it("rain districts wash the cloud sea steel grey-blue", () => {
+    for (const d of ["railyard", "downtown"] as const) {
+      const [r, , b] = cloudSeaTint(d);
+      expect(b).toBeGreaterThan(r);
+      expect(b).toBeLessThan(210);
+    }
+  });
+});
+
 describe("presentation-only altitude journey", () => {
   it("retains the existing street, sunset and stratosphere altitude boundaries", () => {
     expect(skyProfile(400).street).toBe(1);
