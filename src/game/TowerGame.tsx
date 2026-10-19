@@ -28,7 +28,7 @@ import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 import { canBankRun } from "./runPolicy";
-import { atmosphereArtwork, drawAtmosphere } from "./paintedAtmosphere";
+import { atmosphereArtwork, drawAtmosphere, jadeTinted } from "./paintedAtmosphere";
 import { starPainting } from "./derivedArtwork";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
