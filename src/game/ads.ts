@@ -19,8 +19,20 @@ function admob() {
   return ready;
 }
 
-/** Shows a real ad. Resolves true when a rewarded ad was fully watched (or an interstitial closed). */
+/** The game registers these so its graphics memory is freed while a full-screen ad video plays. */
+type AdSurfaces = { release: () => void; restore: () => void };
+let surfaces: AdSurfaces | null = null;
+export const setAdSurfaces = (next: AdSurfaces | null) => { surfaces = next; };
+
+/** Shows a real ad, releasing the game's drawing memory first and rebuilding it afterwards. */
 export async function showNativeAd(placement: AdPlacement): Promise<boolean> {
+  surfaces?.release();
+  try { return await showAd(placement); }
+  finally { await new Promise(r => setTimeout(r, 250)); surfaces?.restore(); }
+}
+
+/** Shows a real ad. Resolves true when a rewarded ad was fully watched (or an interstitial closed). */
+async function showAd(placement: AdPlacement): Promise<boolean> {
   const m = await admob();
   const { AdMob } = m;
   if (placement === "five-levels") {
