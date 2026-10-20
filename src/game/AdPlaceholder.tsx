@@ -28,7 +28,9 @@ export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdP
       <span className="hud-label">TEST AD · {placement.toUpperCase()}</span>
       <h2 className="text-xl font-extrabold">{item.title}</h2>
       {stage === "offer" ? <><p>{item.offer}</p><Button variant="ghost" className="plaque h-14 w-full rounded-none font-extrabold" onClick={() => setStage("playing")}><Play className="mr-2 h-5 w-5" /> Watch test ad</Button></>
-        : stage === "playing" ? <><Play className="h-12 w-12" /><strong className="text-3xl" aria-live="polite">{remaining}</strong><span>{automatic ? "Level-break ad placeholder" : "Rewarded video placeholder"}</span></>
+        : stage === "playing" ? nativeAds()
+          ? <><Play className="h-12 w-12" /><strong className="text-xl">Loading ad…</strong><span>The real ad opens in a moment</span></>
+          : <><Play className="h-12 w-12" /><strong className="text-3xl" aria-live="polite">{remaining}</strong><span>{automatic ? "Level-break ad placeholder" : "Rewarded video placeholder"}</span></>
         : <><strong>Test ad complete</strong><Button variant="ghost" className="plaque h-14 w-full rounded-none font-extrabold" onClick={onReward ?? onClose}><Play className="mr-2 h-5 w-5" /> {onReward ? "Resume level" : "Return to game"}</Button></>}
       <p className="text-xs opacity-75">Preview only. No real ads, coins, lives or leaderboard changes.</p>
       {!automatic && stage !== "complete" && <Button variant="ghost" className="paper-btn w-full" onClick={onClose}>No thanks</Button>}
