@@ -12,7 +12,11 @@ export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdP
   useEffect(() => {
     if (stage !== "playing" || !nativeAds()) return;
     let live = true;
-    showNativeAd(placement).then(ok => { if (!live) return; if (ok) setStage("complete"); else onClose(); }).catch(() => { if (live) setStage("complete"); });
+    showNativeAd(placement).then(ok => {
+      if (!live) return;
+      // Let the full-screen ad activity finish closing before gameplay resumes.
+      window.setTimeout(() => { if (!live) return; if (ok) setStage("complete"); else onClose(); }, 350);
+    }).catch(() => { if (live) setStage("complete"); });
     return () => { live = false; };
   }, [stage, placement]);
   useEffect(() => {
