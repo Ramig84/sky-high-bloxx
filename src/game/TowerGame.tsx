@@ -117,7 +117,19 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
   const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
-  const reviveAfterAd = () => { api.current.revive?.(); closeAd(); };
+  // After a rewarded ad the game stays paused through a short "Get ready" count,
+  // so the phone settles back to full speed and the player gets a fair restart.
+  const [readyCount, setReadyCount] = useState(0);
+  const reviveAfterAd = () => { api.current.revive?.(); setAdPlacement(null); setReadyCount(3); };
+  useEffect(() => {
+    if (readyCount <= 0) return;
+    const t = window.setTimeout(() => setReadyCount(n => {
+      if (n <= 1) { adPaused.current = false; return 0; }
+      void sfx("tap", 0.5);
+      return n - 1;
+    }), 700);
+    return () => window.clearTimeout(t);
+  }, [readyCount]);
   const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
   useEffect(() => {
@@ -812,6 +824,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
+      {readyCount > 0 && <div className="ready-overlay" role="status" aria-label={`Get ready, resuming in ${readyCount}`} onPointerDown={e => e.stopPropagation()}>
+        <div className="hud-pill ready-card">
+          <span className="hud-label">EXTRA LIFE READY</span>
+          <strong className="ready-title">Get ready</strong>
+          <span key={readyCount} className="ready-count">{readyCount}</span>
+        </div>
+      </div>}
       <div ref={balancePanel} className={`tower-balance hud-pill${hud.over ? " invisible" : ""}`} data-state="stable">
         <span className="hud-label">BALANCE</span>
         <meter ref={balanceMeter} aria-label="Tower instability" min={0} max={1} low={0.6} high={0.85} optimum={0} defaultValue={0} />
