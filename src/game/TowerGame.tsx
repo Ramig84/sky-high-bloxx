@@ -830,7 +830,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); setAmbience([]); };
+    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); canvas.removeEventListener("contextlost", rebuildSurface); canvas.remove(); api.current.refreshSurface = undefined; setAmbience([]); };
   }, [levelIndex]);
 
   useEffect(() => {
@@ -845,7 +845,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
     <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      <div ref={surfaceRef} className="absolute inset-0" />
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
