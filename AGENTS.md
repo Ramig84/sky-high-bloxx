@@ -32,3 +32,5 @@
 - Use shared painted poses with continuous wingbeat clocks and visible stationary menu birds under reduced motion; anchor steam to roofs and keep lanterns/butterflies above streets, so scenery stays cohesive without changing obstacles.
 - Endless result submission status follows the resolved leaderboard response and is reset per run, so guests and failed submissions never display success.
 - Native Google sign-in returns to the https page /auth/app-return (the managed sign-in service rejects custom app schemes), which forwards the result to the Android app link; browser-safe src/game/nativeAuth.ts checks the pending state and age, so only sign-ins started on this phone are accepted.
+- Shared bird flight (birdPath in src/game/sky.ts) is a full-width horizontal crossing with a gentle sinusoidal rise/dip — never near-vertical side-lane elevator paths, because side-profile art moving mostly vertically reads as sliding, not flying.
+- Never set a WebView layer type in MainActivity: a forced LAYER_TYPE_HARDWARE double-composites the full-screen canvas every frame and caused persistent post-ad lag; super.onResume() handles ad-activity returns.
