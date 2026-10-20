@@ -32,4 +32,4 @@
 - Shared painted poses with continuous wingbeat clocks; bird flight (birdPath) is a full-width horizontal crossing with gentle rise/dip, never near-vertical elevator paths; stationary menu birds under reduced motion; steam anchored to roofs, lanterns/butterflies above streets — scenery stays cohesive without changing obstacles.
 - Endless submission status mirrors the leaderboard response and resets per run, so guests/failures never show success.
 - Native Google sign-in returns via https /auth/app-return (custom app schemes are rejected), forwarding to the Android app link; src/game/nativeAuth.ts accepts only sign-ins started on this phone.
-- Post-ad speed: never set a WebView layer type; the game creates its canvas imperatively and swaps in a fresh one (repainting cached copies) after native ads or contextlost, since ads can strand the old surface on a slow path.
+- Post-ad speed: never set a WebView layer type; ads.ts frees the game canvas memory around native ads and rebuilds it after, and the game drops to light sharpness if post-ad frame rate stays low, since ad video can push the WebView onto slow drawing.
