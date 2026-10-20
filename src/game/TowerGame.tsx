@@ -215,7 +215,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
         return Object.assign(tinted, { naturalWidth: tinted.width, naturalHeight: tinted.height });
       };
-      return { ...sp, src, art, signature };
+      return { ...sp, src, art, signature, reset: () => { tinted = null; } };
     });
     const twinkleSprite = document.createElement("canvas"); twinkleSprite.width = twinkleSprite.height = 32;
     { const x = twinkleSprite.getContext("2d"); if (x) { const g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
@@ -235,7 +235,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ ph: i * 1.37 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
-    const starPigment = starPainting(space);
+    let starPigment = starPainting(space);
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
     let faded = false;
@@ -297,6 +297,25 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
+    /** Swap in a brand-new drawing surface and repaint the cached artwork copies, keeping all game state. */
+    const rebuildSurface = () => {
+      const next = makeCanvas();
+      const nextCtx = next.getContext("2d");
+      if (!nextCtx || !canvas.parentNode) return;
+      observer.unobserve(canvas);
+      canvas.removeEventListener("contextlost", rebuildSurface);
+      canvas.parentNode.replaceChild(next, canvas);
+      canvas.width = canvas.height = 0; // release the old surface's memory
+      canvas = next; ctx = nextCtx;
+      canvas.addEventListener("contextlost", rebuildSurface);
+      observer.observe(canvas); resize();
+      cloudSeaLayer = null; faded = false; shaded.clear(); featheredPlinth.clear();
+      for (const layer of spiritLayers) layer.reset();
+      forgetStarPainting(space); starPigment = starPainting(space);
+      resetAtmosphereCache();
+    };
+    canvas.addEventListener("contextlost", rebuildSurface);
+    api.current.refreshSurface = rebuildSurface;
     const rainStrokes = spawnRain(vw, VH);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
