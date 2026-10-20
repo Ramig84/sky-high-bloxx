@@ -346,8 +346,8 @@ export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.1
   const cycle = Math.floor(raw), k = raw - cycle;
   const dir = ((cycle + i) % 2 + 2) % 2 === 0 ? 1 : -1; // alternate direction each crossing
   const baseY = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1));
-  const amp = vh * (0.045 + (i % 3) * 0.015);
-  const waves = 2 + (i % 2); // slow rises and dips per crossing
+  const amp = vh * (0.035 + (i % 3) * 0.01);
+  const waves = 2; // two slow rises and dips per crossing, never steeper than the travel
   const phase = k * Math.PI * 2 * waves + ph;
   const x = dir > 0 ? -margin + k * span : vw + margin - k * span;
   const y = baseY + Math.sin(phase) * amp;

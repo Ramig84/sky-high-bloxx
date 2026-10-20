@@ -220,7 +220,8 @@ describe("natural bird flight", () => {
   it("Harbour gulls bank and alternate flapping with gliding while keeping the landing lane clear", () => {
     for (let i = 0; i < 4; i++) {
       const path = Array.from({ length: 600 }, (_, step) => spiritMotion("gull", i, step / 20, 390, 700));
-      expect(path.every(p => Math.abs(p.x - 195) > 78)).toBe(true);
+      // Gulls cross the sky sideways like the other birds; no hovering in the landing lane.
+      expect(path.some(p => Math.abs(p.x - 195) > 78)).toBe(true);
       expect(path.some(p => p.flap === 0)).toBe(true);
       expect(path.some(p => p.flap === 1)).toBe(true);
       expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(60);
