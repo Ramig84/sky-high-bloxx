@@ -129,7 +129,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   useEffect(() => {
     if (readyCount <= 0) return;
     const t = window.setTimeout(() => setReadyCount(n => {
-      if (n <= 1) { adPaused.current = false; return 0; }
+      if (n <= 1) { adPaused.current = false; logAdEvent("countdown ended, play resumed"); return 0; }
       void sfx("tap", 0.5);
       return n - 1;
     }), 700);
