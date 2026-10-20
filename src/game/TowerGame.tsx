@@ -1,5 +1,5 @@
 import { LEVELS_PER_DISTRICT as TOUR_LPD, isDistrictUnlocked, loadStars } from "./levels";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Star, Map as MapIcon, Volume2, VolumeX, Pause, Play, ArrowLeft, Heart, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
