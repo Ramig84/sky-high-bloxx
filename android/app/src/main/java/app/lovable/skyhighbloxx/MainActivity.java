@@ -1,6 +1,7 @@
 package app.lovable.skyhighbloxx;
 
 import android.os.Bundle;
+import android.view.View;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -58,13 +59,20 @@ public class MainActivity extends BridgeActivity {
         getBridge().getWebView().loadUrl("https://sky-high-bloxx.lovable.app/");
     }
 
-    /** Full-screen ads pause WebView timers; restart them (no forced extra layer, which slows a constantly redrawn game). */
+    /** Full-screen ads pause WebView timers and can strand it on a slow software layer; restore both. */
     @Override
     public void onResume() {
         super.onResume();
         if (getBridge() == null) return;
-        WebView web = getBridge().getWebView();
+        final WebView web = getBridge().getWebView();
         web.resumeTimers();
         web.onResume();
+        // After a full-screen ad activity closes, the WebView may keep drawing through a
+        // software layer. Cycling the layer type forces a fresh hardware-accelerated layer.
+        web.post(() -> {
+            web.setLayerType(View.LAYER_TYPE_NONE, null);
+            web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            web.invalidate();
+        });
     }
 }
