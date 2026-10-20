@@ -227,22 +227,35 @@ describe("natural bird flight", () => {
       expect(new Set(path.map(p => p.rot.toFixed(2))).size).toBeGreaterThan(10);
     }
   });
-  it("flaps while climbing, glides while sinking, banks, and keeps out of the centre lane", () => {
+  it("crosses the sky sideways like a real bird: horizontal travel dominates, flapping on rises and gliding on dips", () => {
     for (let i = 0; i < 4; i++) {
       const path = Array.from({ length: 1200 }, (_, s) => birdPath(i, s / 20, 390, 700));
       expect(path.some(p => p.pose === 5)).toBe(true);
       expect(path.some(p => p.pose < 5)).toBe(true);
-      expect(path.every(p => Math.abs(p.x - 195) > 390 * 0.2)).toBe(true);
       expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(60);
       expect(new Set(path.map(p => p.rot.toFixed(2))).size).toBeGreaterThan(10);
       expect(path.some(p => p.x < -20 || p.x > 410)).toBe(true); // enters and leaves off-screen
+      // No elevator flight: while visible, a bird always moves sideways faster than vertically.
+      for (let s = 0; s < 1199; s++) {
+        const a = path[s]!, b = path[s + 1]!;
+        if (a.x > 0 && a.x < 390 && Math.abs(b.x - a.x) < 3) { // same crossing, not the off-screen turn
+          expect(Math.abs(b.x - a.x)).toBeGreaterThan(Math.abs(b.y - a.y));
+        }
+      }
     }
   });
-  it("varies routes: some birds climb out the top, others dive in from above and leave by the side", () => {
+  it("alternates crossing direction, turning around only while off-screen", () => {
     for (let i = 0; i < 4; i++) {
       const path = Array.from({ length: 2400 }, (_, s) => birdPath(i, s / 10, 390, 700));
       expect(path.some(p => p.mirror)).toBe(true);
       expect(path.some(p => !p.mirror)).toBe(true);
+      // Facing matches travel direction: mirrored birds move left, unmirrored move right.
+      for (let s = 0; s < 2399; s++) {
+        const a = path[s]!, b = path[s + 1]!;
+        if (a.x > 0 && a.x < 390 && Math.abs(b.x - a.x) < 3 && Math.abs(b.x - a.x) > 0.01) {
+          expect(b.x < a.x).toBe(a.mirror);
+        }
+      }
     }
   });
 });
