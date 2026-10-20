@@ -252,10 +252,10 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 /* Home screen life: bobbing logo, swinging crane block, staggered plaques */
 .home-logo { animation: home-bob 3.2s ease-in-out infinite; }
 @keyframes home-bob { 50% { transform: translateY(-6px) rotate(-1deg); } }
-.home-crane { position: absolute; top: 0; right: 12%; pointer-events: none; }
+.home-crane { position: absolute; top: 0; right: 9%; pointer-events: none; }
 .home-swing { display: flex; flex-direction: column; align-items: center; transform-origin: 50% 0; animation: home-swing 2.6s ease-in-out infinite alternate; }
 @keyframes home-swing { from { transform: rotate(7deg); } to { transform: rotate(-7deg); } }
-.home-rope { width: 2px; height: 18dvh; background: var(--plaque-ink); opacity: 0.75; }
+.home-rope { width: 2px; height: 31dvh; background: var(--plaque-ink); opacity: 0.75; }
 .home-hook { width: 26px; margin-top: -2px; }
 .home-block { width: 72px; margin-top: -4px; filter: drop-shadow(0 4px 4px rgba(60, 36, 18, 0.3)); }
 .home-hint { font-family: "Fredoka", system-ui, sans-serif; font-weight: 700; color: var(--plaque-ink); background: rgba(255, 246, 225, 0.85); border-radius: 999px; padding: 0.3rem 1rem; animation: home-pulse 1.4s ease-in-out infinite; }
@@ -264,6 +264,14 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .home-buttons > *:nth-child(2) { animation-delay: 0.08s; } .home-buttons > *:nth-child(3) { animation-delay: 0.16s; } .home-buttons > *:nth-child(4) { animation-delay: 0.24s; }
 @media (min-width: 600px) { .home-block { width: 110px; } .home-hook { width: 38px; } }
 @media (prefers-reduced-motion: reduce) { .home-logo, .home-swing, .home-hint, .home-buttons > * { animation: none; } }
+
+/* Post-ad "Get ready" count: painted card, popping numbers, game stays paused behind it. */
+.ready-overlay { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: color-mix(in oklab, var(--game-shell, #1c2b3a) 45%, transparent); padding: 1.5rem; }
+.ready-card { align-items: center; gap: 0.35rem; padding: 1.4rem 2.6rem; text-align: center; animation: map-rise 0.35s ease-out both; }
+.ready-title { font-family: "Fredoka", system-ui, sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--plaque-ink); }
+.ready-count { font-family: "Fredoka", system-ui, sans-serif; font-size: 3.4rem; font-weight: 800; line-height: 1.1; color: var(--plaque-ink); text-shadow: 0 2px 0 rgba(255, 248, 230, 0.7); animation: ready-pop 0.65s ease-out both; }
+@keyframes ready-pop { 0% { opacity: 0; transform: scale(1.6); } 35% { opacity: 1; transform: scale(1); } 100% { opacity: 0.85; transform: scale(0.94); } }
+@media (prefers-reduced-motion: reduce) { .ready-card, .ready-count { animation: none; } }
 
 /* Screens appear whole once their assets are decoded. */
 .screen-reveal { animation: screen-reveal 0.35s ease-out both; }
