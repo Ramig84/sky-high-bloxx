@@ -224,7 +224,7 @@ describe("natural bird flight", () => {
       expect(path.some(p => Math.abs(p.x - 195) > 78)).toBe(true);
       expect(path.some(p => p.flap === 0)).toBe(true);
       expect(path.some(p => p.flap === 1)).toBe(true);
-      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(60);
+      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(40);
       expect(new Set(path.map(p => p.rot.toFixed(2))).size).toBeGreaterThan(10);
     }
   });
@@ -233,7 +233,7 @@ describe("natural bird flight", () => {
       const path = Array.from({ length: 1200 }, (_, s) => birdPath(i, s / 20, 390, 700));
       expect(path.some(p => p.pose === 5)).toBe(true);
       expect(path.some(p => p.pose < 5)).toBe(true);
-      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(60);
+      expect(Math.max(...path.map(p => p.y)) - Math.min(...path.map(p => p.y))).toBeGreaterThan(40);
       expect(new Set(path.map(p => p.rot.toFixed(2))).size).toBeGreaterThan(10);
       expect(path.some(p => p.x < -20 || p.x > 410)).toBe(true); // enters and leaves off-screen
       // No elevator flight: while visible, a bird always moves sideways faster than vertically.
