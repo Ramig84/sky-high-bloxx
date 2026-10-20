@@ -32,4 +32,4 @@
 - Shared painted poses with continuous wingbeat clocks; bird flight (birdPath) is a full-width horizontal crossing with gentle rise/dip, never near-vertical elevator paths; stationary menu birds under reduced motion; steam anchored to roofs, lanterns/butterflies above streets — scenery stays cohesive without changing obstacles.
 - Endless submission status mirrors the leaderboard response and resets per run, so guests/failures never show success.
 - Native Google sign-in returns via https /auth/app-return (custom app schemes are rejected), forwarding to the Android app link; src/game/nativeAuth.ts accepts only sign-ins started on this phone.
-- Post-ad speed: never set a WebView layer type; MainActivity wakes the WebView on resume/focus because closed ads leave frames throttled while drawing stays fast; canvas release and light mode are safety nets.
+- Post-ad speed: retain resume/focus wake and canvas release/restore; never set WebView layer types. canvasResolution preserves density across ads; diagnostics never reduce sharpness. The slowdown cause remains unproven.
