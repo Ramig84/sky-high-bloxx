@@ -28,8 +28,9 @@ import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 import { canBankRun } from "./runPolicy";
-import { atmosphereArtwork, drawAtmosphere, jadeTinted } from "./paintedAtmosphere";
-import { starPainting } from "./derivedArtwork";
+import { atmosphereArtwork, drawAtmosphere, jadeTinted, resetAtmosphereCache } from "./paintedAtmosphere";
+import { forgetStarPainting, starPainting } from "./derivedArtwork";
+import { nativeAds } from "./ads";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -93,7 +94,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const district = DISTRICTS[baseSpec.district] ?? DISTRICTS[0];
   if (!district) throw new Error("No game districts configured");
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const collector = useRef<CoinCollectorHandle>(null);
   const coinTarget = useRef<HTMLImageElement>(null);
   const coinCounter = useRef<HTMLElement>(null);
@@ -116,11 +117,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
-  const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
+  // A full-screen native ad can leave the game's drawing surface on a slow path; draw onto a fresh one afterwards.
+  const refreshAfterAd = () => { if (nativeAds()) requestAnimationFrame(() => api.current.refreshSurface?.()); };
+  const closeAd = () => { adPaused.current = false; setAdPlacement(null); refreshAfterAd(); };
   // After a rewarded ad the game stays paused through a short "Get ready" count,
   // so the phone settles back to full speed and the player gets a fair restart.
   const [readyCount, setReadyCount] = useState(0);
-  const reviveAfterAd = () => { api.current.revive?.(); setAdPlacement(null); setReadyCount(3); };
+  const reviveAfterAd = () => { api.current.revive?.(); setAdPlacement(null); setReadyCount(3); refreshAfterAd(); };
   useEffect(() => {
     if (readyCount <= 0) return;
     const t = window.setTimeout(() => setReadyCount(n => {
@@ -145,13 +148,16 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const timer = window.setTimeout(() => setHud(h => h.msgKey === hud.msgKey ? { ...h, msg: "" } : h), 1100);
     return () => window.clearTimeout(timer);
   }, [hud.msg, hud.msgKey]);
-  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
+  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void; refreshSurface?: (() => void) | undefined }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const makeCanvas = () => { const c = document.createElement("canvas"); c.className = "absolute inset-0 h-full w-full"; return c; };
+    let canvas = makeCanvas();
+    let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
+    surface.appendChild(canvas);
     const tablet = window.matchMedia("(min-width: 600px)").matches;
     const [b1, b2, b3, bg0] = districtFloors(district.id, tablet);
     let spec = baseSpec;
@@ -209,7 +215,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
         return Object.assign(tinted, { naturalWidth: tinted.width, naturalHeight: tinted.height });
       };
-      return { ...sp, src, art, signature };
+      return { ...sp, src, art, signature, reset: () => { tinted = null; } };
     });
     const twinkleSprite = document.createElement("canvas"); twinkleSprite.width = twinkleSprite.height = 32;
     { const x = twinkleSprite.getContext("2d"); if (x) { const g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
@@ -229,7 +235,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ ph: i * 1.37 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
-    const starPigment = starPainting(space);
+    let starPigment = starPainting(space);
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
     let faded = false;
@@ -291,6 +297,25 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
+    /** Swap in a brand-new drawing surface and repaint the cached artwork copies, keeping all game state. */
+    const rebuildSurface = () => {
+      const next = makeCanvas();
+      const nextCtx = next.getContext("2d");
+      if (!nextCtx || !canvas.parentNode) return;
+      observer.unobserve(canvas);
+      canvas.removeEventListener("contextlost", rebuildSurface);
+      canvas.parentNode.replaceChild(next, canvas);
+      canvas.width = canvas.height = 0; // release the old surface's memory
+      canvas = next; ctx = nextCtx;
+      canvas.addEventListener("contextlost", rebuildSurface);
+      observer.observe(canvas); resize();
+      cloudSeaLayer = null; faded = false; shaded.clear(); featheredPlinth.clear();
+      for (const layer of spiritLayers) layer.reset();
+      forgetStarPainting(space); starPigment = starPainting(space);
+      resetAtmosphereCache();
+    };
+    canvas.addEventListener("contextlost", rebuildSurface);
+    api.current.refreshSurface = rebuildSurface;
     const rainStrokes = spawnRain(vw, VH);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
@@ -805,7 +830,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); setAmbience([]); };
+    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); canvas.removeEventListener("contextlost", rebuildSurface); canvas.remove(); api.current.refreshSurface = undefined; setAmbience([]); };
   }, [levelIndex]);
 
   useEffect(() => {
@@ -820,7 +845,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
     <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      <div ref={surfaceRef} className="absolute inset-0" />
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
