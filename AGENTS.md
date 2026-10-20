@@ -17,7 +17,7 @@
 - Game audio is pre-generated recordings stored as CDN asset pointers in src/assets/audio and mixed through src/game/audio.ts (one Web Audio context), so playback needs no runtime API calls.
 - Every screen is wrapped in Preloader with an asset list from src/game/preload.ts and the canvas reuses its decoded images, so screens never appear half-loaded.
 - Signed-in coins and Market items live in player_profiles and change only through security-definer functions; game coins are granted only by finish_game_run, which validates a start_game_run ticket (single use, minimum time per floor, level goal, daily caps) and recomputes the reward server-side. Prices and reward formulas are duplicated in SQL and src/game/wallet.ts. Guests keep a phone-only wallet imported once on first sign-in.
-- Real ads run only in the native app via AdMob in src/game/ads.ts (unit IDs and testing flag in one place, app ID in AndroidManifest); web keeps the placeholder dialog, and ads never touch wallets, so swapping test IDs for live ones is a two-spot change.
+- Real ads run only natively via AdMob in src/game/ads.ts (unit IDs and testing flag in one place); web keeps the placeholder dialog and ads never touch wallets.
 - Keep ad eligibility in browser-safe adPlacements logic and recording gain adjustments in audioMix with regression tests, so placement and mixing rules can be checked without running providers or audio devices.
 - Keep completed-run eligibility in browser-safe runPolicy and enforce campaign completion in finish_game_run, so retries never bank unfinished level rewards.
 - Pause gameplay through a separate ref from ad previews, so closing an ad cannot resume a manually paused game.
@@ -29,6 +29,7 @@
 - Clouds and aurora use preloaded whole painted atmosphere poses with in-place dissolves; keep fog and lightning behind gameplay, so no strip seams or washed-out landing silhouettes appear.
 - Cache derived star paintings between levels and update balance DOM only when values change, so screen transitions avoid repeated pixel processing and frame-by-frame text replacement.
 - Coin collections may overlap without cancelling each other; track pending arrivals per counter and use continuous curved paths, so all exact reward amounts arrive visibly.
-- Use shared painted poses with continuous wingbeat clocks and visible stationary menu birds under reduced motion; anchor steam to roofs and keep lanterns/butterflies above streets, so scenery stays cohesive without changing obstacles.
-- Endless result submission status follows the resolved leaderboard response and is reset per run, so guests and failed submissions never display success.
-- Native Google sign-in returns to the https page /auth/app-return (the managed sign-in service rejects custom app schemes), which forwards the result to the Android app link; browser-safe src/game/nativeAuth.ts checks the pending state and age, so only sign-ins started on this phone are accepted.
+- Shared painted poses with continuous wingbeat clocks; bird flight (birdPath) is a full-width horizontal crossing with gentle rise/dip, never near-vertical elevator paths; stationary menu birds under reduced motion; steam anchored to roofs, lanterns/butterflies above streets — scenery stays cohesive without changing obstacles.
+- Endless submission status mirrors the leaderboard response and resets per run, so guests/failures never show success.
+- Native Google sign-in returns via https /auth/app-return (custom app schemes are rejected), forwarding to the Android app link; src/game/nativeAuth.ts accepts only sign-ins started on this phone.
+- Never set a WebView layer type in MainActivity (forced HARDWARE double-composites the canvas and caused post-ad lag); super.onResume() suffices.

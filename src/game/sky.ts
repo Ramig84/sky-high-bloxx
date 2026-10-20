@@ -331,34 +331,28 @@ export function restingBird(i: number, vw: number, vh: number, top = 0.14, band 
     rot: 0, pose: 5, mirror: side > 0, scale: 0.65 + (i % 3) * 0.12 };
 }
 /**
- * Natural bird flight shared by every screen. Each cycle a bird takes one of two routes on its
- * own side of the sky: (A) swoop in from the side edge, soar with rising and falling glides,
- * then climb out above; (B) dive in from above, pull up into a level glide and sail out the
- * side edge. Facing only changes offscreen between cycles; the centre lane stays clear.
+ * Natural bird flight shared by every screen. A bird crosses the whole sky from one side edge
+ * to the other at a steady, gentle pace, rising and dipping on a slow wave: it flaps on the
+ * rises and glides on the dips, banking with the slope. When it leaves the far edge it turns
+ * around offscreen and crosses back the other way, so facing always matches travel.
  */
 export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.12, band = 0.2): BirdState {
-  const side = i % 2 ? -1 : 1, ph = i * 2.37;
-  const period = 24 + (i % 3) * 4.5;
-  const startY = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1));
-  const at = (time: number) => {
-    const raw = (time + ph * 3) / period, cycle = Math.floor(raw), k = raw - cycle;
-    const route = ((cycle + i) % 2 + 2) % 2;
-    if (route === 0) {
-      const travel = skyBlend(k, 0, 1);
-      const x = vw / 2 + side * (vw / 2 + 35 - travel * vw * 0.31);
-      const y = startY + Math.sin(k * Math.PI * 2.6 + i) * vh * 0.07 - skyBlend(k, 0.64, 1) * (startY + 60);
-      return { x, y, inward: true };
-    }
-    const x = vw / 2 + side * (vw * 0.3 + skyBlend(k, 0.12, 1) * (vw * 0.2 + 40));
-    const low = startY + vh * 0.09;
-    const y = -60 + (low + 60) * skyBlend(k, 0, 0.42) - vh * 0.09 * skyBlend(k, 0.42, 0.75)
-      + Math.sin(k * Math.PI * 3 + i) * vh * 0.02 * skyBlend(k, 0.3, 0.6);
-    return { x, y, inward: false };
-  };
-  const a = at(t), b = at(t + 0.001);
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const climbing = dy / 0.001 < -3;
-  const pose = birdWingPose(t, ph, climbing);
-  const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, Math.abs(dx) + 0.00001) * 0.22));
-  return { x: a.x, y: a.y, rot, pose, mirror: a.inward ? side > 0 : side < 0, scale: 0.65 + (i % 3) * 0.12 };
+  const ph = i * 2.37;
+  const margin = 60;
+  const speed = 34 + (i % 3) * 9; // px/s — a relaxed storybook crossing
+  const span = vw + margin * 2;
+  const dur = span / speed;
+  const raw = (t + ph * 7.3) / dur;
+  const cycle = Math.floor(raw), k = raw - cycle;
+  const dir = ((cycle + i) % 2 + 2) % 2 === 0 ? 1 : -1; // alternate direction each crossing
+  const baseY = vh * (Math.max(top, 0.2) + band * ((i * 0.37) % 1));
+  const amp = vh * (0.035 + (i % 3) * 0.01);
+  const waves = 2; // two slow rises and dips per crossing, never steeper than the travel
+  const phase = k * Math.PI * 2 * waves + ph;
+  const x = dir > 0 ? -margin + k * span : vw + margin - k * span;
+  const y = baseY + Math.sin(phase) * amp;
+  const dy = Math.cos(phase) * amp * (Math.PI * 2 * waves / dur); // px/s, negative = climbing
+  const pose = birdWingPose(t, ph, dy < -1);
+  const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, speed) * 1.2));
+  return { x, y, rot, pose, mirror: dir < 0, scale: 0.65 + (i % 3) * 0.12 };
 }
