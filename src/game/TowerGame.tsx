@@ -32,6 +32,7 @@ import { atmosphereArtwork, drawAtmosphere, jadeTinted, resetAtmosphereCache } f
 import { forgetStarPainting, starPainting } from "./derivedArtwork";
 import { nativeAds, setAdSurfaces, ADS_TESTING, debugPretendAd, debugLoadOnlyAd, debugWatchAd } from "./ads";
 import { logAdEvent, summariseFrames, pushFrameStats, adDebugEvents, adDebugHistory, onAdDebugChange } from "./adDebug";
+import { canvasResolution } from "./canvasResolution";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -288,11 +289,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.globalAlpha = 1;
     };
 
-    let scale = 1, vw = 360, lowQuality = false;
+    let scale = 1, vw = 360;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, lowQuality ? 1 : 2);
       const bounds = canvas.getBoundingClientRect();
-      canvas.width = Math.round(bounds.width * dpr); canvas.height = Math.round(bounds.height * dpr);
+      const resolution = canvasResolution(bounds.width, bounds.height, window.devicePixelRatio);
+      canvas.width = resolution.width; canvas.height = resolution.height;
       scale = canvas.height / VH;
       vw = canvas.width / scale;
     };
@@ -328,7 +329,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       },
       restore: () => rebuildSurface(),
     });
-    // After an ad, measure real frame times; if drawing stays slow, switch to a lighter sharpness so play stays smooth.
+    // Measure post-ad frame speed for diagnosis only; never disguise slowdown by reducing sharpness.
     api.current.checkSpeed = () => {
       const start = performance.now(); let frames = 0;
       const tick = (now: number) => {
@@ -336,7 +337,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         if (now - start < 2500) { requestAnimationFrame(tick); return; }
         const fps = frames / ((now - start) / 1000);
         logAdEvent(`speed check ${Math.round(fps)} fps`);
-        if (!lowQuality && fps < 35) { lowQuality = true; resize(); logAdEvent("switched to light mode"); }
       };
       window.setTimeout(() => requestAnimationFrame(tick), 2200);
     };
@@ -854,7 +854,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         gaps.push(now - lastFrame); draws.push(performance.now() - drawStart); lastFrame = now;
         if (now - fpsStart >= 1000) {
           const st = summariseFrames(gaps, draws);
-          fpsLabel.current.textContent = `${st.fps} fps · draw ${st.drawMs}ms · worst ${st.worstMs}ms${lowQuality ? " · light" : ""} · ${canvas.width}×${canvas.height}`;
+          fpsLabel.current.textContent = `${st.fps} fps · draw ${st.drawMs}ms · worst ${st.worstMs}ms · ${canvas.width}×${canvas.height}`;
           pushFrameStats(st); gaps = []; draws = []; fpsStart = now;
         }
       }
