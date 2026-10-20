@@ -116,7 +116,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
-  const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
+  const closeAd = () => { api.current.resize?.(); adPaused.current = false; setAdPlacement(null); };
   const reviveAfterAd = () => { api.current.revive?.(); closeAd(); };
   const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
@@ -133,7 +133,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const timer = window.setTimeout(() => setHud(h => h.msgKey === hud.msgKey ? { ...h, msg: "" } : h), 1100);
     return () => window.clearTimeout(timer);
   }, [hud.msg, hud.msgKey]);
-  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
+  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void; resize?: () => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -277,6 +277,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       vw = canvas.width / scale;
     };
     resize();
+    // Returning from a full-screen ad can leave the canvas on a slow path; reallocating restores full speed.
+    api.current.resize = resize;
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     const rainStrokes = spawnRain(vw, VH);
