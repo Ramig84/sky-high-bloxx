@@ -30,7 +30,8 @@ import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements
 import { canBankRun } from "./runPolicy";
 import { atmosphereArtwork, drawAtmosphere, jadeTinted, resetAtmosphereCache } from "./paintedAtmosphere";
 import { forgetStarPainting, starPainting } from "./derivedArtwork";
-import { nativeAds, setAdSurfaces, ADS_TESTING } from "./ads";
+import { nativeAds, setAdSurfaces, ADS_TESTING, debugPretendAd, debugLoadOnlyAd, debugWatchAd } from "./ads";
+import { logAdEvent, summariseFrames, pushFrameStats, adDebugEvents, adDebugHistory, onAdDebugChange } from "./adDebug";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -333,7 +334,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const tick = (now: number) => {
         frames++;
         if (now - start < 2500) { requestAnimationFrame(tick); return; }
-        if (!lowQuality && frames / ((now - start) / 1000) < 35) { lowQuality = true; resize(); }
+        const fps = frames / ((now - start) / 1000);
+        logAdEvent(`speed check ${Math.round(fps)} fps`);
+        if (!lowQuality && fps < 35) { lowQuality = true; resize(); logAdEvent("switched to light mode"); }
       };
       window.setTimeout(() => requestAnimationFrame(tick), 2200);
     };
@@ -509,6 +512,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
     let last = performance.now(), raf = 0;
     const frame = (now: number) => {
+      const drawStart = performance.now();
       const dt = Math.min((now - last) / 1000, 1 / 20); last = now;
       if (adPaused.current || manualPaused.current) { raf = requestAnimationFrame(frame); return; }
       s.t += dt;
@@ -846,10 +850,17 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
 
-      if (fpsLabel.current) { fpsCount++; if (now - fpsStart >= 1000) { fpsLabel.current.textContent = `${Math.round(fpsCount * 1000 / (now - fpsStart))} fps${lowQuality ? " · light" : ""}`; fpsCount = 0; fpsStart = now; } }
+      if (fpsLabel.current) {
+        gaps.push(now - lastFrame); draws.push(performance.now() - drawStart); lastFrame = now;
+        if (now - fpsStart >= 1000) {
+          const st = summariseFrames(gaps, draws);
+          fpsLabel.current.textContent = `${st.fps} fps · draw ${st.drawMs}ms · worst ${st.worstMs}ms${lowQuality ? " · light" : ""} · ${canvas.width}×${canvas.height}`;
+          pushFrameStats(st); gaps = []; draws = []; fpsStart = now;
+        }
+      }
       raf = requestAnimationFrame(frame);
     };
-    let fpsCount = 0, fpsStart = performance.now();
+    let fpsStart = performance.now(), lastFrame = fpsStart, gaps: number[] = [], draws: number[] = [];
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
@@ -869,7 +880,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
     <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
       <div ref={surfaceRef} className="absolute inset-0" />
-      {ADS_TESTING && nativeAds() && <span ref={fpsLabel} className="hud-label pointer-events-none absolute left-2 top-[45%] z-30 opacity-80" />}
+      {ADS_TESTING && nativeAds() && <AdDebugPanel fpsLabel={fpsLabel} />}
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
@@ -947,6 +958,29 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         </div>
       )}
     </div>
+    </div>
+  );
+}
+
+/** Test-build only: tap the speed line to open the ad timeline and the three isolation checks. */
+function AdDebugPanel({ fpsLabel }: { fpsLabel: React.RefObject<HTMLSpanElement | null> }) {
+  const [open, setOpen] = useState(false);
+  const [, bump] = useState(0);
+  useEffect(() => { if (!open) return; onAdDebugChange(() => bump(n => n + 1)); return () => onAdDebugChange(null); }, [open]);
+  const run = (fn: () => Promise<void>) => { void fn().catch(e => logAdEvent(`error: ${String(e).slice(0, 60)}`)); };
+  return (
+    <div className="absolute left-2 top-[45%] z-30 max-w-[92%]" onPointerDown={e => e.stopPropagation()}>
+      <span ref={fpsLabel} className="hud-label opacity-80" onClick={() => setOpen(o => !o)} />
+      {open && <div className="hud-pill mt-1 p-2 text-xs leading-snug">
+        <div className="mb-1 flex gap-1">
+          <button className="hud-pill px-2 py-1" onClick={() => run(debugPretendAd)}>1 Pretend</button>
+          <button className="hud-pill px-2 py-1" onClick={() => run(debugLoadOnlyAd)}>2 Load only</button>
+          <button className="hud-pill px-2 py-1" onClick={() => run(debugWatchAd)}>3 Watch</button>
+        </div>
+        {adDebugHistory().map((h, i) => <div key={`h${i}`}>{h.fps} fps · draw {h.drawMs}ms · worst {h.worstMs}ms</div>)}
+        <hr className="my-1 opacity-30" />
+        {adDebugEvents().map((e, i) => <div key={`e${i}`}>{e}</div>)}
+      </div>}
     </div>
   );
 }
