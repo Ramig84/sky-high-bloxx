@@ -217,7 +217,7 @@ describe("natural bird flight", () => {
       }
     }
   });
-  it("Harbour gulls bank and alternate flapping with gliding while keeping the landing lane clear", () => {
+  it("Harbour gulls bank and alternate flapping with gliding on a natural crossing", () => {
     for (let i = 0; i < 4; i++) {
       const path = Array.from({ length: 600 }, (_, step) => spiritMotion("gull", i, step / 20, 390, 700));
       // Gulls cross the sky sideways like the other birds; no hovering in the landing lane.
