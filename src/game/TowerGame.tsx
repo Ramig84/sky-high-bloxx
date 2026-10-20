@@ -331,14 +331,19 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     });
     // Measure post-ad frame speed for diagnosis only; never disguise slowdown by reducing sharpness.
     api.current.checkSpeed = () => {
-      const start = performance.now(); let frames = 0;
-      const tick = (now: number) => {
-        frames++;
-        if (now - start < 2500) { requestAnimationFrame(tick); return; }
-        const fps = frames / ((now - start) / 1000);
-        logAdEvent(`speed check ${Math.round(fps)} fps`);
-      };
-      window.setTimeout(() => requestAnimationFrame(tick), 2200);
+      const generation = runGeneration.current;
+      window.setTimeout(() => {
+        if (generation !== runGeneration.current) return;
+        const start = performance.now(); let frames = 0;
+        const tick = (now: number) => {
+          if (generation !== runGeneration.current) return;
+          frames++;
+          if (now - start < 2500) { requestAnimationFrame(tick); return; }
+          const fps = frames / ((now - start) / 1000);
+          logAdEvent(`speed check ${Math.round(fps)} fps`);
+        };
+        requestAnimationFrame(tick);
+      }, 2200);
     };
     const rainStrokes = spawnRain(vw, VH);
 
