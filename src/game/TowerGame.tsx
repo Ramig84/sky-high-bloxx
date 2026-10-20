@@ -30,7 +30,7 @@ import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements
 import { canBankRun } from "./runPolicy";
 import { atmosphereArtwork, drawAtmosphere, jadeTinted, resetAtmosphereCache } from "./paintedAtmosphere";
 import { forgetStarPainting, starPainting } from "./derivedArtwork";
-import { nativeAds } from "./ads";
+import { nativeAds, setAdSurfaces, ADS_TESTING } from "./ads";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -95,6 +95,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   if (!district) throw new Error("No game districts configured");
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const fpsLabel = useRef<HTMLSpanElement>(null);
   const collector = useRef<CoinCollectorHandle>(null);
   const coinTarget = useRef<HTMLImageElement>(null);
   const coinCounter = useRef<HTMLElement>(null);
@@ -117,8 +118,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
-  // A full-screen native ad can leave the game's drawing surface on a slow path; draw onto a fresh one afterwards.
-  const refreshAfterAd = () => { if (nativeAds()) requestAnimationFrame(() => api.current.refreshSurface?.()); };
+  // Native ads free and rebuild the drawing surface themselves (see ads.ts); afterwards check drawing speed.
+  const refreshAfterAd = () => { if (nativeAds()) api.current.checkSpeed?.(); };
   const closeAd = () => { adPaused.current = false; setAdPlacement(null); refreshAfterAd(); };
   // After a rewarded ad the game stays paused through a short "Get ready" count,
   // so the phone settles back to full speed and the player gets a fair restart.
@@ -148,7 +149,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const timer = window.setTimeout(() => setHud(h => h.msgKey === hud.msgKey ? { ...h, msg: "" } : h), 1100);
     return () => window.clearTimeout(timer);
   }, [hud.msg, hud.msgKey]);
-  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void; refreshSurface?: (() => void) | undefined }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
+  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void; refreshSurface?: (() => void) | undefined; checkSpeed?: (() => void) | undefined }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
     const surface = surfaceRef.current;
@@ -286,9 +287,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.globalAlpha = 1;
     };
 
-    let scale = 1, vw = 360;
+    let scale = 1, vw = 360, lowQuality = false;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, lowQuality ? 1 : 2);
       const bounds = canvas.getBoundingClientRect();
       canvas.width = Math.round(bounds.width * dpr); canvas.height = Math.round(bounds.height * dpr);
       scale = canvas.height / VH;
@@ -316,6 +317,26 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     };
     canvas.addEventListener("contextlost", rebuildSurface);
     api.current.refreshSurface = rebuildSurface;
+    // Free graphics memory while a full-screen ad video plays, so the ad cannot push the game onto slow drawing.
+    setAdSurfaces({
+      release: () => {
+        canvas.width = canvas.height = 0;
+        cloudSeaLayer = null; faded = false; shaded.clear(); featheredPlinth.clear();
+        for (const layer of spiritLayers) layer.reset();
+        resetAtmosphereCache();
+      },
+      restore: () => rebuildSurface(),
+    });
+    // After an ad, measure real frame times; if drawing stays slow, switch to a lighter sharpness so play stays smooth.
+    api.current.checkSpeed = () => {
+      const start = performance.now(); let frames = 0;
+      const tick = (now: number) => {
+        frames++;
+        if (now - start < 2500) { requestAnimationFrame(tick); return; }
+        if (!lowQuality && frames / ((now - start) / 1000) < 35) { lowQuality = true; resize(); }
+      };
+      window.setTimeout(() => requestAnimationFrame(tick), 2200);
+    };
     const rainStrokes = spawnRain(vw, VH);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
@@ -825,12 +846,14 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
 
+      if (fpsLabel.current) { fpsCount++; if (now - fpsStart >= 1000) { fpsLabel.current.textContent = `${Math.round(fpsCount * 1000 / (now - fpsStart))} fps${lowQuality ? " · light" : ""}`; fpsCount = 0; fpsStart = now; } }
       raf = requestAnimationFrame(frame);
     };
+    let fpsCount = 0, fpsStart = performance.now();
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); canvas.removeEventListener("contextlost", rebuildSurface); canvas.remove(); api.current.refreshSurface = undefined; setAmbience([]); };
+    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); canvas.removeEventListener("contextlost", rebuildSurface); canvas.remove(); api.current.refreshSurface = undefined; api.current.checkSpeed = undefined; setAdSurfaces(null); setAmbience([]); };
   }, [levelIndex]);
 
   useEffect(() => {
@@ -846,6 +869,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
     <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
       <div ref={surfaceRef} className="absolute inset-0" />
+      {ADS_TESTING && nativeAds() && <span ref={fpsLabel} className="hud-label pointer-events-none absolute left-2 top-[45%] z-30 opacity-80" />}
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
