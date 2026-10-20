@@ -245,6 +245,7 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .plaque:hover { background-color: transparent !important; }
 .plaque:active { transform: translateY(2px) scale(0.98); filter: drop-shadow(0 2px 3px rgba(60, 36, 18, 0.35)); }
 .menu-plaque { min-height: 4.4rem; padding: 0 2.2rem !important; }
+.tour-plaque { padding-top: 0.7rem !important; padding-bottom: 0.75rem !important; }
 .map-pin-name.plaque { padding: 0.55rem 1.4rem 0.6rem; border-radius: 0; font-size: 1rem; font-weight: 700; }
 .map-pin-live .map-pin-name.plaque { filter: drop-shadow(0 0 10px var(--plaque-glow)) drop-shadow(0 4px 5px rgba(60, 36, 18, 0.35)); }
 .map-pin .map-pin-stars { background: rgba(255, 246, 225, 0.92); color: var(--plaque-ink); border: 0; font-weight: 700; box-shadow: 0 2px 4px rgba(60, 36, 18, 0.3); }
