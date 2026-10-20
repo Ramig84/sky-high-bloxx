@@ -1,5 +1,6 @@
 # Roadmap
-- [ ] Remove automatic post-ad sharpness reduction and verify full-size rebuild/gameplay; investigate remaining slowdown separately.
+- [x] Removed automatic post-ad sharpness reduction; corrected speed-check clock that counted a 2.2-second wait as measurement time. 16 focused tests pass; phone-sized browser canvas stays 822×1722 and touch drop works without errors.
+- [ ] Verify full-sharpness post-ad performance on Android (blocked: explicitly requested manual build and physical-phone ad test); remaining cause is unproven, and JS draw timing does not measure GPU completion.
 - [x] Ad-lag fix synced to GitHub (d9ad730 "Fixed ad-induced lag via FPS"); 149 tests passed; Android build #81 succeeded with APK + signed AAB saved (https://github.com/Ramig84/sky-high-bloxx/actions/runs/39233113007). Physical-phone smoothness after extra-life ads still unverified.
 - [x] Android build #79 from verified motion commit d726d5a built and signed APK/AAB, but upload failed because GitHub storage still reports the quota as full (blocked: GitHub storage recalculation, 6–12 hours, then run again manually).
 - [x] Review all phone screens and ten districts; corrected bird climb/wingbeat and Tour text overflow, 147 tests passed, real touch landings in ten districts and Old Town completion verified. Inspected all 21 Market previews and ten district skies at three heights. Physical-phone smoothness, Google sign-in and live ads remain unverified; browser review does not establish premium animation quality.
