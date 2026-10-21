@@ -143,6 +143,7 @@
 - [ ] Post-ad lag root cause: user confirmed Home/re-entering play does not clear it but a full app restart does. Read-only game/native investigations found no proven cause; blocked on a physical-phone performance trace, not further guessed recovery changes. Unchanged by scenery work.
 
 ## Space Climb (Endless)
+- [ ] Review natural-time zone motion and scene integration: inspect every sky handover, authored poses and gameplay layering; report confirmed issues without altering approved art/rules.
 - [x] Reviewed launch-gantry reference and painted compact metal stacking-module concept; shown for approval. Existing floors/dimensions unchanged.
 - [x] Integrated approved single red-deck metal gantry as smaller Space Climb blocks only, lossless transparent art with shared drawing/contact dimensions. Successful portrait touch landing and pause verified; campaign dimensions preserved; 208 tests pass. No Android build requested; physical-phone appearance awaits review.
 - [x] Zone rules + tests, fresh leaderboard, HUD (banner, marker, game-over zone)
