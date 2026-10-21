@@ -39,6 +39,9 @@ export type LevelSpec = {
   fog: number;         // 0..1 fog strength over the top of the screen
   night: boolean;
   width: number;       // floor width multiplier
+  gravity?: number;    // Space Climb only: fall gravity multiplier (1 = normal)
+  pull?: number;       // Space Climb only: constant sideways pull (px/s^2)
+  arc?: number;        // Space Climb only: vertical crane arc amplitude (px)
 };
 
 /** Floors to clear: each district climbs from 15 + 5d to 50 + 10d (Old Town 15→50 … Cloud Peak 60→140). */

@@ -13,7 +13,7 @@ import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, drawSpirit, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
-import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
+import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSpec, zoneAt } from "./spaceClimb";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
@@ -87,13 +87,13 @@ function featheredFoundation(img: HTMLImageElement, w: number, h: number): Canva
 }
 
 export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number) => Promise<boolean> }) {
-  const baseSpec = endless ? endlessSpec(0) : levelSpec(levelIndex);
+  const baseSpec = endless ? spaceSpec(0) : levelSpec(levelIndex);
   const goal = baseSpec.goal;
   const endCb = useRef(onEndlessOver); endCb.current = onEndlessOver;
   const [tourIntro, setTourIntro] = useState(daily);
   const [tourPreview, setTourPreview] = useState(false);
   useEffect(() => { if (!daily) return; setTourPreview(!isDistrictUnlocked(loadStars(), Math.floor(levelIndex / TOUR_LPD))); const t = window.setTimeout(() => setTourIntro(false), 2800); return () => window.clearTimeout(t); }, [daily, levelIndex]);
-  const bestKey = endless ? "bloxx-endless-best" : "bloxx-best";
+  const bestKey = endless ? SPACE_BEST_KEY : "bloxx-best";
   const district = DISTRICTS[baseSpec.district] ?? DISTRICTS[0];
   if (!district) throw new Error("No game districts configured");
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
@@ -107,6 +107,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const balanceLabel = useRef<HTMLSpanElement>(null);
   const balancePanel = useRef<HTMLDivElement>(null);
   const [credited, setCredited] = useState(0);
+  const [zone, setZone] = useState(0);
+  const [toNext, setToNext] = useState<number | null>(25);
   const [scoreStatus, setScoreStatus] = useState<"idle" | "pending" | "sent" | "ineligible" | "failed">("idle");
   const [adPlacement, setAdPlacement] = useState<AdPlacement | null>(null);
   const adPaused = useRef(false);
@@ -332,7 +334,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     };
     // The crane speeds up with every floor inside a level and with every level across the city.
     const level = () => floorDifficulty(s.floors.length, spec.speed);
-    const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(s.floors.length * 3, 70) + (spec.slide ? Math.sin(s.t * 0.9) * spec.slide : 0), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN });
+    const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(s.floors.length * 3, 70) + (spec.slide ? Math.sin(s.t * 0.9) * spec.slide : 0), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN + (spec.arc ? Math.abs(Math.sin(s.phase)) * spec.arc : 0) });
     const hung = () => {
       // Rope, hook and block swing as one rigid pendulum so the block never detaches from the hook.
       const th = SWING * Math.sin(s.phase), p = pivot(), dist = ROPE + HOOK_GAP + BH / 2;
@@ -349,7 +351,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; s = fresh(); publish(); };
+    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); setZone(0); setToNext(floorsToNextZone(0)); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; s = fresh(); publish(); };
 
     api.current.revive = () => { if (!s.over || s.won || endless) return; s.over = false; s.lives = 1; s.combo = 0; s.shake = 0; if (!s.drop) s.held = true; publish("EXTRA LIFE!"); };
 
@@ -415,10 +417,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         previewCoins = nextCoins;
         let stageMsg = "";
         if (endless) {
-          const before = endlessStage(s.floors.length - 1), after = endlessStage(s.floors.length);
-          spec = endlessSpec(s.floors.length); bw = BW * spec.width;
-          if (after > before) setAmbience(ambienceFor(district.id, spec));
-          if (after > before) stageMsg = `${ENDLESS_STAGES[after]?.toUpperCase()} INCOMING!`;
+          const before = zoneAt(s.floors.length - 1), after = zoneAt(s.floors.length);
+          spec = spaceSpec(s.floors.length); bw = BW * spec.width;
+          if (after > before) { setAmbience(ambienceFor(district.id, spec)); setZone(after); void sfx("clear", 0.45); }
+          if (after > before) stageMsg = `WELCOME TO ${SPACE_ZONES[after]!.name.toUpperCase()}`;
+          setToNext(floorsToNextZone(s.floors.length));
         }
         const zoneClear = s.floors.length >= goal;
         const reward = landingReward(kind, s.combo);
@@ -496,7 +499,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // drop
       if (s.drop) {
         if (spec.wind) s.drop.vx += spec.wind * windDir * dt;
-        const landed = advanceToLanding(s.drop, dt, GRAVITY, topY(), BH / 2);
+        if (spec.pull) s.drop.vx += spec.pull * dt;
+        const landed = advanceToLanding(s.drop, dt, GRAVITY * (spec.gravity ?? 1), topY(), BH / 2);
         s.drop.rot *= Math.exp(-dt * 14); // settle level while falling
         if (landed) { const d = s.drop; s.drop = null; land(d); }
       }
@@ -851,7 +855,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         <div className="game-hud pointer-events-none">
           <div className="game-status-bar">
           <div className="game-stat game-score"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
-          <div className="game-stat game-progress"><span className="hud-label">{daily ? `TOUR · ${district.name.toUpperCase()}` : endless ? "ENDLESS" : `${district.name.toUpperCase()} · ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
+          <div className="game-stat game-progress"><span className="hud-label">{daily ? `TOUR · ${district.name.toUpperCase()}` : endless ? SPACE_ZONES[zone]!.name.toUpperCase() : `${district.name.toUpperCase()} · ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
+          {endless && toNext !== null && <div className="hud-label space-next" aria-label="Next zone">{SPACE_ZONES[zone + 1]?.name} in {toNext}</div>}
           <div className="game-stat game-lives"><span className="hud-label">LIVES</span><span className="hud-value whitespace-nowrap" aria-label={`${hud.lives} lives`}>{[0, 1, 2].map(i => <span key={i} className={i < hud.lives ? "" : "opacity-20"}>♥</span>)}</span></div>
           <Button variant="ghost" aria-label="Pause game" title="Pause game" disabled={hud.over} className="game-sound pointer-events-auto h-11 w-11 text-foreground !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={pause}>
@@ -896,6 +901,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
               daily ? (tourPreview ? `UNLOCK ${district.name.toUpperCase()} IN THE CITY` : "DISTRICT TOUR · 3× COINS") : "",
               !hud.won && !endless ? "COINS NOT BANKED" : "",
             ].filter(Boolean).join(" · ")}</span>
+            {endless && !daily && <span className="hud-label text-center">REACHED {SPACE_ZONES[zone]!.name.toUpperCase()} · FLOOR {hud.floors}</span>}
             {endless && !daily && <span role="status" className="hud-label text-center">{scoreStatus === "sent" ? "SCORE SENT TO LEADERBOARD" : scoreStatus === "pending" ? "CHECKING SCORE…" : scoreStatus === "failed" ? "SCORE NOT SENT · CONNECTION ERROR" : "SCORE SAVED ON THIS PHONE"}</span>}
             <div className="mt-1 flex w-full flex-col gap-2">
               {!endless && extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none text-base font-extrabold" onClick={() => openAd("extra-life")}><Heart className="h-5 w-5" /> Watch ad · +1 life</Button>}

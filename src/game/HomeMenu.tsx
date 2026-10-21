@@ -11,7 +11,8 @@ import { SkyBirds } from "./SkyBirds";
 import { PaintedClouds } from "./PaintedClouds";
 import { phoneArtwork as rewardArt } from "./artwork";
 import { loadSettings, resetProgress, saveSettings, type Settings } from "./settings";
-import { topScores, type ScoreRow } from "./leaderboard";
+import { topScores, type ScoreRow, type ScoreScope } from "./leaderboard";
+import { SPACE_BEST_KEY, SPACE_ZONES } from "./spaceClimb";
 import { coin, craneSource } from "./shopArtwork";
 import { DAILY_REWARDS, GIFT_KEY, claimDailyReward, coins, giftAvailable, nextRewardDay } from "./wallet";
 import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
@@ -98,7 +99,7 @@ function useTour() {
 }
 
 function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, balance, onGift }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; setPanel: (p: Panel) => void; gift: { available: boolean; day: number; reward: number; crane: boolean }; balance: number; onGift: () => void }) {
-  const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem("bloxx-endless-best") || 0);
+  const best = typeof window === "undefined" ? 0 : Number(localStorage.getItem(SPACE_BEST_KEY) || 0);
   const tour = useTour();
   const label = gift.day === 7 ? "crane!" : `+${DAILY_REWARDS[gift.day - 1] ?? 100}`;
   return (
@@ -111,7 +112,7 @@ function MainButtons({ onCampaign, onEndless, onDaily, onShop, setPanel, gift, b
       </div>
       <Button variant="ghost" className={`${big} home-play`} onClick={onCampaign}><MapIcon className="h-6 w-6" /> Play city</Button>
       <Button variant="ghost" className={`${big} tour-plaque whitespace-normal`} onClick={onDaily}><CalendarDays className="h-6 w-6 shrink-0" /><span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left leading-tight"><span className="flex w-full items-center justify-between gap-2">District tour<span className="shrink-0 rounded-full border border-current px-2 py-0.5 text-xs font-extrabold">3× coins</span></span><span className="text-xs font-bold opacity-85">Today: {tour.name}{tour.preview ? " preview" : ""}</span><span className="text-xs font-bold opacity-85">Next: {tour.tomorrow}</span></span></Button>
-      <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Endless<span className="ml-auto text-sm font-bold opacity-90">{best > 0 ? `best ${best.toLocaleString()}` : "new"}</span></Button>
+      <Button variant="ghost" className={big} onClick={onEndless}><InfinityIcon className="h-6 w-6" /> Space Climb<span className="ml-auto text-sm font-bold opacity-90">{best > 0 ? `best ${best.toLocaleString()}` : "new"}</span></Button>
       <div className="grid grid-cols-2 gap-2">
         <Button variant="ghost" className={small} onClick={() => setPanel("missions")}><ScrollText /> Missions</Button>
         <Button variant="ghost" className={small} onClick={onShop}><Store /> Market</Button>
@@ -198,11 +199,14 @@ function Leaderboard({ onBack }: { onBack: () => void }) {
   const [rows, setRows] = useState<ScoreRow[] | null>(null);
   const [err, setErr] = useState(false);
   const [me, setMe] = useState<string | null>(null);
-  useEffect(() => { topScores().then(setRows).catch(() => setErr(true)); void supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null)); }, []);
+  const [scope, setScope] = useState<ScoreScope>("all");
+  useEffect(() => { setRows(null); setErr(false); topScores(50, scope).then(setRows).catch(() => setErr(true)); }, [scope]);
+  useEffect(() => { void supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null)); }, []);
   return (
     <div className="hud-pill w-full max-w-sm gap-2 p-4">
-      <span className="text-2xl font-extrabold">Endless leaderboard</span>
-      <div className="score-personal"><span className="hud-label">YOUR PHONE BEST</span><strong>{Number(localStorage.getItem("bloxx-endless-best") || 0).toLocaleString()}</strong></div>
+      <span className="text-2xl font-extrabold">Space Climb</span>
+      <div className="grid grid-cols-2 gap-1">{(["all", "week"] as const).map(k => <Button key={k} variant="ghost" aria-pressed={scope === k} className={`paper-btn h-9 rounded-none text-sm font-extrabold ${scope === k ? "" : "opacity-50"}`} onClick={() => setScope(k)}>{k === "all" ? "All-time" : "This week"}</Button>)}</div>
+      <div className="score-personal"><span className="hud-label">YOUR PHONE BEST</span><strong>{Number(localStorage.getItem(SPACE_BEST_KEY) || 0).toLocaleString()}</strong></div>
       {!me && <span className="hud-label">Sign in to post your scores — every score is checked to keep it fair.</span>}
       <ol className="score-list mt-2 flex w-full max-h-[45dvh] flex-col gap-1 overflow-y-auto">
         {err && <li>Couldn't load scores. Check your connection.</li>}
@@ -211,7 +215,7 @@ function Leaderboard({ onBack }: { onBack: () => void }) {
         {rows?.map((r, i) => (
           <li key={r.id} className={`score-row flex items-center gap-2 rounded px-2 py-1 ${r.player_id === me ? "bg-hud-accent/30 font-extrabold" : ""}`}>
             <span className={`score-rank ${i < 3 ? "text-hud-accent" : ""}`}>{i + 1}</span><span className="flex-1 truncate">{r.name}</span>
-            <span className="text-sm opacity-70">{r.floors} fl</span><span className="w-16 text-right font-extrabold">{r.score}</span>
+            <span className="text-xs opacity-70 truncate max-w-[6rem]">{SPACE_ZONES[r.zone]?.name ?? ""} · {r.floors}</span><span className="w-16 text-right font-extrabold">{r.score}</span>
           </li>
         ))}
       </ol>

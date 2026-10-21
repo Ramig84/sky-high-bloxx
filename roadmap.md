@@ -141,3 +141,7 @@
 - [x] Fixed three phone-reported issues: District tour plaque text now sits fully inside the wood (badge on title row, tidy two-line subtitle, real vertical padding); bird flight rewritten as horizontal sky crossings with flap-on-rise/glide-on-dip (was near-vertical elevator motion); removed the forced WebView HARDWARE layer that likely worsened post-ad lag. 156 tests pass; post-ad lag still needs a real-phone check.
 - [x] Post-ad countdown is now bare popping numbers over the paused game (no box), sized for phones and tablets; wind painting converted to pixel-identical WebP (269 KB → 177 KB). All other shipped art was already compressed WebP. 163 tests pass.
 - [ ] Post-ad lag root cause: user confirmed Home/re-entering play does not clear it but a full app restart does. Read-only game/native investigations found no proven cause; blocked on a physical-phone performance trace, not further guessed recovery changes. Unchanged by scenery work.
+
+## Space Climb (Endless)
+- [x] Zone rules + tests, fresh leaderboard, HUD (banner, marker, game-over zone)
+- [ ] Rich 2D storybook VFX and animations per zone (painted, approved one by one)
