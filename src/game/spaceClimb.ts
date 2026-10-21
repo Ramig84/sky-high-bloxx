@@ -43,7 +43,7 @@ export function spaceSpec(floors: number): LevelSpec {
   return {
     index: -1, district: 0, level: 0, goal: Number.POSITIVE_INFINITY, perfectGoal: 0, lives: 3,
     // Starts above the campaign finale; steps up at each zone plus a small climb inside it.
-    speed: 92 + zone.speedStep + Math.max(0, inZone) * 0.18,
+    speed: 92 + zone.speedStep + Math.max(0, inZone) * 0.08,
     wind: mild(1) ? Math.round((z === 6 ? 190 : 110) + Math.min(f, MAX_SPEED_FLOORS) * 0.12) : 0,
     slip: mild(2) ? Math.min(7, 3.5 + f * 0.006) : 0,
     slide: mild(3) ? Math.round(Math.min(70, 26 + f * 0.06)) : 0,
