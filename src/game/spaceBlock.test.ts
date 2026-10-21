@@ -1,0 +1,19 @@
+import { describe, expect, it } from "vitest";
+import { blockDimensions } from "./spaceBlock";
+import { classifyLanding } from "./motion";
+
+describe("Space Climb launch-gantry blocks", () => {
+  it("uses a smaller single module than campaign houses", () => {
+    const space = blockDimensions(true), campaign = blockDimensions(false);
+    expect(space.width).toBeLessThan(campaign.width);
+    expect(space.height).toBeLessThan(campaign.height);
+  });
+  it("keeps campaign houses at their approved dimensions", () => {
+    expect(blockDimensions(false)).toEqual({ width: 84, height: 50 });
+  });
+  it("retains the four-percent perfect window on the smaller module", () => {
+    const { width } = blockDimensions(true);
+    expect(classifyLanding(width * 0.04, width)).toBe("perfect");
+    expect(classifyLanding(width * 0.041, width)).toBe("ok");
+  });
+});
