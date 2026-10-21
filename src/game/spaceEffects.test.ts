@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPACE_EFFECTS, SPACE_WARNING_SECONDS, spaceEffectLayers, spaceEffectMotion, spaceHazardConfig, spaceHazardHits, spaceHazardPosition, type SpaceHazard } from "./spaceEffects";
+import { SPACE_EFFECTS, SPACE_WARNING_SECONDS, freshSpaceHazards, resetSpaceHazardLane, stepSpaceHazards, spaceEffectLayers, spaceEffectMotion, spaceHazardConfig, spaceHazardHits, spaceHazardPosition, type SpaceHazard } from "./spaceEffects";
 
 describe("Space Climb living scenes", () => {
   it("gives all eleven zones their own effect vocabulary", () => {
@@ -49,9 +49,19 @@ describe("warned space obstacles", () => {
     expect(spaceHazardConfig(500)?.kind).toBe("comet");
   });
   it("holds position while the simulation clock is paused and finishes offscreen", () => {
-    expect(spaceHazardPosition(hazard, 13, 360)).toEqual(spaceHazardPosition(hazard, 13, 360));
+    const scheduled = stepSpaceHazards(freshSpaceHazards(), 100, 0, 400);
+    expect(stepSpaceHazards(scheduled, 100, 17.9, 400).hazard).toBeNull();
+    const active = stepSpaceHazards(scheduled, 100, 18, 400);
+    expect(active.hazard?.started).toBe(18);
+    expect(stepSpaceHazards(active, 100, 18, 400)).toBe(active);
     expect(spaceHazardPosition(hazard, 18, 360)).toMatchObject({ active: false, done: true });
     expect(spaceHazardPosition(hazard, 18, 360).x).toBeGreaterThan(180);
+  });
+  it("clears the old lane on landing and starts a new run without a queued crossing", () => {
+    const active = stepSpaceHazards({ next: 18, sequence: 0, hazard: null }, 100, 18, 400);
+    expect(resetSpaceHazardLane(active, 101, 20)).toMatchObject({ hazard: null, next: 38 });
+    expect(freshSpaceHazards()).toEqual({ next: null, sequence: 0, hazard: null });
+    expect(stepSpaceHazards(active, 50, 20, 400).hazard).toBeNull();
   });
   it("catches a fast crossing between frames", () => {
     expect(spaceHazardHits({ x: -100, y: 400 }, { x: 100, y: 400 }, { x: 0, y: 400 }, { x: 0, y: 390 }, 40, 20, 8)).toBe(true);

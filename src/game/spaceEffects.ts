@@ -56,6 +56,26 @@ export function spaceEffectMotion(kind: SpaceEffectKind, index: number, time: nu
 export type HazardKind = "debris" | "asteroid" | "ringIce" | "comet";
 export type SpaceHazard = { kind: HazardKind; started: number; direction: -1 | 1; y: number; duration: number; size: number };
 export const SPACE_WARNING_SECONDS = 2.4;
+export type HazardSchedule = { next: number | null; sequence: number; hazard: SpaceHazard | null };
+export const freshSpaceHazards = (): HazardSchedule => ({ next: null, sequence: 0, hazard: null });
+
+export function stepSpaceHazards(state: HazardSchedule, floors: number, time: number, laneY: number): HazardSchedule {
+  const config = spaceHazardConfig(floors);
+  if (!config) return freshSpaceHazards();
+  if (state.hazard) {
+    if (time < state.hazard.started + SPACE_WARNING_SECONDS + state.hazard.duration) return state;
+    return { ...state, hazard: null, next: time + config.interval };
+  }
+  if (state.next === null) return { ...state, next: time + config.interval };
+  if (time < state.next) return state;
+  return { next: null, sequence: state.sequence + 1, hazard: { kind: config.kind, started: time, direction: state.sequence % 2 === 0 ? 1 : -1, y: laneY, duration: config.duration, size: config.size } };
+}
+
+/** A new landing cancels the old lane warning instead of teleporting a crossing to a new tower height. */
+export function resetSpaceHazardLane(state: HazardSchedule, floors: number, time: number): HazardSchedule {
+  const config = spaceHazardConfig(floors);
+  return { ...state, hazard: null, next: config ? time + config.interval : null };
+}
 
 /** Single, sparse, warned lane crossing. Dust/weather are visual; only these solid visitors hit a dropped block. */
 export function spaceHazardConfig(floors: number): { kind: HazardKind; interval: number; duration: number; size: number } | null {
