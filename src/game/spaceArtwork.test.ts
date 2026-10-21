@@ -7,16 +7,11 @@ describe("Space Climb painted skies", () => {
     expect(SPACE_ZONE_SKY).toHaveLength(SPACE_ZONES.length);
     expect(SPACE_ZONE_SKY.every(src => typeof src === "string" && src.length > 0)).toBe(true);
   });
-  it("keeps the six approved paintings distinct and preloaded", () => {
-    expect(new Set(SPACE_SKY_IMAGES).size).toBe(6);
+  it("keeps the seven approved paintings distinct and preloaded", () => {
+    expect(new Set(SPACE_SKY_IMAGES).size).toBe(7);
     expect(SPACE_SKY_IMAGES.every(src => SPACE_ZONE_SKY.includes(src))).toBe(true);
   });
   it("carries each approved painting into its own zone", () => {
-    expect(SPACE_ZONE_SKY[0]).toBe(SPACE_SKY_IMAGES[0]);
-    expect(SPACE_ZONE_SKY[1]).toBe(SPACE_SKY_IMAGES[1]);
-    expect(SPACE_ZONE_SKY[2]).toBe(SPACE_SKY_IMAGES[2]);
-    expect(SPACE_ZONE_SKY[3]).toBe(SPACE_SKY_IMAGES[3]);
-    expect(SPACE_ZONE_SKY[4]).toBe(SPACE_SKY_IMAGES[4]);
-    expect(SPACE_ZONE_SKY[5]).toBe(SPACE_SKY_IMAGES[5]);
+    for (let i = 0; i < 7; i++) expect(SPACE_ZONE_SKY[i]).toBe(SPACE_SKY_IMAGES[i]);
   });
 });
