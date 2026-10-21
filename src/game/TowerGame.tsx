@@ -13,7 +13,8 @@ import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, drawSpirit, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
-import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSpec, zoneAt } from "./spaceClimb";
+import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
+import { SPACE_ZONE_SKY } from "./spaceArtwork";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
@@ -783,7 +784,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      if (spec.night && endless) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
+      if (spec.night && endless && !zoneArt) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
       if (spec.slip && ok(rain)) {
         for (const p of rainStrokes) {
           stepRain(p, dt, vw, VH, spec.wind * windDir);
