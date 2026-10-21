@@ -32,4 +32,4 @@
 - Shared painted poses with continuous wingbeat clocks; bird flight (birdPath) is a full-width horizontal crossing with gentle rise/dip, never near-vertical elevator paths; stationary menu birds under reduced motion; steam anchored to roofs, lanterns/butterflies above streets — scenery stays cohesive without changing obstacles.
 - Endless submission status mirrors the leaderboard response and resets per run, so guests/failures never show success.
 - Native Google sign-in returns via https /auth/app-return (custom app schemes are rejected), forwarding to the Android app link; src/game/nativeAuth.ts accepts only sign-ins started on this phone.
-- Post-ad speed: retain resume/focus wake and canvas release/restore; never set WebView layer types. canvasResolution preserves density across ads; diagnostics never reduce sharpness. The slowdown cause remains unproven.
+- Rewarded ads use normal provider completion followed by a five-second in-game countdown; keep play paused and paintings cached at full sharpness, without experimental Android wake/layer settings, surface recycling or debugging. This isolates the standard ad flow without changing game rules.

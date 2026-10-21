@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Simplify rewarded ads: remove experimental Android/canvas recovery and debug panel; five-second countdown on paused gameplay, preserve sharpness; validate tests and phone-sized flow.
 - [x] Removed automatic post-ad sharpness reduction; corrected speed-check clock that counted a 2.2-second wait as measurement time. 16 focused tests pass; phone-sized browser canvas stays 822×1722 and touch drop works without errors.
 - [ ] Verify full-sharpness post-ad performance on Android: build #90 dispatched from commit 2f43c6e (https://github.com/Ramig84/sky-high-bloxx/actions/runs/39437461777); blocked on installing the APK and running 3 Watch on a real phone; remaining cause is unproven, and JS draw timing does not measure GPU completion.
 - [x] Ad-lag fix synced to GitHub (d9ad730 "Fixed ad-induced lag via FPS"); 149 tests passed; Android build #81 succeeded with APK + signed AAB saved (https://github.com/Ramig84/sky-high-bloxx/actions/runs/39233113007). Physical-phone smoothness after extra-life ads still unverified.
