@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPACE_ZONES, floorsToNextZone, spaceSpec, zoneAt } from "./spaceClimb";
+import { SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
 import { levelSpec } from "./levels";
 
 describe("Space Climb zones", () => {
