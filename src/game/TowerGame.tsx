@@ -200,6 +200,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const visitors = skyVisitors(dsky.lifeCount);
     const spirits = districtSpirits(district.id);
     const dSkyLow = load(districtSkyArt[district.id].low), dSkyHigh = load(districtSkyArt[district.id].high);
+    // Space Climb paints its own sky per zone, dissolving from one into the next as the tower rises.
+    const spaceSkies = SPACE_ZONE_SKY.map(load);
     const atmos = DISTRICT_ATMOS[district.id];
     // District-coloured copy of the older shared creatures; approved signature paintings keep their own colours.
     const spiritLayers = spirits.map(sp => {
@@ -523,9 +525,15 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       drawCover(clouds, 1, 0);
       drawCover(sunset, sky.sunset, 0);
       drawCover(space, sky.space, 0);
+      // Space Climb: the zone's own painting, fading into the next zone's as the climb nears it.
+      const zoneSky = endless ? spaceSkyMix(s.floors.length) : null;
+      const zoneArt = zoneSky !== null && ok(spaceSkies[zoneSky.from]!) && ok(spaceSkies[zoneSky.to]!);
       // District's own painted sky: one continuous street-to-top journey, fully opaque (no grey veil).
-      const districtArt = ok(dSkyLow) && ok(dSkyHigh);
-      if (districtArt) { const mix = districtSkyMix(alt);
+      const districtArt = !zoneArt && ok(dSkyLow) && ok(dSkyHigh);
+      if (zoneArt && zoneSky) {
+        drawCover(spaceSkies[zoneSky.from]!, 1, 0);
+        if (zoneSky.t > 0.005) drawCover(spaceSkies[zoneSky.to]!, zoneSky.t, 0); }
+      else if (districtArt) { const mix = districtSkyMix(alt);
         drawCover(dSkyLow, 1, 0);
         if (mix.high > 0.005) drawCover(dSkyHigh, mix.high, 0); }
       else { // fallback while district art decodes
