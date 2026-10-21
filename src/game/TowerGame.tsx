@@ -4,7 +4,7 @@ import { Star, Map as MapIcon, Volume2, VolumeX, Pause, Play, ArrowLeft, Heart, 
 import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
-import windSrc from "@/assets/wind-poses.png";
+import windSrc from "@/assets/wind-poses.webp";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
 import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, DISTRICT_CLOUD_TINT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdFlight, birdPath, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion } from "./sky";
