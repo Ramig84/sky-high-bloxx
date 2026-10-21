@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.webp";
-import windDirectionSrc from "@/assets/wind-arrow-poses.webp";
+import windDirectionSrc from "@/assets/wind-cue-soft.webp";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
 import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_CLOUD_TINT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdPath, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion, mistBand, windCue, windCuePose } from "./sky";
@@ -33,6 +33,7 @@ import { atmosphereArtwork, drawAtmosphere, jadeTinted } from "./paintedAtmosphe
 import { starPainting } from "./derivedArtwork";
 import { AdResumeCountdown } from "./AdResumeCountdown";
 import { canvasResolution } from "./canvasResolution";
+import { freshWind, finishWindDrop, stepWind, windPresentation } from "./wind";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -159,7 +160,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const rain = load((tablet ? tabletArtwork : phoneArtwork).rainSrc);
     const loadout = loadLoadout();
     const premiumBlock = blockSource(loadout.block);
-    let windDir = 1;
+    let wind = freshWind();
+    let windDir = wind.direction;
     const streetSrc = districtStreet(district.id, tablet);
     const { cloudsSrc, sunsetSrc, spaceSrc, hookSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
     const skins = premiumBlock ? [load(premiumBlock), load(premiumBlock), load(premiumBlock), load(bg0)] : [load(b1), load(b2), load(b3), load(bg0)];
@@ -172,8 +174,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const amb = load(ambientSrc), windArt = load(windSrc);
     const windArrow = load(windDirectionSrc);
     const cueTheme = getComputedStyle(surface);
-    const cueInk = cueTheme.getPropertyValue("--hud-accent").trim();
-    const cueOutline = cueTheme.getPropertyValue("--plaque-ink").trim();
+    const cueInk = cueTheme.getPropertyValue("--plaque-ink").trim();
+    const cuePaper = cueTheme.getPropertyValue("--hud-bg").trim();
     const climbTop = (districtGoal(baseSpec.district, LEVELS_PER_DISTRICT - 1) - 1.2) * BH;
     const life = spawnAmbient(district.id, 360);
     const ambientPoses = Object.fromEntries(Object.entries(spiritArtwork).map(([key, src]) => [key, load(src)])) as Record<PaintedSpirit, HTMLImageElement>;
@@ -347,7 +349,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; s = fresh(); publish(); };
+    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; s = fresh(); publish(); };
 
     api.current.revive = () => { if (!s.over || s.won || endless) return; s.over = false; s.lives = 1; s.combo = 0; s.shake = 0; if (!s.drop) s.held = true; publish("EXTRA LIFE!"); };
 
@@ -391,6 +393,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     };
 
     const land = (d: { x: number; vx: number }) => {
+      if (spec.wind) wind = finishWindDrop(wind);
       const n = s.floors.length;
       const support = n === 0 ? 0 : displayX(n - 1);
       const off = d.x - support;
@@ -436,7 +439,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         publish(zoneClear ? "LEVEL CLEAR!" : stageMsg ? stageMsg : kind === "perfect" ? `PERFECT ×${Math.min(s.combo, 10)}` : "");
       }
       s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
-      windDir = Math.random() < 0.5 ? -1 : 1;
       s.held = true;
     };
 
@@ -472,6 +474,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const paused = adPaused.current || manualPaused.current;
       const dt = paused ? 0 : Math.min((now - last) / 1000, 1 / 20); last = now;
       s.t += dt;
+      wind = stepWind(wind, dt, s.held && !s.over);
+      windDir = wind.direction;
       if (!s.over) s.phase = advanceSwing(s.phase, level(), dt);
 
       // lean & sway
@@ -777,6 +781,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.globalAlpha = 1;
       }
       const cue = windCue(spec.wind, windDir, s.held, Boolean(s.drop), s.over);
+      const windView = windPresentation(wind);
       if (cue.visible) {
         // The brush strokes curl and dissipate through six separately painted poses, not a sliding tile.
         if (ok(windArt)) for (let i = 0; i < 3; i++) {
@@ -784,7 +789,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           const cell = Math.min(5, Math.floor(cycle * 6));
           const size = 86;
           const height = size * windArt.naturalHeight / (windArt.naturalWidth / 6);
-          ctx.save(); ctx.globalAlpha = Math.sin(cycle * Math.PI) * 0.75;
+          ctx.save(); ctx.globalAlpha = Math.sin(cycle * Math.PI) * 0.5 * windView.opacity;
           ctx.translate(vw * (0.18 + i * 0.32) + windDir * cycle * 18, 200 + i * 72);
           ctx.scale(windDir, 1);
           ctx.drawImage(windArt, cell * windArt.naturalWidth / 6, 0, windArt.naturalWidth / 6, windArt.naturalHeight, -size / 2, -height / 2, size, height);
@@ -793,20 +798,22 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
 
       if (cue.visible && ok(windArrow)) {
-        // Whole authored poses: no sliding or stretching a static arrow.
-        const width = Math.min(78, vw * 0.23), height = width;
-        const x = vw - Math.max(49, vw * 0.15), y = VH * 0.56;
+        // Dissolve between whole aligned paintings; never slide or deform a static arrow.
+        const width = Math.min(58, vw * 0.18), height = width / 2;
+        const x = vw - Math.max(52, vw * 0.16), y = VH * 0.53;
         const cell = windArrow.naturalWidth / 6;
+        const pose = windCuePose(s.t, reducedMotion);
+        const blend = reducedMotion ? 0 : ((s.t % 1.8 + 1.8) % 1.8) / 1.8 * 6 - pose;
         ctx.save(); ctx.translate(x, y); ctx.scale(cue.direction, 1);
-        ctx.drawImage(windArrow, windCuePose(s.t, reducedMotion) * cell, 0, cell, windArrow.naturalHeight, -width / 2, -height / 2, width, height); ctx.restore();
+        ctx.globalAlpha = (1 - blend) * windView.opacity;
+        ctx.drawImage(windArrow, pose * cell, 0, cell, windArrow.naturalHeight, -width / 2, -height / 2, width, height);
+        ctx.globalAlpha = blend * windView.opacity;
+        ctx.drawImage(windArrow, ((pose + 1) % 6) * cell, 0, cell, windArrow.naturalHeight, -width / 2, -height / 2, width, height); ctx.restore();
         ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.font = '600 14px Fredoka, sans-serif'; ctx.lineJoin = "round"; ctx.lineWidth = 3;
-        ctx.strokeStyle = cueOutline; ctx.fillStyle = cueInk;
-        const lines = s.drop ? [cue.direction < 0 ? "← Wind" : "Wind →"] : ["Wind on", "release"];
-        lines.forEach((line, i) => {
-          ctx.strokeText(line, x, y + 32 + i * 16);
-          ctx.fillText(line, x, y + 32 + i * 16);
-        });
+        ctx.font = '500 12px Fredoka, sans-serif';
+        ctx.fillStyle = cueInk; ctx.shadowColor = cuePaper; ctx.shadowBlur = 3;
+        const label = windView.changing ? (windView.nextDirection < 0 ? "Next wind ←" : "Next wind →") : (cue.direction < 0 ? "← Wind" : "Wind →");
+        ctx.fillText(label, x, y + 23);
         ctx.restore();
       }
 
