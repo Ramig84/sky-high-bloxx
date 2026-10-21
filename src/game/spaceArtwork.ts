@@ -4,10 +4,11 @@ import clouds from "@/assets/sky-space-clouds.webp";
 import storm from "@/assets/sky-space-storm.webp";
 import edge from "@/assets/sky-space-edge.webp";
 import orbit from "@/assets/sky-space-orbit.webp";
+import moon from "@/assets/sky-space-moon.webp";
 import { SPACE_ZONES } from "./spaceClimb";
 
-/** Approved paintings so far, in climb order: Rooftops, High Clouds, Storm & Aurora, Edge of Space, Orbit. */
-const painted: readonly string[] = [rooftops, clouds, storm, edge, orbit];
+/** Approved paintings so far, in climb order: Rooftops, High Clouds, Storm & Aurora, Edge of Space, Orbit, The Moon. */
+const painted: readonly string[] = [rooftops, clouds, storm, edge, orbit, moon];
 
 /** One sky per zone; a zone without its own painting yet reuses the closest approved one above it. */
 export const SPACE_ZONE_SKY: readonly string[] = SPACE_ZONES.map(
