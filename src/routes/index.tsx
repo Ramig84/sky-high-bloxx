@@ -11,6 +11,7 @@ import { Preloader } from "@/game/Preloader";
 import { DistrictCelebration } from "@/game/DistrictCelebration";
 import { celebrateAssets, homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
 import { blockSource, craneSource } from "@/game/shopArtwork";
+import { SPACE_SKY_IMAGES } from "@/game/spaceArtwork";
 import { dailyLevel, loadLoadout } from "@/game/wallet";
 import { initNativeSignInReturn, pushProgress, syncAccount } from "@/game/account";
 import { supabase } from "@/integrations/supabase/client";
