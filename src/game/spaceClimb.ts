@@ -34,6 +34,21 @@ export function floorsToNextZone(floors: number) {
   return next ? next.start - Math.max(0, Math.floor(floors)) : null;
 }
 
+/**
+ * Painted zone skies dissolve, never swap: the current painting holds until the last
+ * third of a zone, then fades into the next zone's colours across that stretch.
+ */
+export function spaceSkyMix(floors: number) {
+  const f = Math.max(0, Math.floor(floors));
+  const z = zoneAt(f);
+  const next = SPACE_ZONES[z + 1];
+  if (!next) return { from: z, to: z, t: 0 };
+  const window = Math.max(3, Math.round((next.start - SPACE_ZONES[z]!.start) * 0.34));
+  const left = next.start - f;
+  const raw = left >= window ? 0 : 1 - left / window;
+  return { from: z, to: z + 1, t: raw * raw * (3 - 2 * raw) };
+}
+
 const MAX_SPEED_FLOORS = 600;
 
 export function spaceSpec(floors: number): LevelSpec {
