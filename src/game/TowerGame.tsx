@@ -856,6 +856,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           <div className="game-status-bar">
           <div className="game-stat game-score"><span className="hud-label">SCORE{hud.combo > 1 ? ` · ×${Math.min(hud.combo, 10)}` : ""}</span><span className="hud-value">{hud.score}</span></div>
           <div className="game-stat game-progress"><span className="hud-label">{daily ? `TOUR · ${district.name.toUpperCase()}` : endless ? SPACE_ZONES[zone]!.name.toUpperCase() : `${district.name.toUpperCase()} · ${baseSpec.level + 1}`}</span><span className="hud-value">{hud.floors}{!endless && <span className="hud-label"> / {goal}</span>}</span></div>
+          {endless && toNext !== null && <div className="hud-label space-next" aria-label="Next zone">{SPACE_ZONES[zone + 1]?.name} in {toNext}</div>}
           <div className="game-stat game-lives"><span className="hud-label">LIVES</span><span className="hud-value whitespace-nowrap" aria-label={`${hud.lives} lives`}>{[0, 1, 2].map(i => <span key={i} className={i < hud.lives ? "" : "opacity-20"}>♥</span>)}</span></div>
           <Button variant="ghost" aria-label="Pause game" title="Pause game" disabled={hud.over} className="game-sound pointer-events-auto h-11 w-11 text-foreground !p-0"
             onPointerDown={e => e.stopPropagation()} onClick={pause}>

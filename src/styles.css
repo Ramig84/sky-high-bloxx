@@ -409,3 +409,5 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .reward-crane-scene .reward-preview-hook { position: absolute; top: 2.4rem; left: 47%; width: 10%; height: 1rem; }
 .reward-crane-scene .reward-preview-block { position: absolute; top: 3.3rem; left: 34%; width: 36%; height: 1.8rem; }
 @media (max-height: 720px) { .home-content { gap: 0.5rem; padding-bottom: 1rem; } .home-content .home-logo { width: 12rem; } .home-content .home-buttons { gap: 0.25rem; } .home-buttons .menu-plaque { min-height: 3.5rem; } .home-buttons .grid > button { height: 3rem; } }
+
+.space-next { position: absolute; top: calc(100% + 0.25rem); left: 50%; transform: translateX(-50%); white-space: nowrap; opacity: 0.85; text-shadow: 0 1px 2px var(--hud-bg); }
