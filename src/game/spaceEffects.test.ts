@@ -29,6 +29,7 @@ describe("Space Climb living scenes", () => {
   it("stops decorative motion under reduced motion", () => {
     expect(spaceEffectMotion("debris", 1, 40, 360, 700, true)).toEqual(spaceEffectMotion("debris", 1, 0, 360, 700, true));
     expect(spaceEffectMotion("lightning", 0, 0.6, 360, 700, true).alpha).toBe(0);
+    expect(spaceEffectMotion("comet", 0, 40, 360, 700, true)).toEqual(spaceEffectMotion("comet", 0, 0, 360, 700, true));
   });
 });
 
@@ -62,6 +63,14 @@ describe("warned space obstacles", () => {
     expect(resetSpaceHazardLane(active, 101, 20)).toMatchObject({ hazard: null, next: 38 });
     expect(freshSpaceHazards()).toEqual({ next: null, sequence: 0, hazard: null });
     expect(stepSpaceHazards(active, 50, 20, 400).hazard).toBeNull();
+    expect(resetSpaceHazardLane({ next: 18, sequence: 0, hazard: null }, 101, 5).next).toBe(18);
+  });
+  it("crosses from the warned side in both directions", () => {
+    const right = spaceHazardPosition(hazard, 12.41, 360);
+    const left = spaceHazardPosition({ ...hazard, direction: -1 }, 12.41, 360);
+    expect(right.x).toBeLessThan(-180);
+    expect(left.x).toBeGreaterThan(180);
+    expect(left.x).toBeCloseTo(-right.x);
   });
   it("catches a fast crossing between frames", () => {
     expect(spaceHazardHits({ x: -100, y: 400 }, { x: 100, y: 400 }, { x: 0, y: 400 }, { x: 0, y: 390 }, 40, 20, 8)).toBe(true);

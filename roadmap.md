@@ -143,8 +143,8 @@
 - [ ] Post-ad lag root cause: user confirmed Home/re-entering play does not clear it but a full app restart does. Read-only game/native investigations found no proven cause; blocked on a physical-phone performance trace, not further guessed recovery changes. Unchanged by scenery work.
 
 ## Space Climb (Endless)
-- [ ] Review uploaded screenshot and propose a smaller painted metal rocket-platform block for Space Climb; show artwork for approval before replacing approved floors or changing collision dimensions.
+- [x] Reviewed launch-gantry reference and painted compact metal stacking-module concept; shown for approval. Existing floors/dimensions unchanged.
+- [ ] Approve gantry artwork and its smaller in-game size (blocked: user visual approval).
 - [x] Zone rules + tests, fresh leaderboard, HUD (banner, marker, game-over zone)
-- [ ] Rich 2D storybook VFX and animations per zone (painted, approved one by one)
-- [ ] Add whole-pose painted space spirits, per-zone atmosphere, smooth effect handovers and warned debris obstacles; verify all eleven zones without awarding review progress.
+- [x] Added preloaded whole-pose space artwork, eleven zone-specific effect sets, smooth effect handovers and warned world-coordinate debris crossings; portrait browser reviewed all eleven scenes without changing earned progress, touch landing and pause verified. Automated checks pass; actual high-zone obstacle play/phone feel still needs review.
 - [ ] User approval and physical-phone review of new Space Climb motion (blocked: user review; no Android build requested).

@@ -74,7 +74,7 @@ export function stepSpaceHazards(state: HazardSchedule, floors: number, time: nu
 /** A new landing cancels the old lane warning instead of teleporting a crossing to a new tower height. */
 export function resetSpaceHazardLane(state: HazardSchedule, floors: number, time: number): HazardSchedule {
   const config = spaceHazardConfig(floors);
-  return { ...state, hazard: null, next: config ? time + config.interval : null };
+  return { ...state, hazard: null, next: config ? state.hazard ? time + config.interval : state.next ?? time + config.interval : null };
 }
 
 /** Single, sparse, warned lane crossing. Dust/weather are visual; only these solid visitors hit a dropped block. */
