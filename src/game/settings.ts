@@ -29,5 +29,5 @@ export function saveSettings(s: Settings) {
 export const vibrate = (ms: number) => { if (loadSettings().vibrate) navigator.vibrate?.(ms); };
 
 export function resetProgress() {
-  for (const k of ["bloxx-stars", "bloxx-best", "bloxx-endless-best"]) localStorage.removeItem(k);
+  for (const k of ["bloxx-stars", "bloxx-best", "bloxx-endless-best", "bloxx-space-best"]) localStorage.removeItem(k);
 }
