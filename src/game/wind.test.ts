@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { freshWind, finishWindDrop, stepWind, windPresentation, WIND_TURN_SECONDS } from "./wind";
+import { freshWind, finishWindDrop, stepWind, windPresentation, WIND_TURN_SECONDS, type WindState } from "./wind";
 
 describe("approved predictable wind", () => {
   it("holds the direction for several drops rather than resetting randomly after every landing", () => {
@@ -14,7 +14,7 @@ describe("approved predictable wind", () => {
     expect(windPresentation(state).nextDirection).toBe(-1);
   });
   it("signals a gradual change and retains full force magnitude", () => {
-    let state = { ...freshWind(), turn: 0 };
+    let state: WindState = { ...freshWind(), turn: 0 };
     state = stepWind(state, WIND_TURN_SECONDS / 4, true);
     expect(windPresentation(state).changing).toBe(true);
     expect(windPresentation(state).opacity).toBeCloseTo(Math.SQRT1_2);
