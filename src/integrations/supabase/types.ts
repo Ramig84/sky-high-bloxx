@@ -158,6 +158,39 @@ export type Database = {
         }
         Relationships: []
       }
+      space_scores: {
+        Row: {
+          created_at: string
+          floors: number
+          id: string
+          name: string
+          player_id: string
+          run_id: string
+          score: number
+          zone: number
+        }
+        Insert: {
+          created_at?: string
+          floors: number
+          id?: string
+          name: string
+          player_id: string
+          run_id: string
+          score: number
+          zone?: number
+        }
+        Update: {
+          created_at?: string
+          floors?: number
+          id?: string
+          name?: string
+          player_id?: string
+          run_id?: string
+          score?: number
+          zone?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -282,11 +315,16 @@ export type Database = {
         }
       }
       mission_status: { Args: never; Returns: Json }
+      space_zone_for: { Args: { _floors: number }; Returns: number }
       start_game_run: {
         Args: { _level: number; _mode: string }
         Returns: string
       }
       submit_endless_score: {
+        Args: { _run: string; _score: number }
+        Returns: boolean
+      }
+      submit_space_score: {
         Args: { _run: string; _score: number }
         Returns: boolean
       }

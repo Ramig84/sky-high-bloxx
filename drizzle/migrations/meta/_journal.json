@@ -71,6 +71,13 @@
       "when": 1792054023414,
       "tag": "0009_district_tour_daily",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792611839947,
+      "tag": "0010_migration",
+      "breakpoints": true
     }
   ]
 }
