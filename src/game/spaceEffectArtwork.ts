@@ -6,12 +6,13 @@ import comet from "@/assets/space-comet-poses.webp";
 import stormBand from "@/assets/space-jupiter-storm-poses.webp";
 import nebula from "@/assets/space-nebula-poses.webp";
 import lightning from "@/assets/space-lightning-poses.webp";
+import ringIce from "@/assets/space-ring-ice-poses.webp";
 import { atmosphereArtwork } from "./paintedAtmosphere";
 import { spiritArtwork } from "./spiritArtwork";
 import { poseBlend } from "./poseMotion";
 import { SPACE_EFFECTS, spaceEffectLayers, spaceEffectMotion, type SpaceEffectKind } from "./spaceEffects";
 
-export const spaceEffectArtwork = { debris, asteroid, lunarDust, marsDust, comet, stormBand, nebula, lightning, ringIce: debris, cloud: atmosphereArtwork.cloud, aurora: atmosphereArtwork.aurora, bird: spiritArtwork.gull };
+export const spaceEffectArtwork = { debris, asteroid, lunarDust, marsDust, comet, stormBand, nebula, lightning, ringIce, cloud: atmosphereArtwork.cloud, aurora: atmosphereArtwork.aurora, bird: spiritArtwork.gull };
 export const SPACE_EFFECT_IMAGES = [...new Set([...Object.values(spaceEffectArtwork), spiritArtwork.eagle])];
 const cycle = [0, 1, 2, 3, 4, 5, 6, 7];
 const rates: Record<SpaceEffectKind, number> = { debris: 4, asteroid: 4.5, lunarDust: 1.1, marsDust: 1.3, comet: 5, stormBand: 0.7, nebula: 0.5, lightning: 7, ringIce: 3.5, cloud: 0.55, aurora: 0.45, bird: 8 };
