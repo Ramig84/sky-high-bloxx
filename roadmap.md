@@ -145,3 +145,5 @@
 ## Space Climb (Endless)
 - [x] Zone rules + tests, fresh leaderboard, HUD (banner, marker, game-over zone)
 - [ ] Rich 2D storybook VFX and animations per zone (painted, approved one by one)
+- [ ] Add whole-pose painted space spirits, per-zone atmosphere, smooth effect handovers and warned debris obstacles; verify all eleven zones without awarding review progress.
+- [ ] User approval and physical-phone review of new Space Climb motion (blocked: user review; no Android build requested).
