@@ -15,11 +15,12 @@ import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./a
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
 import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
 import { SPACE_ZONE_SKY } from "./spaceArtwork";
+import { SPACE_BLOCK_IMAGE, blockDimensions } from "./spaceBlock";
 import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
 import { freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
-import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
+import { advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";
@@ -160,6 +161,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     surface.appendChild(canvas);
     const tablet = window.matchMedia("(min-width: 600px)").matches;
     const [b1, b2, b3, bg0] = districtFloors(district.id, tablet);
+    const { width: BW, height: BH } = blockDimensions(endless);
     let spec = baseSpec;
     let bw = BW * spec.width;
     const rain = load((tablet ? tabletArtwork : phoneArtwork).rainSrc);
@@ -169,7 +171,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     let windDir = wind.direction;
     const streetSrc = districtStreet(district.id, tablet);
     const { cloudsSrc, sunsetSrc, spaceSrc, hookSrc, cloudSrc, birdSrc } = tablet ? tabletArtwork : phoneArtwork;
-    const skins = premiumBlock ? [load(premiumBlock), load(premiumBlock), load(premiumBlock), load(bg0)] : [load(b1), load(b2), load(b3), load(bg0)];
+    const gantry = endless ? load(SPACE_BLOCK_IMAGE) : null;
+    const skins = gantry ? [gantry, gantry, gantry, gantry] : premiumBlock ? [load(premiumBlock), load(premiumBlock), load(premiumBlock), load(bg0)] : [load(b1), load(b2), load(b3), load(bg0)];
     const street = load(streetSrc), clouds = load(cloudsSrc), sunset = load(sunsetSrc), space = load(spaceSrc);
     const hook = load(hookSrc);
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
@@ -428,7 +431,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           const before = zoneAt(s.floors.length - 1), after = zoneAt(s.floors.length);
           spec = spaceSpec(s.floors.length); bw = BW * spec.width;
           if (after > before) { setAmbience(ambienceFor(district.id, spec)); setZone(after); void sfx("clear", 0.45); }
-          if (after > before) stageMsg = `WELCOME TO ${SPACE_ZONES[after]!.name.toUpperCase()}`;
+          const nextZone = SPACE_ZONES[after];
+          if (after > before && nextZone) stageMsg = `WELCOME TO ${nextZone.name.toUpperCase()}`;
           setToNext(floorsToNextZone(s.floors.length));
         }
         const zoneClear = s.floors.length >= goal;
@@ -470,7 +474,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);
       if (ok(img)) {
         // Painted pigment at the join grounds the facade without a picture-frame outline.
-        if (shadow && ok(contact)) {
+        if (shadow && !endless && ok(contact)) {
           ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.22;
           ctx.drawImage(contact, -bw * 0.52, BH / 2 - 3, bw * 1.04, 6);
           ctx.restore();
