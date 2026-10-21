@@ -143,5 +143,5 @@
 - [ ] Post-ad lag root cause: user confirmed Home/re-entering play does not clear it but a full app restart does. Read-only game/native investigations found no proven cause; blocked on a physical-phone performance trace, not further guessed recovery changes. Unchanged by scenery work.
 
 ## Space Climb (Endless)
-- [ ] Zone rules + tests, fresh leaderboard, HUD (banner, marker, game-over zone)
+- [x] Zone rules + tests, fresh leaderboard, HUD (banner, marker, game-over zone)
 - [ ] Rich 2D storybook VFX and animations per zone (painted, approved one by one)
