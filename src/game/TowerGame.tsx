@@ -248,11 +248,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     // Storm districts darken the same painted clouds (multiply grey kept inside the brushwork).
     const shaded = new Map<HTMLImageElement, HTMLImageElement | HTMLCanvasElement>();
     const cloudArt = (img: HTMLImageElement): HTMLImageElement | HTMLCanvasElement => {
-      if (dsky.cloudShade <= 0) return img;
+      if (dsky.cloudShade <= 0 && !baseSpec.night) return img;
       const hit = shaded.get(img); if (hit) return hit;
       const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
       const g = c.getContext("2d"); if (!g) return img;
-      g.drawImage(img, 0, 0); g.globalCompositeOperation = "multiply";
+      g.drawImage(baseSpec.night ? tintedCloudSea(img, DISTRICT_CLOUD_TINT[district.id]) : img, 0, 0); g.globalCompositeOperation = "multiply";
       const v = Math.round(255 * (1 - dsky.cloudShade * 0.55)); g.fillStyle = `rgb(${v},${v},${Math.min(255, v + 8)})`; g.fillRect(0, 0, c.width, c.height);
       g.globalCompositeOperation = "destination-in"; g.drawImage(img, 0, 0);
       shaded.set(img, c); return c;
@@ -792,7 +792,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (cue.visible && ok(windArrow)) {
         // Bare painted direction cue at the edge: no card, text, timer or physics changes.
         const width = Math.min(72, vw * 0.2), height = width * windArrow.naturalHeight / windArrow.naturalWidth;
-        ctx.save(); ctx.translate(vw * 0.88, VH * 0.39); ctx.scale(cue.direction, 1);
+        ctx.save(); ctx.translate(vw * 0.88, VH * 0.56); ctx.scale(cue.direction, 1);
         ctx.drawImage(windArrow, -width / 2, -height / 2, width, height); ctx.restore();
       }
 
