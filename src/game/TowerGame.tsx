@@ -13,7 +13,8 @@ import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, drawSpirit, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
-import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSpec, zoneAt } from "./spaceClimb";
+import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
+import { SPACE_ZONE_SKY } from "./spaceArtwork";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
@@ -200,6 +201,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const visitors = skyVisitors(dsky.lifeCount);
     const spirits = districtSpirits(district.id);
     const dSkyLow = load(districtSkyArt[district.id].low), dSkyHigh = load(districtSkyArt[district.id].high);
+    // Space Climb paints its own sky per zone, dissolving from one into the next as the tower rises.
+    const spaceSkies = SPACE_ZONE_SKY.map(load);
     const atmos = DISTRICT_ATMOS[district.id];
     // District-coloured copy of the older shared creatures; approved signature paintings keep their own colours.
     const spiritLayers = spirits.map(sp => {
@@ -523,9 +526,15 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       drawCover(clouds, 1, 0);
       drawCover(sunset, sky.sunset, 0);
       drawCover(space, sky.space, 0);
+      // Space Climb: the zone's own painting, fading into the next zone's as the climb nears it.
+      const zoneSky = endless ? spaceSkyMix(s.floors.length) : null;
+      const zoneArt = zoneSky !== null && ok(spaceSkies[zoneSky.from]!) && ok(spaceSkies[zoneSky.to]!);
       // District's own painted sky: one continuous street-to-top journey, fully opaque (no grey veil).
-      const districtArt = ok(dSkyLow) && ok(dSkyHigh);
-      if (districtArt) { const mix = districtSkyMix(alt);
+      const districtArt = !zoneArt && ok(dSkyLow) && ok(dSkyHigh);
+      if (zoneArt && zoneSky) {
+        drawCover(spaceSkies[zoneSky.from]!, 1, 0);
+        if (zoneSky.t > 0.005) drawCover(spaceSkies[zoneSky.to]!, zoneSky.t, 0); }
+      else if (districtArt) { const mix = districtSkyMix(alt);
         drawCover(dSkyLow, 1, 0);
         if (mix.high > 0.005) drawCover(dSkyHigh, mix.high, 0); }
       else { // fallback while district art decodes
@@ -597,7 +606,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.globalAlpha = 1;
       }
       if (!faded && ok(street)) buildFade();
-      drawCover(faded ? streetFaded : street, sky.street, alt);
+      // Space Climb keeps its own painted zone sky all the way down: no campaign street over it.
+      if (!endless) drawCover(faded ? streetFaded : street, sky.street, alt);
 
       // Sea of cloud tops below the tower once it climbs above the clouds.
       if (skyC.cloudSea > 0.01 && ok(cloudSea)) {
@@ -622,8 +632,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
 
-      // District sky visitors (balloons, kites) drifting at the side lanes.
-      if (dsky.life !== "none" && visitors.length && ok(visitorArt)) for (const v of visitors) {
+      // District sky visitors (balloons, kites) drifting at the side lanes — campaign only.
+      if (!endless && dsky.life !== "none" && visitors.length && ok(visitorArt)) for (const v of visitors) {
         const fade = skyBlend(alt, v.wy - 650, v.wy - 350) * (1 - skyBlend(alt, v.wy + 500, v.wy + 900));
         if (fade < 0.01) continue;
         const t = s.t;
@@ -775,7 +785,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      if (spec.night && endless) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
+      if (spec.night && endless && !zoneArt) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
       if (spec.slip && ok(rain)) {
         for (const p of rainStrokes) {
           stepRain(p, dt, vw, VH, spec.wind * windDir);

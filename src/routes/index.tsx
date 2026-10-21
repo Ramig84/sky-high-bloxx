@@ -11,6 +11,7 @@ import { Preloader } from "@/game/Preloader";
 import { DistrictCelebration } from "@/game/DistrictCelebration";
 import { celebrateAssets, homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
 import { blockSource, craneSource } from "@/game/shopArtwork";
+import { SPACE_SKY_IMAGES } from "@/game/spaceArtwork";
 import { dailyLevel, loadLoadout } from "@/game/wallet";
 import { initNativeSignInReturn, pushProgress, syncAccount } from "@/game/account";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,7 +81,7 @@ function Home() {
   if (screen.kind === "shop") return <Preloader key="shop" assets={shopAssets}><Shop onBack={home} /></Preloader>;
   const loadoutAssets = () => { const x = loadLoadout(); return [craneSource(x.crane), blockSource(x.block)].filter((v): v is string => Boolean(v)); };
   if (screen.kind === "endless") return (
-    <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id, loadoutAssets())}>
+    <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]!.id, [...loadoutAssets(), ...SPACE_SKY_IMAGES])}>
       <TowerGame level={0} endless onMap={home} onComplete={() => {}}
         onEndlessOver={async (score, floors) => { void floors; const sent = await submitScore(score); void pushProgress(); return sent; }} />
     </Preloader>

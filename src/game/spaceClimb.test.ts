@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPACE_ZONES, floorsToNextZone, spaceSpec, zoneAt } from "./spaceClimb";
+import { SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
 import { levelSpec } from "./levels";
 
 describe("Space Climb zones", () => {
@@ -37,5 +37,32 @@ describe("Space Climb zones", () => {
   it("never ends by goal and caps speed after 600", () => {
     expect(spaceSpec(900).goal).toBe(Infinity);
     expect(spaceSpec(900).speed).toBe(spaceSpec(600).speed);
+  });
+});
+
+describe("zone sky crossfade", () => {
+  it("holds the current painting through the first two thirds of a zone", () => {
+    expect(spaceSkyMix(0)).toMatchObject({ from: 0, to: 1, t: 0 });
+    expect(spaceSkyMix(12).t).toBe(0);
+    expect(spaceSkyMix(20).t).toBeGreaterThan(0);
+  });
+  it("arrives fully at the next painting on the zone boundary", () => {
+    expect(spaceSkyMix(24).t).toBeGreaterThan(0.9);
+    expect(spaceSkyMix(25)).toMatchObject({ from: 1, to: 2, t: 0 });
+  });
+  it("never reverses or overshoots across a whole climb", () => {
+    let prev = 0;
+    for (let f = 0; f <= 620; f++) {
+      const m = spaceSkyMix(f);
+      expect(m.t).toBeGreaterThanOrEqual(0);
+      expect(m.t).toBeLessThanOrEqual(1);
+      expect(m.to).toBeLessThanOrEqual(SPACE_ZONES.length - 1);
+      if (m.from === prev || m.from > prev) prev = m.from;
+      else throw new Error(`sky went backwards at floor ${f}`);
+    }
+  });
+  it("keeps the final zone on its own painting", () => {
+    expect(spaceSkyMix(600)).toMatchObject({ from: 10, to: 10, t: 0 });
+    expect(spaceSkyMix(1200)).toMatchObject({ from: 10, to: 10, t: 0 });
   });
 });
