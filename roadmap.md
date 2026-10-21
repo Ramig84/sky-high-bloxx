@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Review and approve the new painted wind arrow and the bounded scenery repair plan before integration; low-cloud depth, signature bird flight, actual-direction wind cue and sparse high-altitude continuity only. No Android workflow or unrelated game/ad/film edits.
 - [x] Simplify rewarded ads: removed experimental Android wake/priority, canvas recycling, artificial delays and debug panel; five-second painted countdown over the paused game. 164 tests and 2 packaging tests pass; phone-sized browser ad/life/countdown/resume verified at 822×1722. No Android build requested.
 - [ ] Confirm simplified native ad return on a real phone (blocked: explicitly requested new Android build and installation; remaining slowdown is not proven fixed). GitHub main still dc39655 at final connector check; latest edits not yet synced at that check.
 - [x] Removed automatic post-ad sharpness reduction; corrected speed-check clock that counted a 2.2-second wait as measurement time. 16 focused tests pass; phone-sized browser canvas stays 822×1722 and touch drop works without errors.
