@@ -27,10 +27,8 @@ export function AdResumeCountdown({ onComplete }: { onComplete: () => void }) {
       document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
+  // Only the number floats over the paused tower — no box or window.
   return <div className="ready-overlay" role="status" aria-live="polite" aria-label={`Get ready, resuming in ${remaining}`} onPointerDown={event => event.stopPropagation()}>
-    <div className="hud-pill ready-card">
-      <strong className="ready-title">Get ready</strong>
-      <span key={remaining} className="ready-count">{remaining}</span>
-    </div>
+    <span key={remaining} className="ready-count" aria-hidden="true">{remaining}</span>
   </div>;
 }

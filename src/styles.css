@@ -266,12 +266,11 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 @media (min-width: 600px) { .home-block { width: 110px; } .home-hook { width: 38px; } }
 @media (prefers-reduced-motion: reduce) { .home-logo, .home-swing, .home-hint, .home-buttons > * { animation: none; } }
 
-/* Post-ad "Get ready" count: painted card, popping numbers, game stays paused behind it. */
-.ready-overlay { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
-.ready-card { align-items: center; justify-content: center; gap: 0.25rem; width: 9rem; min-height: 8rem; padding: 0.8rem 1rem; text-align: center; }
-.ready-title { font-family: "Fredoka", system-ui, sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--plaque-ink); }
-.ready-count { font-family: "Fredoka", system-ui, sans-serif; font-size: 3rem; font-weight: 800; line-height: 1.1; color: var(--plaque-ink); }
-@media (prefers-reduced-motion: reduce) { .ready-card, .ready-count { animation: none; } }
+/* Post-ad count: bare popping numbers in the game's combo style over the paused tower; sized to any screen. */
+.ready-overlay { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+.ready-count { font-family: "Fredoka", system-ui, sans-serif; font-size: clamp(4.5rem, 24vmin, 10rem); font-weight: 900; line-height: 1; color: var(--hud-accent); -webkit-text-stroke: clamp(2px, 0.9vmin, 4px) oklch(0.45 0.15 40); text-shadow: 0 0.06em 0 oklch(0.45 0.15 40), 0 0.12em 0.25em rgba(40, 24, 12, 0.35); animation: ready-pop 1s ease-out both; }
+@keyframes ready-pop { 0% { transform: scale(0.4); opacity: 0; } 18% { transform: scale(1.15); opacity: 1; } 32% { transform: scale(1); } 85% { opacity: 1; } 100% { transform: scale(0.92); opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .ready-count { animation: none; } }
 
 /* Screens appear whole once their assets are decoded. */
 .screen-reveal { animation: screen-reveal 0.35s ease-out both; }
