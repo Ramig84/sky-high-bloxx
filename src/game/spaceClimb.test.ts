@@ -41,6 +41,13 @@ describe("Space Climb zones", () => {
 });
 
 describe("zone sky crossfade", () => {
+  it("accepts continuous presentation floors without stepping or reversing at boundaries", () => {
+    expect(spaceSkyMix(24.5).t).toBeGreaterThan(spaceSkyMix(24).t);
+    expect(spaceSkyMix(24.99).t).toBeGreaterThan(0.999);
+    expect(spaceSkyMix(25)).toMatchObject({ from: 1, t: 0 });
+    expect(spaceSpec(24).wind).toBe(0);
+    expect(spaceSpec(25).wind).toBeGreaterThan(0);
+  });
   it("holds the current painting through the first two thirds of a zone", () => {
     expect(spaceSkyMix(0)).toMatchObject({ from: 0, to: 1, t: 0 });
     expect(spaceSkyMix(12).t).toBe(0);

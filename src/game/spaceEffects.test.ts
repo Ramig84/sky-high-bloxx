@@ -1,7 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { SPACE_EFFECTS, SPACE_WARNING_SECONDS, freshSpaceHazards, resetSpaceHazardLane, stepSpaceHazards, spaceEffectLayers, spaceEffectMotion, spaceHazardConfig, spaceHazardHits, spaceHazardPosition, type SpaceHazard } from "./spaceEffects";
+import { advanceSpacePresentation, SPACE_EFFECTS, SPACE_WARNING_SECONDS, freshSpaceHazards, resetSpaceHazardLane, stepSpaceHazards, spaceEffectLayers, spaceEffectMotion, spaceMaterialAnchor, spaceHazardConfig, spaceHazardHits, spaceHazardPosition, spaceHazardPoseTime, type SpaceHazard } from "./spaceEffects";
 
 describe("Space Climb living scenes", () => {
+  it("eases only earned presentation floors at equal speed across frame rates and freezes on pause", () => {
+    const evolve = (hz: number) => { let f = 24; for (let i = 0; i < hz; i++) f = advanceSpacePresentation(f, 25, 1 / hz); return f; };
+    expect(evolve(30)).toBeCloseTo(evolve(120), 8);
+    expect(evolve(60)).toBeGreaterThan(24);
+    expect(evolve(60)).toBeLessThan(25);
+    expect(advanceSpacePresentation(24.5, 25, 0)).toBe(24.5);
+    expect(advanceSpacePresentation(24.5, 0, 0)).toBe(0);
+  });
+  it("anchors planet material in the sky cover crop, not floating beside the crane", () => {
+    expect(spaceMaterialAnchor("stormBand", 0, 864, 1536)?.y).toBeCloseTo(1336.32);
+    expect(spaceMaterialAnchor("marsDust", 0, 864, 1536)?.x).toBeCloseTo(552.96);
+    expect(spaceMaterialAnchor("lunarDust", 0, 864, 1536)?.y).toBeCloseTo(291.84);
+    expect(spaceMaterialAnchor("debris", 0, 360, 700)).toBeNull();
+  });
+  it("gives rocks continuous depth travel and invisible wrap points instead of fixed hovering", () => {
+    const a = spaceEffectMotion("asteroid", 0, 8, 360, 700);
+    const b = spaceEffectMotion("asteroid", 0, 9, 360, 700);
+    expect(b.y - a.y).toBeCloseTo(840 / 34);
+    expect(spaceEffectMotion("asteroid", 0, 34, 360, 700).alpha).toBe(0);
+    expect(spaceEffectMotion("asteroid", 1, 8, 360, 700).y).not.toBe(a.y);
+  });
   it("gives all eleven zones their own effect vocabulary", () => {
     expect(SPACE_EFFECTS).toHaveLength(11);
     for (const effects of SPACE_EFFECTS) expect(effects.length).toBeGreaterThan(0);
@@ -35,6 +56,11 @@ describe("Space Climb living scenes", () => {
 
 describe("warned space obstacles", () => {
   const hazard: SpaceHazard = { kind: "debris", started: 10, direction: 1, y: 400, duration: 5, size: 30 };
+  it("keeps one uninterrupted obstacle pose clock from warning through crossing", () => {
+    expect(spaceHazardPoseTime(hazard, 12.399)).toBeCloseTo(2.399);
+    expect(spaceHazardPoseTime(hazard, 12.401)).toBeCloseTo(2.401);
+    expect(spaceHazardPoseTime(hazard, 15, true)).toBe(0);
+  });
   it("keeps all Earth and Edge of Space floors free of debris obstacles", () => {
     for (let f = 0; f < 100; f++) expect(spaceHazardConfig(f)).toBeNull();
     expect(spaceHazardConfig(100)?.kind).toBe("debris");

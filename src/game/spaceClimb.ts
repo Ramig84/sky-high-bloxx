@@ -39,7 +39,7 @@ export function floorsToNextZone(floors: number) {
  * third of a zone, then fades into the next zone's colours across that stretch.
  */
 export function spaceSkyMix(floors: number) {
-  const f = Math.max(0, Math.floor(floors));
+  const f = Math.max(0, floors);
   const z = zoneAt(f);
   const next = SPACE_ZONES[z + 1];
   if (!next) return { from: z, to: z, t: 0 };

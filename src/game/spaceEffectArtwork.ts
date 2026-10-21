@@ -10,7 +10,7 @@ import ringIce from "@/assets/space-ring-ice-poses.webp";
 import { atmosphereArtwork } from "./paintedAtmosphere";
 import { spiritArtwork } from "./spiritArtwork";
 import { poseBlend } from "./poseMotion";
-import { SPACE_EFFECTS, spaceEffectLayers, spaceEffectMotion, type SpaceEffectKind } from "./spaceEffects";
+import { SPACE_EFFECTS, spaceEffectLayers, spaceEffectMotion, spaceMaterialAnchor, type SpaceEffectKind } from "./spaceEffects";
 
 export const spaceEffectArtwork = { debris, asteroid, lunarDust, marsDust, comet, stormBand, nebula, lightning, ringIce, cloud: atmosphereArtwork.cloud, aurora: atmosphereArtwork.aurora, bird: spiritArtwork.gull };
 export const SPACE_EFFECT_IMAGES = [...new Set([...Object.values(spaceEffectArtwork), spiritArtwork.eagle])];
@@ -38,10 +38,14 @@ export function drawSpaceEffects(ctx: CanvasRenderingContext2D, images: Record<S
       const m = spaceEffectMotion(effect.kind, i, time, width, height, reduced);
       const alpha = layer.alpha * effect.alpha * m.alpha;
       if (alpha < 0.005) continue;
-      ctx.save(); ctx.globalAlpha = alpha; ctx.translate(m.x, m.y); ctx.rotate(m.angle);
+      const anchor = spaceMaterialAnchor(effect.kind, i, width, height);
+      const size = anchor?.size ?? effect.size * ("scale" in m ? m.scale ?? 1 : 1);
+      ctx.save(); ctx.globalAlpha = alpha;
+      if (anchor) ctx.globalCompositeOperation = anchor.blend;
+      ctx.translate(anchor?.x ?? m.x, anchor?.y ?? m.y); ctx.rotate(anchor?.angle ?? m.angle);
       if (m.mirror) ctx.scale(-1, 1);
       if (effect.kind === "bird") drawBird(layer.zone, i, reduced ? 0 : time, effect.size);
-      else drawSpacePose(ctx, images[effect.kind], effect.kind, reduced ? 0 : effect.kind === "lightning" ? time % 13 : time, i, effect.size);
+      else drawSpacePose(ctx, images[effect.kind], effect.kind, reduced ? 0 : effect.kind === "lightning" ? time % 13 : time, i, size);
       ctx.restore();
     }
   }

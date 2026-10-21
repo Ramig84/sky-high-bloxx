@@ -10,12 +10,12 @@ export const SPACE_EFFECTS: readonly (readonly SpaceEffect[])[] = [
   [{ kind: "cloud", count: 2, size: 150, alpha: 0.24 }, { kind: "aurora", count: 1, size: 210, alpha: 0.26 }, { kind: "lightning", count: 1, size: 120, alpha: 0.6 }],
   [{ kind: "aurora", count: 1, size: 180, alpha: 0.17 }],
   [{ kind: "debris", count: 3, size: 32, alpha: 0.58 }],
-  [{ kind: "lunarDust", count: 2, size: 110, alpha: 0.45 }, { kind: "debris", count: 1, size: 25, alpha: 0.42 }],
-  [{ kind: "marsDust", count: 2, size: 105, alpha: 0.52 }],
+  [{ kind: "lunarDust", count: 1, size: 58, alpha: 0.16 }, { kind: "debris", count: 1, size: 25, alpha: 0.42 }],
+  [{ kind: "marsDust", count: 1, size: 68, alpha: 0.22 }],
   [{ kind: "asteroid", count: 4, size: 38, alpha: 0.64 }],
-  [{ kind: "stormBand", count: 2, size: 155, alpha: 0.44 }],
+  [{ kind: "stormBand", count: 1, size: 115, alpha: 0.19 }],
   [{ kind: "ringIce", count: 4, size: 26, alpha: 0.6 }],
-  [{ kind: "nebula", count: 2, size: 155, alpha: 0.22 }, { kind: "comet", count: 1, size: 70, alpha: 0.65 }],
+  [{ kind: "nebula", count: 2, size: 220, alpha: 0.09 }, { kind: "comet", count: 1, size: 70, alpha: 0.65 }],
 ];
 
 export function spaceEffectLayers(floors: number) {
@@ -31,6 +31,15 @@ export function spaceEffectMotion(kind: SpaceEffectKind, index: number, time: nu
   const side = index % 2 === 0 ? -1 : 1;
   const edge = width * (side < 0 ? 0.12 : 0.88);
   const y0 = height * (0.29 + (index % 3) * 0.17);
+  if (["debris", "asteroid", "ringIce"].includes(kind)) {
+    // Independently phased depth passes, recycling only beyond the frame at zero opacity.
+    const duration = 34 + index * 7;
+    const k = reduced ? 0.35 + index * 0.08 : ((t + index * 11.7) % duration) / duration;
+    const depth = 0.65 + (index % 3) * 0.17;
+    return { x: edge + side * width * (0.02 * Math.sin(k * Math.PI * 2 + phase) + 0.025 * (k - 0.5)),
+      y: -70 + k * (height + 140), alpha: Math.min(1, k * 10, (1 - k) * 10) * depth,
+      mirror: side > 0, angle: kind === "ringIce" ? -0.3 : 0, scale: depth };
+  }
   if (kind === "bird") {
     const duration = 19 + index * 3;
     const k = reduced ? 0.18 + index * 0.62 : ((t + index * 7) % duration) / duration;
@@ -42,15 +51,35 @@ export function spaceEffectMotion(kind: SpaceEffectKind, index: number, time: nu
     return { x: -90 + k * (width + 180), y: height * 0.37 - k * 55, alpha: reduced ? 0.4 : Math.min(1, k * 10, (1 - k) * 10), mirror: false, angle: -0.14 };
   }
   const atmosphere = ["cloud", "aurora", "stormBand", "nebula", "lightning"].includes(kind);
-  const ice = kind === "ringIce";
   const lightningPhase = t % 13;
   return {
     x: edge + (atmosphere ? 0 : Math.sin(t * (0.12 + index * 0.019) + phase) * width * 0.055),
-    y: kind === "aurora" ? height * 0.3 : ice ? height * (0.46 + index * 0.045) + Math.sin(t * 0.16 + phase) * 12 : y0 + (atmosphere ? 0 : Math.cos(t * 0.13 + phase) * 15),
+    y: kind === "aurora" ? height * 0.3 : y0 + (atmosphere ? 0 : Math.cos(t * 0.13 + phase) * 15),
     alpha: kind === "lightning" ? (reduced || lightningPhase > 1.15 ? 0 : Math.sin(lightningPhase / 1.15 * Math.PI) * 0.8) : 0.9,
     mirror: side > 0,
-    angle: ice ? -0.3 : 0,
+    angle: 0,
   };
+}
+
+/** Coordinates in the approved 864×1536 paintings, mapped through the same cover crop as the sky. */
+export function spaceMaterialAnchor(kind: SpaceEffectKind, index: number, width: number, height: number) {
+  const cover = Math.max(width / 864, height / 1536), w = 864 * cover, h = 1536 * cover;
+  const point = (x: number, y: number) => ({ x: (width - w) / 2 + x * w, y: (height - h) / 2 + y * h });
+  if (kind === "lunarDust") return { ...point(0.64, 0.19), size: w * 0.16, angle: -0.4, blend: "soft-light" as const };
+  if (kind === "marsDust") return { ...point(0.64, 0.23), size: w * 0.2, angle: -0.4, blend: "multiply" as const };
+  if (kind === "stormBand") return { ...point(0.74, 0.87), size: w * 0.42, angle: -0.12, blend: "soft-light" as const };
+  if (kind === "nebula") return { ...point(index === 0 ? 0.06 : 0.93, index === 0 ? 0.34 : 0.49), size: w * 0.78, angle: index === 0 ? -0.6 : 0.4, blend: "soft-light" as const };
+  return null;
+}
+
+/** Render-only easing; never selects rules or awards floors. The simulation's zero dt freezes it. */
+export function advanceSpacePresentation(current: number, earned: number, dt: number) {
+  if (earned < current) return Math.max(0, earned);
+  return current + (earned - current) * (1 - Math.exp(-Math.max(0, dt) * 2.4));
+}
+
+export function spaceHazardPoseTime(hazard: SpaceHazard, time: number, reduced = false) {
+  return reduced ? 0 : Math.max(0, time - hazard.started);
 }
 
 export type HazardKind = "debris" | "asteroid" | "ringIce" | "comet";
