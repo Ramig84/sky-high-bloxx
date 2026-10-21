@@ -606,7 +606,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.globalAlpha = 1;
       }
       if (!faded && ok(street)) buildFade();
-      drawCover(faded ? streetFaded : street, sky.street, alt);
+      // Space Climb keeps its own painted zone sky all the way down: no campaign street over it.
+      if (!endless) drawCover(faded ? streetFaded : street, sky.street, alt);
 
       // Sea of cloud tops below the tower once it climbs above the clouds.
       if (skyC.cloudSea > 0.01 && ok(cloudSea)) {
