@@ -107,6 +107,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const balanceLabel = useRef<HTMLSpanElement>(null);
   const balancePanel = useRef<HTMLDivElement>(null);
   const [credited, setCredited] = useState(0);
+  const [zone, setZone] = useState(0);
+  const [toNext, setToNext] = useState<number | null>(25);
   const [scoreStatus, setScoreStatus] = useState<"idle" | "pending" | "sent" | "ineligible" | "failed">("idle");
   const [adPlacement, setAdPlacement] = useState<AdPlacement | null>(null);
   const adPaused = useRef(false);
@@ -349,7 +351,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; s = fresh(); publish(); };
+    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); setZone(0); setToNext(floorsToNextZone(0)); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; s = fresh(); publish(); };
 
     api.current.revive = () => { if (!s.over || s.won || endless) return; s.over = false; s.lives = 1; s.combo = 0; s.shake = 0; if (!s.drop) s.held = true; publish("EXTRA LIFE!"); };
 
@@ -898,6 +900,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
               daily ? (tourPreview ? `UNLOCK ${district.name.toUpperCase()} IN THE CITY` : "DISTRICT TOUR · 3× COINS") : "",
               !hud.won && !endless ? "COINS NOT BANKED" : "",
             ].filter(Boolean).join(" · ")}</span>
+            {endless && !daily && <span className="hud-label text-center">REACHED {SPACE_ZONES[zone]!.name.toUpperCase()} · FLOOR {hud.floors}</span>}
             {endless && !daily && <span role="status" className="hud-label text-center">{scoreStatus === "sent" ? "SCORE SENT TO LEADERBOARD" : scoreStatus === "pending" ? "CHECKING SCORE…" : scoreStatus === "failed" ? "SCORE NOT SENT · CONNECTION ERROR" : "SCORE SAVED ON THIS PHONE"}</span>}
             <div className="mt-1 flex w-full flex-col gap-2">
               {!endless && extraLifeOffer(hud.lives, hud.over, hud.won) && <Button variant="ghost" className="plaque h-12 w-full rounded-none text-base font-extrabold" onClick={() => openAd("extra-life")}><Heart className="h-5 w-5" /> Watch ad · +1 life</Button>}
