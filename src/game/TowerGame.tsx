@@ -813,7 +813,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.font = '500 12px Fredoka, sans-serif';
         ctx.fillStyle = cueInk; ctx.shadowColor = cuePaper; ctx.shadowBlur = 3;
         const label = windView.changing ? (windView.nextDirection < 0 ? "Next wind ←" : "Next wind →") : (cue.direction < 0 ? "← Wind" : "Wind →");
-        ctx.fillText(label, x, y + 23);
+        ctx.fillText(label, x, y + 23, Math.min(88, vw * 0.27));
         ctx.restore();
       }
 
