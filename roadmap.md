@@ -1,6 +1,6 @@
 # Roadmap
-- [ ] Animate the painted wind cue and add truthful pre-release/descent warnings; preserve wind physics and all unrelated content.
-- [ ] Investigate music continuing outside the game and correct unintended background playback only.
+- [x] Animated the wind cue through six authored painted poses, with “Wind on release” before drop and actual-direction warning during descent. 177 game tests pass; real Home→Map→Market→touch drop browser flow verified with no errors. Wind physics unchanged; no Android workflow.
+- [x] Corrected audio focus/page-exit silencing and native activity gating without changing recordings or volumes; live browser audio context verified running→suspended→running on blur/focus and pagehide/pageshow. Physical-phone exit/lock verification remains pending.
 - [x] Approved and integrated the painted wind arrow and bounded scenery repairs: camera-anchored thin mist, single district-shaded cloud field, signature forward-sweeping bird paths and sparse high-altitude creatures. 173 game tests pass; 40 isolated district/height captures, motion samples, small-phone/tablet layouts and touch release/pause/resume/leave cancellation verified with no runtime errors. No Android/ad-recovery/gameplay/reward/audio/film changes.
 - [ ] Final visual acceptance of integrated arrow placement, mist/cloud depth and bird motion (blocked: user review); physical-phone motion quality remains unverified. No Android workflow requested.
 - [x] Simplify rewarded ads: removed experimental Android wake/priority, canvas recycling, artificial delays and debug panel; five-second painted countdown over the paused game. 164 tests and 2 packaging tests pass; phone-sized browser ad/life/countdown/resume verified at 822×1722. No Android build requested.
