@@ -15,6 +15,8 @@ import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./a
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
 import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
 import { SPACE_ZONE_SKY } from "./spaceArtwork";
+import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
+import { freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { BLOCK_W as BW, BLOCK_H as BH, advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
@@ -203,6 +205,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const dSkyLow = load(districtSkyArt[district.id].low), dSkyHigh = load(districtSkyArt[district.id].high);
     // Space Climb paints its own sky per zone, dissolving from one into the next as the tower rises.
     const spaceSkies = SPACE_ZONE_SKY.map(load);
+    const spacePoses = endless ? Object.fromEntries(Object.entries(spaceEffectArtwork).map(([key, src]) => [key, load(src)])) as Record<SpaceEffectKind, HTMLImageElement> : null;
+    let hazards = freshSpaceHazards();
     const atmos = DISTRICT_ATMOS[district.id];
     // District-coloured copy of the older shared creatures; approved signature paintings keep their own colours.
     const spiritLayers = spirits.map(sp => {
@@ -354,7 +358,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); setZone(0); setToNext(floorsToNextZone(0)); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; s = fresh(); publish(); };
+    api.current.restart = () => { runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); setZone(0); setToNext(floorsToNextZone(0)); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; hazards = freshSpaceHazards(); s = fresh(); publish(); };
 
     api.current.revive = () => { if (!s.over || s.won || endless) return; s.over = false; s.lives = 1; s.combo = 0; s.shake = 0; if (!s.drop) s.held = true; publish("EXTRA LIFE!"); };
 
@@ -394,6 +398,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // Discard a pending release rather than judging it against a vanished surface.
       s.drop = null; s.held = true;
       s.nextSkin = s.floors.length ? s.nextSkin % 3 : 3;
+      if (endless) hazards = resetSpaceHazardLane(hazards, s.floors.length, s.t);
       return true;
     };
 
@@ -446,6 +451,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       s.nextSkin = s.floors.length === 0 ? 3 : (s.nextSkin + 1 + Math.floor(Math.random() * 2)) % 3;
       s.held = true;
+      if (endless) hazards = resetSpaceHazardLane(hazards, s.floors.length, s.t);
     };
 
     const toScreenY = (wy: number) => GROUND_SCREEN - (wy - s.camY);
@@ -500,12 +506,25 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
 
       // drop
-      if (s.drop) {
+      if (endless && !paused && !s.over) hazards = stepSpaceHazards(hazards, s.floors.length, s.t, (topY() + BH / 2 + hung().y) / 2);
+      if (s.drop && !paused && !s.over) {
+        const previous = { x: s.drop.x, y: s.drop.y };
         if (spec.wind) s.drop.vx += spec.wind * windDir * dt;
         if (spec.pull) s.drop.vx += spec.pull * dt;
         const landed = advanceToLanding(s.drop, dt, GRAVITY * (spec.gravity ?? 1), topY(), BH / 2);
         s.drop.rot *= Math.exp(-dt * 14); // settle level while falling
-        if (landed) { const d = s.drop; s.drop = null; land(d); }
+        const hazard = endless ? hazards.hazard : null;
+        const active = hazard ? spaceHazardPosition(hazard, s.t, vw) : null;
+        const before = hazard ? spaceHazardPosition(hazard, s.t - dt, vw) : null;
+        const hit = hazard && active && before && (active.active || before.active) && spaceHazardHits(before, active, previous, s.drop, bw / 2, BH / 2, hazard.size * 0.27);
+        if (hit) {
+          const d = s.drop;
+          s.fallers.push({ ...d, vr: (hazard?.direction ?? 1) * 3, skin: s.nextSkin });
+          s.drop = null; s.held = true;
+          if (spec.wind) wind = finishWindDrop(wind);
+          hazards = resetSpaceHazardLane(hazards, s.floors.length, s.t);
+          loseLife("DEBRIS HIT!");
+        } else if (landed) { const d = s.drop; s.drop = null; land(d); }
       }
       for (const f of s.fallers) { integrateFall(f, dt, GRAVITY); f.rot += f.vr * dt; }
       s.fallers = s.fallers.filter(f => f.y > s.camY - 800);
@@ -527,13 +546,18 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       drawCover(sunset, sky.sunset, 0);
       drawCover(space, sky.space, 0);
       // Space Climb: the zone's own painting, fading into the next zone's as the climb nears it.
-      const zoneSky = endless ? spaceSkyMix(s.floors.length) : null;
-      const zoneArt = zoneSky !== null && ok(spaceSkies[zoneSky.from]!) && ok(spaceSkies[zoneSky.to]!);
+      // Render-only development review: no fake floors, rewards, scores or progression.
+      const review = import.meta.env.DEV && endless ? (window as unknown as { __spaceReview?: { floors: number; time: number } }).__spaceReview : undefined;
+      const sceneFloors = review?.floors ?? s.floors.length;
+      const sceneTime = review?.time ?? s.t;
+      const zoneSky = endless ? spaceSkyMix(sceneFloors) : null;
+      const fromArt = zoneSky ? spaceSkies[zoneSky.from] : undefined, toArt = zoneSky ? spaceSkies[zoneSky.to] : undefined;
+      const zoneArt = fromArt && toArt && ok(fromArt) && ok(toArt);
       // District's own painted sky: one continuous street-to-top journey, fully opaque (no grey veil).
       const districtArt = !zoneArt && ok(dSkyLow) && ok(dSkyHigh);
-      if (zoneArt && zoneSky) {
-        drawCover(spaceSkies[zoneSky.from]!, 1, 0);
-        if (zoneSky.t > 0.005) drawCover(spaceSkies[zoneSky.to]!, zoneSky.t, 0); }
+      if (zoneArt && zoneSky && fromArt && toArt) {
+        drawCover(fromArt, 1, 0);
+        if (zoneSky.t > 0.005) drawCover(toArt, zoneSky.t, 0); }
       else if (districtArt) { const mix = districtSkyMix(alt);
         drawCover(dSkyLow, 1, 0);
         if (mix.high > 0.005) drawCover(dSkyHigh, mix.high, 0); }
@@ -545,7 +569,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (spec.night && !endless) { ctx.fillStyle = "rgba(20,26,58,0.28)"; ctx.fillRect(0, 0, vw, VH); }
       const glow = highSkyGlow(alt, 1, Boolean(spec.night));
       const starAlpha = Math.max(sky.space, glow * dsky.stars);
-      if (!reducedMotion && starAlpha > 0 && starPigment.width) {
+      if (!endless && !reducedMotion && starAlpha > 0 && starPigment.width) {
         ctx.save(); ctx.globalCompositeOperation = "screen";
         drawCover(starPigment, starAlpha * (0.035 + 0.025 * Math.sin(s.t * 0.65)) + glow * dsky.stars * 0.05, 0);
         ctx.restore();
@@ -589,7 +613,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
         ctx.restore();
       }
-      if (dsky.aurora > 0 && ok(aurora) && !districtArt) {
+      if (!endless && dsky.aurora > 0 && ok(aurora) && !districtArt) {
         const a = highSkyGlow(altC, dsky.aurora, Boolean(spec.night));
         if (a > 0.01) {
           const aw = vw * 1.5, ah = aw * aurora.naturalHeight / aurora.naturalWidth;
@@ -599,7 +623,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
       // Far city sinking into blue haze below the rising tower (slowest layer).
-      if (sky.cityHaze > 0.01 && ok(cityHazeArt)) {
+      if (!endless && sky.cityHaze > 0.01 && ok(cityHazeArt)) {
         const hw = vw * cityHazeSpan, hh = hw * cityHazeArt.naturalHeight / cityHazeArt.naturalWidth;
         ctx.globalAlpha = sky.cityHaze * 0.85;
         ctx.drawImage(cityHazeArt, vw / 2 - hw / 2, VH - hh * 1.05 + Math.max(0, alt - 500) * 0.12, hw, hh);
@@ -610,7 +634,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (!endless) drawCover(faded ? streetFaded : street, sky.street, alt);
 
       // Sea of cloud tops below the tower once it climbs above the clouds.
-      if (skyC.cloudSea > 0.01 && ok(cloudSea)) {
+      if (!endless && skyC.cloudSea > 0.01 && ok(cloudSea)) {
         if (!cloudSeaLayer) cloudSeaLayer = tintedCloudSea(cloudSea, DISTRICT_CLOUD_TINT[district.id]);
         const cw = vw * 1.6, ch = cw * cloudSea.naturalHeight / cloudSea.naturalWidth;
         const sink = Math.max(0, altC - 2400) * 0.06;
@@ -619,10 +643,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.globalAlpha = 1;
       }
       // A single district-shaded field behind gameplay; authored paintings remain intact.
-      drawSkyClouds(altC, false);
-      drawSkyClouds(altC, true);
+      if (!endless) { drawSkyClouds(altC, false); drawSkyClouds(altC, true); }
+      if (endless && spacePoses) drawSpaceEffects(ctx, spacePoses, sceneFloors, sceneTime, vw, VH, reducedMotion, (z, i, time, size) => {
+        const kind = z === 1 ? "eagle" : "gull";
+        drawSpirit(ctx, ambientPoses[kind], kind, i, time, size, !reducedMotion && Math.sin(time * 0.55 + i) < -0.5);
+      });
       // Painted thin mist, camera-anchored below the rooftops, never a full cloud puff.
-      if (ok(wisp) && (atmos.weather.includes("mist") || district.id === "skyline" || district.id === "cloudpeak")) {
+      if (!endless && ok(wisp) && (atmos.weather.includes("mist") || district.id === "skyline" || district.id === "cloudpeak")) {
         for (let i = 0; i < 3; i++) {
           const m = mistBand(i, alt, vw, VH);
           const width = vw * 0.62, height = width * wisp.naturalHeight / wisp.naturalWidth;
@@ -644,7 +671,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.restore();
       }
       // Authored painted poses: no wing hinges, axis stretching or single-image deformation.
-      for (const spirit of spiritLayers) {
+      if (!endless) for (const spirit of spiritLayers) {
       const spPres = spiritPresence(spirit.kind, alt, climbTop);
       const spiritArt = spirit.art();
       if (spPres > 0.01 && ok(spirit.src) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
@@ -665,7 +692,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       }
       // Shared birds keep their approved paths and district counts.
-      if (ok(bird)) for (const [i, b] of birds.entries()) {
+      if (!endless && ok(bird)) for (const [i, b] of birds.entries()) {
         const m = birdPath(i, reducedMotion ? b.ph : s.t * dsky.birds.speed, vw, VH);
         const depth = 0.75 + (i % 3) * 0.08;
         // Birds sit slightly lower as the tower climbs, so they belong to the sky rather than the screen.
@@ -676,7 +703,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.restore(); ctx.globalAlpha = 1;
       }
       // district life: painted leaves, petals, butterflies, steam, boats and mist
-      if (ok(amb)) {
+      if (!endless && ok(amb)) {
         const fadeHi = sky.districtLife;
         for (const p of life) {
           // Low mist is handled once above; Rail Yard steam already has one roof source.
@@ -786,7 +813,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       if (spec.night && endless && !zoneArt) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
-      if (spec.slip && ok(rain)) {
+      if (spec.slip && ok(rain) && (!endless || zoneAt(sceneFloors) === 2)) {
         for (const p of rainStrokes) {
           stepRain(p, dt, vw, VH, spec.wind * windDir);
           ctx.globalAlpha = p.alpha;
@@ -796,7 +823,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       const cue = windCue(spec.wind, windDir, s.held, Boolean(s.drop), s.over);
       const windView = windPresentation(wind);
-      if (cue.visible) {
+      if (cue.visible && (!endless || zoneAt(sceneFloors) < 3)) {
         // The brush strokes curl and dissipate through six separately painted poses, not a sliding tile.
         if (ok(windArt)) for (let i = 0; i < 3; i++) {
           const cycle = (s.t * 0.7 + i / 3) % 1;
@@ -826,9 +853,31 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.font = '500 12px Fredoka, sans-serif';
         ctx.fillStyle = cueInk; ctx.shadowColor = cuePaper; ctx.shadowBlur = 3;
-        const label = windView.changing ? (windView.nextDirection < 0 ? "Next wind ←" : "Next wind →") : (cue.direction < 0 ? "← Wind" : "Wind →");
+        const force = endless && zoneAt(sceneFloors) >= 3 ? "Drift" : "Wind";
+        const label = windView.changing ? (windView.nextDirection < 0 ? `Next ${force.toLowerCase()} ←` : `Next ${force.toLowerCase()} →`) : (cue.direction < 0 ? `← ${force}` : `${force} →`);
         ctx.fillText(label, x, y + 23, Math.min(88, vw * 0.27));
         ctx.restore();
+      }
+
+      if (endless && hazards.hazard && spacePoses) {
+        const hazard = hazards.hazard, m = spaceHazardPosition(hazard, s.t, vw);
+        const y = toScreenY(m.y);
+        if (m.active) {
+          ctx.save(); ctx.translate(vw / 2 + m.x, y); if (hazard.direction < 0) ctx.scale(-1, 1);
+          drawSpacePose(ctx, spacePoses[hazard.kind], hazard.kind, s.t - hazard.started, 0, hazard.size);
+          ctx.restore();
+        } else if (m.warning) {
+          const x = hazard.direction > 0 ? 32 : vw - 32;
+          ctx.save(); ctx.translate(x, y);
+          ctx.globalAlpha = 0.75 + Math.sin(s.t * 5) * 0.1;
+          drawSpacePose(ctx, spacePoses[hazard.kind], hazard.kind, reducedMotion ? 0 : s.t, 0, hazard.size);
+          ctx.restore();
+          ctx.save(); ctx.fillStyle = cueInk; ctx.shadowColor = cuePaper; ctx.shadowBlur = 3;
+          ctx.font = '500 12px Fredoka, sans-serif'; ctx.textBaseline = "middle";
+          ctx.textAlign = hazard.direction > 0 ? "left" : "right";
+          ctx.fillText(hazard.direction > 0 ? "Debris →" : "← Debris", hazard.direction > 0 ? 10 : vw - 10, y + 30, Math.min(90, vw * 0.27));
+          ctx.restore();
+        }
       }
 
       raf = requestAnimationFrame(frame);
