@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Subdirectories have their own AGENTS.md (e.g. src/game/AGENTS.md); read it before changing files there.
+- Read subdirectory AGENTS.md (e.g. src/game/AGENTS.md) before changing files there.
 - Release progression/completion follows uninterrupted earned stars in levels.ts; separate testing map helpers bypass access only, never fabricate stars or completion.
 - Restore account UI from the SDK's persisted session, publish it before cloud progress requests, and defer auth-event sync outside callbacks; transient user-endpoint failures must not impersonate sign-out, while RLS continues to validate every private request.
 - Keep the standalone transition preview isolated from saved campaign progress and rewards, so visual reviews cannot unlock districts or pay coins.
