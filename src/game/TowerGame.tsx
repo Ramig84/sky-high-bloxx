@@ -632,8 +632,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
 
-      // District sky visitors (balloons, kites) drifting at the side lanes.
-      if (dsky.life !== "none" && visitors.length && ok(visitorArt)) for (const v of visitors) {
+      // District sky visitors (balloons, kites) drifting at the side lanes — campaign only.
+      if (!endless && dsky.life !== "none" && visitors.length && ok(visitorArt)) for (const v of visitors) {
         const fade = skyBlend(alt, v.wy - 650, v.wy - 350) * (1 - skyBlend(alt, v.wy + 500, v.wy + 900));
         if (fade < 0.01) continue;
         const t = s.t;
