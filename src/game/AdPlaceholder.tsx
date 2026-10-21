@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AD_PLACEMENTS, type AdPlacement } from "./adPlacements";
 import { nativeAds, showNativeAd } from "./ads";
 
-/** Deliberately no provider calls, wallet writes or gameplay rewards. */
+/** Native provider completion is required before granting a life; web keeps its test dialog. */
 export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdPlacement; onClose: () => void; onReward?: (() => void) | undefined }) {
   const automatic = placement === "five-levels";
   const [stage, setStage] = useState<"offer" | "playing" | "complete">(automatic ? "playing" : "offer");
@@ -14,9 +14,9 @@ export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdP
     let live = true;
     showNativeAd(placement).then(ok => {
       if (!live) return;
-      // Let the full-screen ad activity finish closing before gameplay resumes.
-      window.setTimeout(() => { if (!live) return; if (ok) setStage("complete"); else onClose(); }, 350);
-    }).catch(() => { if (live) setStage("complete"); });
+      if (!ok) onClose();
+      else (onReward ?? onClose)();
+    }).catch(() => { if (live) onClose(); });
     return () => { live = false; };
   }, [stage, placement]);
   useEffect(() => {

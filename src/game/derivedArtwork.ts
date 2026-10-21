@@ -26,5 +26,3 @@ export function starPainting(image: HTMLImageElement) {
   return canvas;
 }
 
-/** Drop a cached copy so it is repainted on a fresh surface (after a full-screen ad). */
-export function forgetStarPainting(image: HTMLImageElement) { stars.delete(image.src); }

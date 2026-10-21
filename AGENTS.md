@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Subdirectories have their own AGENTS.md (e.g. src/game/AGENTS.md); read it before changing files there.
+- Read subdirectory AGENTS.md (e.g. src/game/AGENTS.md) before changing files there.
 - Release progression/completion follows uninterrupted earned stars in levels.ts; separate testing map helpers bypass access only, never fabricate stars or completion.
 - Restore account UI from the SDK's persisted session, publish it before cloud progress requests, and defer auth-event sync outside callbacks; transient user-endpoint failures must not impersonate sign-out, while RLS continues to validate every private request.
 - Keep the standalone transition preview isolated from saved campaign progress and rewards, so visual reviews cannot unlock districts or pay coins.
@@ -32,4 +32,4 @@
 - Shared painted poses with continuous wingbeat clocks; bird flight (birdPath) is a full-width horizontal crossing with gentle rise/dip, never near-vertical elevator paths; stationary menu birds under reduced motion; steam anchored to roofs, lanterns/butterflies above streets — scenery stays cohesive without changing obstacles.
 - Endless submission status mirrors the leaderboard response and resets per run, so guests/failures never show success.
 - Native Google sign-in returns via https /auth/app-return (custom app schemes are rejected), forwarding to the Android app link; src/game/nativeAuth.ts accepts only sign-ins started on this phone.
-- Post-ad speed: retain resume/focus wake and canvas release/restore; never set WebView layer types. canvasResolution preserves density across ads; diagnostics never reduce sharpness. The slowdown cause remains unproven.
+- Rewarded ads: normal provider completion, then five-second in-game countdown; pause play, cache paintings at full sharpness. No experimental Android wake/layer settings, surface recycling or debugging, so the standard flow stays isolated from game rules.

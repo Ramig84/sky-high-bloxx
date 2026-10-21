@@ -1,6 +1,5 @@
 package app.lovable.skyhighbloxx;
 
-import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -57,33 +56,5 @@ public class MainActivity extends BridgeActivity {
         // Reload after installing the client so even the initial document is local.
         getBridge().getWebView().stopLoading();
         getBridge().getWebView().loadUrl("https://sky-high-bloxx.lovable.app/");
-        // Keep the game's renderer important while a full-screen ad covers it.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getBridge().getWebView().setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
-        }
-    }
-
-    /** After a full-screen ad closes, fully wake the game window so frames return to full speed. */
-    private void wakeGameWindow() {
-        if (getBridge() == null) return;
-        WebView web = getBridge().getWebView();
-        if (web == null) return;
-        web.onResume();
-        web.resumeTimers();
-        web.setVisibility(android.view.View.VISIBLE);
-        web.requestFocus();
-        web.invalidate();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        wakeGameWindow();
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) wakeGameWindow();
     }
 }

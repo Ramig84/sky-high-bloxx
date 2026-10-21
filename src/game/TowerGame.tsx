@@ -28,10 +28,9 @@ import { CoinCollector, type CoinCollectorHandle } from "./CoinCollector";
 import { AdPlaceholder } from "./AdPlaceholder";
 import { extraLifeOffer, fiveLevelOffer, type AdPlacement } from "./adPlacements";
 import { canBankRun } from "./runPolicy";
-import { atmosphereArtwork, drawAtmosphere, jadeTinted, resetAtmosphereCache } from "./paintedAtmosphere";
-import { forgetStarPainting, starPainting } from "./derivedArtwork";
-import { nativeAds, setAdSurfaces, ADS_TESTING, debugPretendAd, debugLoadOnlyAd, debugWatchAd } from "./ads";
-import { logAdEvent, summariseFrames, pushFrameStats, adDebugEvents, adDebugHistory, onAdDebugChange } from "./adDebug";
+import { atmosphereArtwork, drawAtmosphere, jadeTinted } from "./paintedAtmosphere";
+import { starPainting } from "./derivedArtwork";
+import { AdResumeCountdown } from "./AdResumeCountdown";
 import { canvasResolution } from "./canvasResolution";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
@@ -97,7 +96,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   if (!district) throw new Error("No game districts configured");
   const doneCb = useRef(onComplete); doneCb.current = onComplete;
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const fpsLabel = useRef<HTMLSpanElement>(null);
   const collector = useRef<CoinCollectorHandle>(null);
   const coinTarget = useRef<HTMLImageElement>(null);
   const coinCounter = useRef<HTMLElement>(null);
@@ -120,22 +118,14 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
-  // Native ads free and rebuild the drawing surface themselves (see ads.ts); afterwards check drawing speed.
-  const refreshAfterAd = () => { if (nativeAds()) api.current.checkSpeed?.(); };
-  const closeAd = () => { adPaused.current = false; setAdPlacement(null); refreshAfterAd(); };
-  // After a rewarded ad the game stays paused through a short "Get ready" count,
-  // so the phone settles back to full speed and the player gets a fair restart.
-  const [readyCount, setReadyCount] = useState(0);
-  const reviveAfterAd = () => { api.current.revive?.(); setAdPlacement(null); setReadyCount(3); refreshAfterAd(); };
-  useEffect(() => {
-    if (readyCount <= 0) return;
-    const t = window.setTimeout(() => setReadyCount(n => {
-      if (n <= 1) { adPaused.current = false; logAdEvent("countdown ended, play resumed"); return 0; }
-      void sfx("tap", 0.5);
-      return n - 1;
-    }), 700);
-    return () => window.clearTimeout(t);
-  }, [readyCount]);
+  const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
+  const [resumingFromAd, setResumingFromAd] = useState(false);
+  const reviveAfterAd = () => {
+    api.current.revive?.();
+    setAdPlacement(null);
+    setResumingFromAd(true);
+  };
+  const finishAdCountdown = () => { adPaused.current = false; setResumingFromAd(false); };
   const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
   useEffect(() => {
@@ -151,14 +141,14 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const timer = window.setTimeout(() => setHud(h => h.msgKey === hud.msgKey ? { ...h, msg: "" } : h), 1100);
     return () => window.clearTimeout(timer);
   }, [hud.msg, hud.msgKey]);
-  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void; refreshSurface?: (() => void) | undefined; checkSpeed?: (() => void) | undefined }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
+  const api = useRef<{ tap: () => void; restart: () => void; start: () => void; mute: (m: boolean) => void; revive?: () => void }>({ tap: () => {}, restart: () => {}, start: () => {}, mute: () => {} });
 
   useEffect(() => {
     const surface = surfaceRef.current;
     if (!surface) return;
     const makeCanvas = () => { const c = document.createElement("canvas"); c.className = "absolute inset-0 h-full w-full"; return c; };
-    let canvas = makeCanvas();
-    let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    const canvas = makeCanvas();
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
     surface.appendChild(canvas);
     const tablet = window.matchMedia("(min-width: 600px)").matches;
@@ -218,7 +208,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
         return Object.assign(tinted, { naturalWidth: tinted.width, naturalHeight: tinted.height });
       };
-      return { ...sp, src, art, signature, reset: () => { tinted = null; } };
+      return { ...sp, src, art, signature };
     });
     const twinkleSprite = document.createElement("canvas"); twinkleSprite.width = twinkleSprite.height = 32;
     { const x = twinkleSprite.getContext("2d"); if (x) { const g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
@@ -238,7 +228,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ ph: i * 1.37 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
-    let starPigment = starPainting(space);
+    const starPigment = starPainting(space);
     // Street backdrop with a soft painted fade at its top so it blends into the sky when scrolling away.
     const streetFaded = document.createElement("canvas");
     let faded = false;
@@ -300,51 +290,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
-    /** Swap in a brand-new drawing surface and repaint the cached artwork copies, keeping all game state. */
-    const rebuildSurface = () => {
-      const next = makeCanvas();
-      const nextCtx = next.getContext("2d");
-      if (!nextCtx || !canvas.parentNode) return;
-      observer.unobserve(canvas);
-      canvas.removeEventListener("contextlost", rebuildSurface);
-      canvas.parentNode.replaceChild(next, canvas);
-      canvas.width = canvas.height = 0; // release the old surface's memory
-      canvas = next; ctx = nextCtx;
-      canvas.addEventListener("contextlost", rebuildSurface);
-      observer.observe(canvas); resize();
-      cloudSeaLayer = null; faded = false; shaded.clear(); featheredPlinth.clear();
-      for (const layer of spiritLayers) layer.reset();
-      forgetStarPainting(space); starPigment = starPainting(space);
-      resetAtmosphereCache();
-    };
-    canvas.addEventListener("contextlost", rebuildSurface);
-    api.current.refreshSurface = rebuildSurface;
-    // Free graphics memory while a full-screen ad video plays, so the ad cannot push the game onto slow drawing.
-    setAdSurfaces({
-      release: () => {
-        canvas.width = canvas.height = 0;
-        cloudSeaLayer = null; faded = false; shaded.clear(); featheredPlinth.clear();
-        for (const layer of spiritLayers) layer.reset();
-        resetAtmosphereCache();
-      },
-      restore: () => rebuildSurface(),
-    });
-    // Measure post-ad frame speed for diagnosis only; never disguise slowdown by reducing sharpness.
-    api.current.checkSpeed = () => {
-      const generation = runGeneration.current;
-      window.setTimeout(() => {
-        if (generation !== runGeneration.current) return;
-        const start = performance.now(); let frames = 0;
-        const tick = (now: number) => {
-          if (generation !== runGeneration.current) return;
-          frames++;
-          if (now - start < 2500) { requestAnimationFrame(tick); return; }
-          const fps = frames / ((now - start) / 1000);
-          logAdEvent(`speed check ${Math.round(fps)} fps`);
-        };
-        requestAnimationFrame(tick);
-      }, 2200);
-    };
     const rainStrokes = spawnRain(vw, VH);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
@@ -517,9 +462,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
     let last = performance.now(), raf = 0;
     const frame = (now: number) => {
-      const drawStart = performance.now();
-      const dt = Math.min((now - last) / 1000, 1 / 20); last = now;
-      if (adPaused.current || manualPaused.current) { raf = requestAnimationFrame(frame); return; }
+      const paused = adPaused.current || manualPaused.current;
+      const dt = paused ? 0 : Math.min((now - last) / 1000, 1 / 20); last = now;
       s.t += dt;
       if (!s.over) s.phase = advanceSwing(s.phase, level(), dt);
 
@@ -533,7 +477,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const balanceText = balance.state === "stable" ? "Stable" : `${balance.direction < 0 ? "←" : "→"} ${balance.state === "danger" ? "Collapse risk" : "Leaning"}`;
       if (balanceLabel.current && balanceLabel.current.textContent !== balanceText) balanceLabel.current.textContent = balanceText;
       if (balancePanel.current && balancePanel.current.dataset['state'] !== balance.state) balancePanel.current.dataset['state'] = balance.state;
-      if (!s.over && isStarted) {
+      if (!paused && !s.over && isStarted) {
         s.sway += (targetSway - s.sway) * (1 - Math.exp(-dt * 3));
         checkCollapse();
       }
@@ -855,21 +799,12 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
 
-      if (fpsLabel.current) {
-        gaps.push(now - lastFrame); draws.push(performance.now() - drawStart); lastFrame = now;
-        if (now - fpsStart >= 1000) {
-          const st = summariseFrames(gaps, draws);
-          fpsLabel.current.textContent = `${st.fps} fps · draw ${st.drawMs}ms · worst ${st.worstMs}ms · ${canvas.width}×${canvas.height}`;
-          pushFrameStats(st); gaps = []; draws = []; fpsStart = now;
-        }
-      }
       raf = requestAnimationFrame(frame);
     };
-    let fpsStart = performance.now(), lastFrame = fpsStart, gaps: number[] = [], draws: number[] = [];
     raf = requestAnimationFrame(frame);
     (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
     publish();
-    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); canvas.removeEventListener("contextlost", rebuildSurface); canvas.remove(); api.current.refreshSurface = undefined; api.current.checkSpeed = undefined; setAdSurfaces(null); setAmbience([]); };
+    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); canvas.remove(); setAmbience([]); };
   }, [levelIndex]);
 
   useEffect(() => {
@@ -885,17 +820,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
     <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
       <div ref={surfaceRef} className="absolute inset-0" />
-      {ADS_TESTING && nativeAds() && <AdDebugPanel fpsLabel={fpsLabel} />}
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
-      {readyCount > 0 && <div className="ready-overlay" role="status" aria-label={`Get ready, resuming in ${readyCount}`} onPointerDown={e => e.stopPropagation()}>
-        <div className="hud-pill ready-card">
-          <span className="hud-label">EXTRA LIFE READY</span>
-          <strong className="ready-title">Get ready</strong>
-          <span key={readyCount} className="ready-count">{readyCount}</span>
-        </div>
-      </div>}
+      {resumingFromAd && <AdResumeCountdown onComplete={finishAdCountdown} />}
       <div ref={balancePanel} className={`tower-balance hud-pill${hud.over ? " invisible" : ""}`} data-state="stable">
         <span className="hud-label">BALANCE</span>
         <meter ref={balanceMeter} aria-label="Tower instability" min={0} max={1} low={0.6} high={0.85} optimum={0} defaultValue={0} />
@@ -967,25 +895,3 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   );
 }
 
-/** Test-build only: tap the speed line to open the ad timeline and the three isolation checks. */
-function AdDebugPanel({ fpsLabel }: { fpsLabel: React.RefObject<HTMLSpanElement | null> }) {
-  const [open, setOpen] = useState(false);
-  const [, bump] = useState(0);
-  useEffect(() => { if (!open) return; onAdDebugChange(() => bump(n => n + 1)); return () => onAdDebugChange(null); }, [open]);
-  const run = (fn: () => Promise<void>) => { void fn().catch(e => logAdEvent(`error: ${String(e).slice(0, 60)}`)); };
-  return (
-    <div className="absolute left-2 top-[45%] z-30 max-w-[92%]" onPointerDown={e => e.stopPropagation()}>
-      <span ref={fpsLabel} className="hud-label opacity-80" onClick={() => setOpen(o => !o)} />
-      {open && <div className="hud-pill mt-1 p-2 text-xs leading-snug">
-        <div className="mb-1 flex gap-1">
-          <button className="hud-pill px-2 py-1" onClick={() => run(debugPretendAd)}>1 Pretend</button>
-          <button className="hud-pill px-2 py-1" onClick={() => run(debugLoadOnlyAd)}>2 Load only</button>
-          <button className="hud-pill px-2 py-1" onClick={() => run(debugWatchAd)}>3 Watch</button>
-        </div>
-        {adDebugHistory().map((h, i) => <div key={`h${i}`}>{h.fps} fps · draw {h.drawMs}ms · worst {h.worstMs}ms</div>)}
-        <hr className="my-1 opacity-30" />
-        {adDebugEvents().map((e, i) => <div key={`e${i}`}>{e}</div>)}
-      </div>}
-    </div>
-  );
-}
