@@ -59,9 +59,10 @@ export function cloudScreenY(wy: number, altitude: number, depth: number, horizo
 }
 
 /** How visible a cloud of this kind is at this altitude. Zero at street level, so clouds never sit on the ground. */
-export function cloudDensity(kind: CloudKind, altitude: number) {
+export function cloudDensity(kind: CloudKind, altitude: number, climbTop = 0) {
   const p = skyProfile(altitude);
-  return (kind === "wisp" ? p.wisps : p.puffs) * p.clouds;
+  const upper = climbTop > 3200 ? 0.12 * skyBlend(altitude, 2800, 3400) * (1 - skyBlend(altitude, climbTop, climbTop + 800)) : 0;
+  return (kind === "wisp" ? p.wisps : p.puffs) * Math.max(p.clouds, upper);
 }
 
 /** Legacy helper kept for callers: a repeating world band that recycles outside the screen. */
@@ -98,9 +99,14 @@ export function districtSpirits(id: DistrictId) {
 export const WANDER_KINDS: readonly WanderKind[] = ["dragonfly", "pigeon", "swallow", "firefly", "eagle", "owl"];
 const isWander = (k: SpiritKind): k is WanderKind => (WANDER_KINDS as readonly string[]).includes(k);
 /** Spirits accompany the whole climb: present from the street and thinning only in the high sky. */
-export function spiritPresence(kind: SpiritKind, altitude: number) {
+export function spiritPresence(kind: SpiritKind, altitude: number, climbTop = 0) {
   const tops: Partial<Record<SpiritKind, number>> = { lantern: 4200, gull: 2600, dragonfly: 2600, pigeon: 3000, swallow: 3600, firefly: 5200, eagle: 9000, owl: 3400 };
   const top = tops[kind] ?? 2000;
+  // Sky creatures thin into a sparse band; terrestrial objects keep their original habitat.
+  if (climbTop > 0 && ["butterfly", "gull", "dragonfly", "pigeon", "swallow", "firefly", "eagle", "owl"].includes(kind)) {
+    const thinning = 1 - 0.78 * skyBlend(altitude, Math.min(top - 600, climbTop * 0.45), Math.min(top, climbTop * 0.8));
+    return thinning * (1 - skyBlend(altitude, Math.max(top, climbTop) + 200, Math.max(top, climbTop) + 1000));
+  }
   return 1 - skyBlend(altitude, top - 600, top);
 }
 
@@ -117,7 +123,7 @@ const WANDER: Record<WanderKind, WanderCfg> = {
   eagle: { dur: 5.2, hover: false, x: [-0.15, 1.15], y: [0.14, 0.38], dart: false, tilt: 0.3 },
 };
 /** Random waypoint i,k for a creature: hoverers keep to their own side lane; birds roam the upper sky band. */
-function waypoint(kind: WanderKind, i: number, k: number, vw: number, vh: number) {
+function waypoint(kind: WanderKind, i: number, k: number, vw: number, vh: number): [number, number] {
   const c = WANDER[kind], seed = WANDER_KINDS.indexOf(kind) * 31 + i * 7.3;
   const rx = rand(seed, k), ry = rand(seed + 3.1, k * 1.7 + 0.4);
   if (c.hover) {
@@ -133,26 +139,21 @@ function wanderPoint(kind: WanderKind, i: number, t: number, vw: number, vh: num
   // Dragonflies hover with a tremble, then dart quickly to a new random perch.
   if (c.dart) { const d = Math.max(0, Math.min(1, (u - 0.62) / 0.38)); u = d * d * (3 - 2 * d); }
   const a = waypoint(kind, i, k - 1, vw, vh), b = waypoint(kind, i, k, vw, vh), q = waypoint(kind, i, k + 1, vw, vh), r = waypoint(kind, i, k + 2, vw, vh);
-  let x = catmull(a[0]!, b[0]!, q[0]!, r[0]!, u), y = catmull(a[1]!, b[1]!, q[1]!, r[1]!, u);
+  let x = catmull(a[0], b[0], q[0], r[0], u), y = catmull(a[1], b[1], q[1], r[1], u);
   if (c.hover) { x += Math.sin(t * 7.3 + i * 2) * (c.dart ? 2.2 : 3.5); y += Math.sin(t * 5.1 + i) * (c.dart ? 2 : 4); }
   if (kind === "swallow") y += Math.sin(t * 2.4 + i * 1.3) * vh * 0.025;
   return { x, y };
 }
 /** Free flight with headings that change at random: no creature keeps one direction. */
 export function wanderMotion(kind: WanderKind, i: number, t: number, vw: number, vh: number): SpiritState {
+  if (kind !== "dragonfly" && kind !== "firefly") return signatureBirdMotion(kind, i, t, vw, vh);
   const c = WANDER[kind], p = wanderPoint(kind, i, t, vw, vh), n = wanderPoint(kind, i, t + 0.08, vw, vh);
   const vx = n.x - p.x, vy = n.y - p.y, speed = Math.hypot(vx, vy);
   // Hoverers turn to face the side of the screen they belong to when nearly still, so they never flicker.
   const flip = speed < 0.4 && c.hover ? (i % 2 ? 1 : -1) : vx < 0 ? -1 : 1;
   const ang = Math.max(-c.tilt, Math.min(c.tilt, Math.atan2(vy, Math.abs(vx) + 0.001)));
   const rot = (c.hover && speed < 0.4 ? Math.sin(t * 1.3 + i) * 0.06 : ang) * flip;
-  let flap = 1;
-  if (kind === "eagle") flap = ((t + i * 2.9) % 7 + 7) % 7 < 1.9 ? 1 : 0;
-  else if (kind === "owl") flap = ((t + i * 3.7) % 4.5 + 4.5) % 4.5 < 2.2 ? 1 : 0;
-  else if (kind === "pigeon" || kind === "swallow") flap = vy > speed * 0.35 ? 0 : 1;
-  const edge = Math.min(p.x + vw * 0.06, vw * 1.06 - p.x) / (vw * 0.08);
-  const alpha = c.hover ? 1 : Math.max(0, Math.min(1, edge));
-  return { x: p.x, y: p.y, rot, flip, flap, scale: kind === "eagle" ? 0.85 + (i % 2) * 0.3 : 0.85 + (i % 3) * 0.15, alpha };
+  return { x: p.x, y: p.y, rot, flip, flap: 1, scale: 0.85 + (i % 3) * 0.15, alpha: 1 };
 }
 
 /**
@@ -355,4 +356,39 @@ export function birdPath(i: number, t: number, vw: number, vh: number, top = 0.1
   const pose = birdWingPose(t, ph, dy < -1);
   const rot = Math.max(-0.3, Math.min(0.3, Math.atan2(dy, speed) * 1.2));
   return { x, y, rot, pose, mirror: dir < 0, scale: 0.65 + (i % 3) * 0.12 };
+}
+
+/** Visual only: reads the existing wind, never changes force or direction. */
+export function windCue(force: number, direction: number, held: boolean, falling: boolean, over: boolean) {
+  return { visible: force !== 0 && !over && (held || falling), direction: direction < 0 ? -1 : 1 };
+}
+
+/** Low mist follows the street camera depth, never starts at pavement height. */
+export function mistBand(i: number, altitude: number, vw: number, vh: number) {
+  return { x: vw * (i % 2 ? 0.93 : 0.07), y: vh * (0.41 + (i % 3) * 0.055) + altitude * 0.65,
+    alpha: 1 - skyBlend(altitude, 200, 850) };
+}
+
+/** Randomised sweeping passes: turn beyond the frame, keep forward speed and shallow banks. */
+export function signatureBirdMotion(kind: Exclude<WanderKind, "dragonfly" | "firefly">, i: number, t: number, vw: number, vh: number): SpiritState {
+  const speeds = { swallow: 66, pigeon: 46, owl: 34, eagle: 28 };
+  const seed = WANDER_KINDS.indexOf(kind) * 31 + i * 7.3;
+  const speed = speeds[kind] * (0.88 + rand(seed, 9) * 0.24);
+  const margin = kind === "eagle" ? 100 : 72, span = vw + margin * 2, duration = span / speed;
+  const clock = (t + rand(seed, 3) * duration * 4) / duration;
+  const pass = Math.floor(clock), u = clock - pass;
+  const direction = ((pass + i) % 2 + 2) % 2 === 0 ? 1 : -1;
+  const phase = rand(seed, pass + 17) * Math.PI * 2;
+  const base = vh * (0.23 + rand(seed + 2, pass) * 0.08);
+  // Bound slope even on narrow portrait phones: no elevator paths.
+  const amplitude = Math.min(vh * (0.035 + rand(seed, pass + 4) * 0.015), span * 0.065);
+  const wave = u * Math.PI * 2 + phase;
+  const dy = Math.cos(wave) * amplitude * Math.PI * 2 / duration;
+  const beatPeriod = kind === "eagle" ? 7 : 4.5;
+  const beat = ((t + seed) % beatPeriod + beatPeriod) % beatPeriod;
+  return { x: direction > 0 ? -margin + u * span : vw + margin - u * span,
+    y: base + Math.sin(wave) * amplitude, rot: direction * Math.atan2(dy, speed) * 0.65,
+    flip: direction, flap: dy < -1 || beat < 1.5 ? 1 : 0,
+    scale: kind === "eagle" ? 0.85 + (i % 2) * 0.3 : 0.85 + (i % 3) * 0.15,
+    alpha: Math.max(0, Math.min(1, Math.min(u, 1 - u) * span / margin)) };
 }

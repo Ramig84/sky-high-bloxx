@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.webp";
+import windDirectionSrc from "@/assets/wind-direction-review.png";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_SPIRIT, DISTRICT_CLOUD_TINT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdFlight, birdPath, cloudDensity, cloudField, cloudHeight, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion } from "./sky";
+import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_CLOUD_TINT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdPath, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion, mistBand, windCue } from "./sky";
 import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, drawSpirit, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
-import { DISTRICTS, levelSpec, starsFor } from "./levels";
+import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
 import { ENDLESS_STAGES, endlessSpec, endlessStage } from "./endless";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
@@ -169,6 +170,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const contact = load(contactSrc), footing = load(footingSrc);
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
+    const windArrow = load(windDirectionSrc);
+    const climbTop = (districtGoal(baseSpec.district, LEVELS_PER_DISTRICT - 1) - 1.2) * BH;
     const life = spawnAmbient(district.id, 360);
     const ambientPoses = Object.fromEntries(Object.entries(spiritArtwork).map(([key, src]) => [key, load(src)])) as Record<PaintedSpirit, HTMLImageElement>;
     let flash = 0;
@@ -223,8 +226,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     let cloudSeaLayer: HTMLCanvasElement | null = null;
     const cloudPoses = load(atmosphereArtwork.cloud), auroraPoses = load(atmosphereArtwork.aurora);
     const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
-    // Original drifting clouds and birds are kept exactly as approved.
-    const puffs = Array.from({ length: 5 }, (_, i) => ({ x: Math.random() * 400 - 200, y: 260 + i * 330 + Math.random() * 120, sp: 6 + Math.random() * 10, sc: 0.6 + Math.random() * 0.6 }));
+    // One depth field uses the original paintings and whole animated poses.
     const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ ph: i * 1.37 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Extract only existing star pigment: no generated points, glow or new illustration.
@@ -244,13 +246,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       c.fillRect(0, 0, street.naturalWidth, street.naturalHeight * 0.3);
     };
     // Storm districts darken the same painted clouds (multiply grey kept inside the brushwork).
-    const shaded = new Map<HTMLImageElement, CanvasImageSource>();
-    const cloudArt = (img: HTMLImageElement): CanvasImageSource => {
-      if (dsky.cloudShade <= 0) return img;
+    const shaded = new Map<HTMLImageElement, HTMLImageElement | HTMLCanvasElement>();
+    const cloudArt = (img: HTMLImageElement): HTMLImageElement | HTMLCanvasElement => {
+      if (dsky.cloudShade <= 0 && !baseSpec.night) return img;
       const hit = shaded.get(img); if (hit) return hit;
       const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
       const g = c.getContext("2d"); if (!g) return img;
-      g.drawImage(img, 0, 0); g.globalCompositeOperation = "multiply";
+      g.drawImage(baseSpec.night ? tintedCloudSea(img, DISTRICT_CLOUD_TINT[district.id]) : img, 0, 0); g.globalCompositeOperation = "multiply";
       const v = Math.round(255 * (1 - dsky.cloudShade * 0.55)); g.fillStyle = `rgb(${v},${v},${Math.min(255, v + 8)})`; g.fillRect(0, 0, c.width, c.height);
       g.globalCompositeOperation = "destination-in"; g.drawImage(img, 0, 0);
       shaded.set(img, c); return c;
@@ -262,7 +264,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         if (!ok(img)) continue;
         const isFront = c.kind === "puff" && i % 4 === 1;
         if (isFront !== front) continue;
-        const dens = cloudDensity(c.kind, altC);
+        const dens = cloudDensity(c.kind, altC, climbTop);
         if (dens < 0.01) continue;
         const depth = front ? 1.3 : c.depth;
         const y = cloudScreenY(cloudWorldY(c.wy, altC), altC, depth);
@@ -274,7 +276,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const x = vw / 2 + lane * vw; // no sideways sliding: depth comes only from climbing
         const far = c.kind === "wisp" ? 0.5 : 0.28 + depth * 0.5; // far clouds paler
         ctx.globalAlpha = dens * (front ? 0.42 : far);
-        ctx.drawImage(cloudArt(img), x - w / 2, y - h / 2, w, h);
+        if (c.kind === "puff" && ok(cloudPoses)) {
+          drawAtmosphere(ctx, cloudArt(cloudPoses), reducedMotion ? 0 : s.t, i * 1.7, x - w / 2, y - w / 2, w, ctx.globalAlpha);
+        } else ctx.drawImage(cloudArt(img), x - w / 2, y - h / 2, w, h);
       }
       ctx.globalAlpha = 1;
     };
@@ -548,16 +552,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
             ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(28 + i * 6, VH * 0.75); ctx.lineTo(-28 - i * 6, VH * 0.75); ctx.fill();
             ctx.restore();
           }
-        } else if (w === "mist") { // soft wisps at the sides that swell, thin and re-form in place
-          const low = 1 - skyBlend(alt, 600, 2200);
-          for (let i = 0; i < 5 && low > 0.02; i++) {
-            const x = i % 2 ? vw * (0.88 + 0.04 * Math.sin(i)) : vw * (0.12 - 0.04 * Math.sin(i)), y = VH * (0.42 + i * 0.1);
-            const b = 0.5 + 0.5 * Math.sin(s.t * (0.19 + i * 0.04) + i * 2.3), rx = vw * (0.22 + 0.08 * b), ry = 26 + 14 * b;
-            ctx.save(); ctx.translate(x, y); ctx.scale(1, ry / rx);
-            const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-            g.addColorStop(0, `rgba(${atmos.glow.join(",")},${0.22 * b * low})`); g.addColorStop(1, `rgba(${atmos.glow.join(",")},0)`);
-            ctx.fillStyle = g; ctx.fillRect(-rx, -rx, rx * 2, rx * 2); ctx.restore();
-          }
         } else if (w === "twinkle") {
           const vis = Math.max(spec.night ? 1 : 0, skyBlend(alt, 300, 1500));
           ctx.globalCompositeOperation = "screen";
@@ -603,7 +597,19 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.drawImage(cloudSeaLayer ?? cloudSea, vw / 2 - cw / 2, VH - ch * 0.82 + sink, cw, ch);
         ctx.globalAlpha = 1;
       }
-      if (!districtArt) drawSkyClouds(altC, false);
+      // A single district-shaded field behind gameplay; authored paintings remain intact.
+      drawSkyClouds(altC, false);
+      drawSkyClouds(altC, true);
+      // Painted thin mist, camera-anchored below the rooftops, never a full cloud puff.
+      if (ok(wisp) && (atmos.weather.includes("mist") || district.id === "skyline" || district.id === "cloudpeak")) {
+        for (let i = 0; i < 3; i++) {
+          const m = mistBand(i, alt, vw, VH);
+          const width = vw * 0.62, height = width * wisp.naturalHeight / wisp.naturalWidth;
+          if (m.alpha < 0.01 || m.y > VH + height) continue;
+          ctx.save(); ctx.globalAlpha = m.alpha * (0.045 + 0.018 * Math.sin(s.t * 0.3 + i));
+          ctx.drawImage(cloudArt(wisp), m.x - width / 2, m.y - height / 2, width, height); ctx.restore();
+        }
+      }
 
       // District sky visitors (balloons, kites) drifting at the side lanes.
       if (dsky.life !== "none" && visitors.length && ok(visitorArt)) for (const v of visitors) {
@@ -618,7 +624,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       // Authored painted poses: no wing hinges, axis stretching or single-image deformation.
       for (const spirit of spiritLayers) {
-      const spPres = spiritPresence(spirit.kind, alt);
+      const spPres = spiritPresence(spirit.kind, alt, climbTop);
       const spiritArt = spirit.art();
       if (spPres > 0.01 && ok(spirit.src) && !reducedMotion) for (let i = 0; i < spirit.count; i++) {
         const m = spiritMotion(spirit.kind, i, s.t, vw, VH);
@@ -637,18 +643,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.restore();
       }
       }
-      // Original drifting clouds (only from rooftop height up, so none sit on the street) and birds.
-      if (ok(cloud)) for (const [i, c] of puffs.entries()) {
-        const depth = 0.22 + (i % 3) * 0.19;
-        const sy = cloudHeight(260 + i * 212, alt, depth, VH);
-        // Side-lane clouds leave the crane and landing edges unobstructed.
-        const side = i % 2 ? 1 : -1;
-        const drift = reducedMotion ? 0 : Math.sin(s.t * c.sp * 0.004 + i * 1.7) * 20;
-        const x = vw / 2 + side * (vw * 0.48 + drift);
-        const w = 100 * c.sc * (0.7 + depth);
-        ctx.globalAlpha = (0.16 + depth * 0.3) * sky.clouds * sky.wisps * (1 - skyBlend(sy, VH * 0.55, VH * 0.72));
-        drawAtmosphere(ctx, cloudPoses, reducedMotion ? 0 : s.t, i * 1.7, x - w / 2, sy, w, ctx.globalAlpha); ctx.globalAlpha = 1;
-      }
+      // Shared birds keep their approved paths and district counts.
       if (ok(bird)) for (const [i, b] of birds.entries()) {
         const m = birdPath(i, reducedMotion ? b.ph : s.t * dsky.birds.speed, vw, VH);
         const depth = 0.75 + (i % 3) * 0.08;
@@ -661,12 +656,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
       // district life: painted leaves, petals, butterflies, steam, boats and mist
       if (ok(amb)) {
-        const gs = toScreenY(0), fadeHi = sky.districtLife;
+        const fadeHi = sky.districtLife;
         for (const p of life) {
+          // Low mist is handled once above; Rail Yard steam already has one roof source.
+          if (p.layer.kind === "mist" || (district.id === "railyard" && p.layer.kind === "steam")) continue;
           stepAmbient(p, dt, vw, spec.wind ? windDir * spec.wind : 0);
           const L = p.layer; let x = vw / 2 + p.x, y: number, sz = L.size, al = L.alpha, cell = p.cell, rot = 0, flipX = 1;
           if (L.kind === "fall") { y = p.y; rot = Math.sin(p.age * 1.8 + p.ph) * 0.25; al *= fadeHi * (1 - skyBlend(y, VH * 0.6, VH * 0.76)); }
-          else if (L.kind === "mist") { y = p.y; al *= (0.7 + 0.3 * Math.sin(p.age * 0.5 + p.ph)) * fadeHi; }
           else if (L.kind === "flutter") {
             const m = spiritMotion("butterfly", Math.floor(p.ph * 10), reducedMotion ? 0 : p.age, vw, VH);
             x = m.x; y = m.y; cell = 2; rot = m.rot; al *= fadeHi * m.alpha;
@@ -686,16 +682,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           }
           if (al <= 0.01 || y < -150 || y > VH + 60) continue;
           ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(rot);
-          if (L.kind === "mist" && ok(cloud)) {
-            // Mist breathes in its original lane rather than translating a still cloud.
-            ctx.translate(-p.x + Math.sin(p.ph) * vw * 0.34, 0);
-            drawAtmosphere(ctx, cloudPoses, reducedMotion ? 0 : p.age, p.ph, -sz / 2, -sz / 4, sz, al);
-          } else {
-            const kind: PaintedSpirit = L.kind === "boat" ? "boat" : L.kind === "flutter" ? "butterfly" : L.kind === "steam" ? "steam" : cell === 1 ? "petal" : "leaf";
-            const img = ambientPoses[kind];
-            if (flipX < 0) ctx.scale(-1, 1);
-            if (ok(img)) drawSpirit(ctx, img, kind, Math.floor(p.ph * 10), reducedMotion ? 0 : p.age, sz * 1.4);
-          }
+          const kind: PaintedSpirit = L.kind === "boat" ? "boat" : L.kind === "flutter" ? "butterfly" : L.kind === "steam" ? "steam" : cell === 1 ? "petal" : "leaf";
+          const img = ambientPoses[kind];
+          if (flipX < 0) ctx.scale(-1, 1);
+          if (ok(img)) drawSpirit(ctx, img, kind, Math.floor(p.ph * 10), reducedMotion ? 0 : p.age, sz * 1.4);
           ctx.restore();
         }
       }
@@ -774,7 +764,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // weather: night tint, fog over the upper sky, painted rain streaks
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      if (!(ok(dSkyLow) && ok(dSkyHigh))) drawSkyClouds(altC, true); // near clouds pass in front at the screen edges
       if (spec.night && endless) { ctx.fillStyle = "rgba(20,26,58,0.5)"; ctx.fillRect(0, 0, vw, VH); }
       if (spec.slip && ok(rain)) {
         for (const p of rainStrokes) {
@@ -784,7 +773,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
         ctx.globalAlpha = 1;
       }
-      if (spec.wind && s.held && !s.over) {
+      const cue = windCue(spec.wind, windDir, s.held, Boolean(s.drop), s.over);
+      if (cue.visible) {
         // The brush strokes curl and dissipate through six separately painted poses, not a sliding tile.
         if (ok(windArt)) for (let i = 0; i < 3; i++) {
           const cycle = (s.t * 0.7 + i / 3) % 1;
@@ -797,6 +787,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           ctx.drawImage(windArt, cell * windArt.naturalWidth / 6, 0, windArt.naturalWidth / 6, windArt.naturalHeight, -size / 2, -height / 2, size, height);
           ctx.restore();
         }
+      }
+
+      if (cue.visible && ok(windArrow)) {
+        // Bare painted direction cue at the edge: no card, text, timer or physics changes.
+        const width = Math.min(72, vw * 0.2), height = width * windArrow.naturalHeight / windArrow.naturalWidth;
+        ctx.save(); ctx.translate(vw * 0.88, VH * 0.56); ctx.scale(cue.direction, 1);
+        ctx.drawImage(windArrow, -width / 2, -height / 2, width, height); ctx.restore();
       }
 
       raf = requestAnimationFrame(frame);

@@ -3,6 +3,7 @@ import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import windSrc from "@/assets/wind-poses.webp";
+import windDirectionSrc from "@/assets/wind-direction-review.png";
 import plaqueSrc from "@/assets/ui-plaque.webp";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";
@@ -56,7 +57,7 @@ export function levelAssets(district: DistrictId, extras: string[] = []): Screen
   const a = art(), t = isTablet();
   return {
     images: [coin, contactSrc, footingSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
-      a.birdSrc, a.rainSrc, windSrc, confettiSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...SKY_IMAGES, districtSkyArt[district].low, districtSkyArt[district].high, ...Object.values(spiritArtwork), ...extras],
+      a.birdSrc, a.rainSrc, windSrc, windDirectionSrc, confettiSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...SKY_IMAGES, districtSkyArt[district].low, districtSkyArt[district].high, ...Object.values(spiritArtwork), ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
 }
