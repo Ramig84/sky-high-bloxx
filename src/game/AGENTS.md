@@ -16,8 +16,10 @@
 - Render celebration particles from a compact painted-paper sprite sheet rather than synthetic colored rectangles, so effects share the scene's material language.
 - Render district celebrations as one portrait canvas using predecoded district streets, floors, roof and footing; crossfade to the next district before navigation so the transition stays cohesive and never streams artwork mid-scene.
 - District spirits use padded transparent painted pose atlases from spiritArtwork, with independent pose timing and browser-safe sky trajectories; never deform a single painting into wing motion, so the action comes from authored poses rather than stretched icons.
-- Signature spirits (WANDER_KINDS) fly by random Catmull-Rom waypoints in sky.ts (hoverers stay in side lanes, birds roam the upper band) and keep their approved colours untinted, so motion never locks to one direction.
+- Signature bird spirits use varied forward-sweeping passes with offscreen turns in sky.ts; dragonflies and fireflies retain side-lane Catmull-Rom hovering and all keep their approved colours, so random motion remains physically plausible.
 - Butterfly scenery shares sky spirit trajectories across street and altitude layers; balloon and kite travel uses visitorMotion with camera depth, so no rendering path falls back to fixed-position hovering.
 - Each district has its own painted street sky and high sky, crossfaded by districtSkyMix over the shared base layers and preloaded per district, so districts read distinctly without swapping or sliding images.
 - Every screen's birds fly through the shared birdPath in sky.ts (menus via SkyBirds), never CSS sliding paths, so flight looks the same everywhere.
 - Keep the rewarded-ad countdown in AdResumeCountdown with timing tests; pause simulation while rendering the existing game scene so players return to the same tower.
+- Use one district-shaded world cloud field with whole painted poses, camera-anchored thin low mist and a single Rail Yard roof-steam source; extend sparse sky-creature presence to the district finale camera height, never terrestrial objects, so scenery depth remains coherent.
+- Preload the painted wind direction cue and derive visibility from existing held/falling state and wind direction only, so the cue cannot change wind timing or physics.
