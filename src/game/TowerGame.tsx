@@ -17,7 +17,7 @@ import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, 
 import { SPACE_ZONE_SKY } from "./spaceArtwork";
 import { SPACE_BLOCK_IMAGE, blockDimensions } from "./spaceBlock";
 import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
-import { freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
+import { advanceSpacePresentation, freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, spaceHazardPoseTime, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
@@ -210,6 +210,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const spaceSkies = SPACE_ZONE_SKY.map(load);
     const spacePoses = endless ? Object.fromEntries(Object.entries(spaceEffectArtwork).map(([key, src]) => [key, load(src)])) as Record<SpaceEffectKind, HTMLImageElement> : null;
     let hazards = freshSpaceHazards();
+    let paintedFloors = 0;
     const atmos = DISTRICT_ATMOS[district.id];
     // District-coloured copy of the older shared creatures; approved signature paintings keep their own colours.
     const spiritLayers = spirits.map(sp => {
@@ -552,7 +553,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // Space Climb: the zone's own painting, fading into the next zone's as the climb nears it.
       // Render-only development review: no fake floors, rewards, scores or progression.
       const review = import.meta.env.DEV && endless ? (window as unknown as { __spaceReview?: { floors: number; time: number } }).__spaceReview : undefined;
-      const sceneFloors = review?.floors ?? s.floors.length;
+      paintedFloors = advanceSpacePresentation(paintedFloors, s.floors.length, dt);
+      const sceneFloors = review?.floors ?? paintedFloors;
       const sceneTime = review?.time ?? s.t;
       const zoneSky = endless ? spaceSkyMix(sceneFloors) : null;
       const fromArt = zoneSky ? spaceSkies[zoneSky.from] : undefined, toArt = zoneSky ? spaceSkies[zoneSky.to] : undefined;
@@ -868,13 +870,14 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         const y = toScreenY(m.y);
         if (m.active) {
           ctx.save(); ctx.translate(vw / 2 + m.x, y); if (hazard.direction < 0) ctx.scale(-1, 1);
-          drawSpacePose(ctx, spacePoses[hazard.kind], hazard.kind, s.t - hazard.started, 0, hazard.size);
+          drawSpacePose(ctx, spacePoses[hazard.kind], hazard.kind, spaceHazardPoseTime(hazard, s.t, reducedMotion), 0, hazard.size);
           ctx.restore();
         } else if (m.warning) {
           const x = hazard.direction > 0 ? 32 : vw - 32;
           ctx.save(); ctx.translate(x, y);
+          if (hazard.direction < 0) ctx.scale(-1, 1);
           ctx.globalAlpha = 0.75 + Math.sin(s.t * 5) * 0.1;
-          drawSpacePose(ctx, spacePoses[hazard.kind], hazard.kind, reducedMotion ? 0 : s.t, 0, hazard.size);
+          drawSpacePose(ctx, spacePoses[hazard.kind], hazard.kind, spaceHazardPoseTime(hazard, s.t, reducedMotion), 0, hazard.size);
           ctx.restore();
           ctx.save(); ctx.fillStyle = cueInk; ctx.shadowColor = cuePaper; ctx.shadowBlur = 3;
           ctx.font = '500 12px Fredoka, sans-serif'; ctx.textBaseline = "middle";
