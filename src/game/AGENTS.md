@@ -22,4 +22,5 @@
 - Every screen's birds fly through the shared birdPath in sky.ts (menus via SkyBirds), never CSS sliding paths, so flight looks the same everywhere.
 - Keep the rewarded-ad countdown in AdResumeCountdown with timing tests; pause simulation while rendering the existing game scene so players return to the same tower.
 - Use one district-shaded world cloud field with whole painted poses, camera-anchored thin low mist and a single Rail Yard roof-steam source; extend sparse sky-creature presence to the district finale camera height, never terrestrial objects, so scenery depth remains coherent.
-- Preload the painted wind direction cue and derive visibility from existing held/falling state and wind direction only, so the cue cannot change wind timing or physics.
+- Preload whole painted wind cue poses and derive visibility/warning from existing held/falling state and actual wind direction; use the simulation clock, so the cue freezes when paused and cannot change wind timing or physics.
+- Gate the shared audio context and both gain buses on focus, page visibility/presence and native activity, so leaving the app silences recordings even when WebView visibility is stale.

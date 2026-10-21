@@ -28,6 +28,7 @@ import mSkyline from "@/assets/audio/music-skyline.mp3.asset.json";
 import mCloudpeak from "@/assets/audio/music-cloudpeak.mp3.asset.json";
 import { loadSettings, SETTINGS_EVENT } from "./settings";
 import { effectGain } from "./audioMix";
+import { audioMayPlay } from "./audioLifecycle";
 import type { DistrictId, LevelSpec } from "./levels";
 
 const SRC = { drop, perfect, miss, release, collapse, clear, tap, coins, coinDing, wind, waves, birds, train, city, night, rain, music,
@@ -60,14 +61,30 @@ let ctx: AudioContext | null = null;
 const buffers = new Map<Sound, Promise<AudioBuffer | null>>();
 const loops = new Map<string, { src: AudioBufferSourceNode; gain: GainNode }>();
 let appPaused = false;
+let focused = true, pagePresent = true;
+const audible = () => typeof document !== "undefined" && audioMayPlay(document.visibilityState === "visible", focused, pagePresent, !appPaused);
 let musicBus: GainNode | null = null, effectsBus: GainNode | null = null;
 
 /** All ongoing recordings respond immediately, independently, to player volume changes. */
 export function applyAudioSettings() {
   if (!ctx || !musicBus || !effectsBus) return;
   const s = loadSettings();
-  musicBus.gain.setTargetAtTime(s.music ? s.musicVolume : 0, ctx.currentTime, 0.03);
-  effectsBus.gain.setTargetAtTime(s.sound ? s.soundVolume : 0, ctx.currentTime, 0.03);
+  musicBus.gain.setTargetAtTime(audible() && s.music ? s.musicVolume : 0, ctx.currentTime, 0.03);
+  effectsBus.gain.setTargetAtTime(audible() && s.sound ? s.soundVolume : 0, ctx.currentTime, 0.03);
+}
+
+function syncAudioLifecycle() {
+  if (!ctx) return;
+  if (!audible()) {
+    for (const bus of [musicBus, effectsBus]) if (bus) {
+      bus.gain.cancelScheduledValues(ctx.currentTime);
+      bus.gain.setValueAtTime(0, ctx.currentTime);
+    }
+    void ctx.suspend().catch(() => {});
+  } else {
+    applyAudioSettings();
+    void ctx.resume().then(() => { if (!audible()) syncAudioLifecycle(); }).catch(() => {});
+  }
 }
 
 function context() {
@@ -78,7 +95,8 @@ function context() {
     musicBus.connect(ctx.destination); effectsBus.connect(ctx.destination);
     applyAudioSettings();
   } catch { return null; } }
-  if (ctx.state === "suspended" && document.visibilityState === "visible" && !appPaused) void ctx.resume();
+  if (ctx.state === "suspended" && audible()) syncAudioLifecycle();
+  else if (!audible()) syncAudioLifecycle();
   return ctx;
 }
 function buffer(name: Sound) {
@@ -97,23 +115,21 @@ export function unlockAudio() { context(); }
 if (typeof window !== "undefined") {
   window.addEventListener(SETTINGS_EVENT, applyAudioSettings);
   // Silence everything when the app is minimized, the screen locks, or another app covers it.
-  const syncVisibility = () => {
-    if (!ctx) return;
-    if (document.visibilityState === "hidden" || appPaused) void ctx.suspend();
-    else void ctx.resume();
-  };
+  const syncVisibility = syncAudioLifecycle;
   // Android WebView does not always report background; the native app state is authoritative.
   void import("@capacitor/core").then(({ Capacitor }) => {
     if (!Capacitor.isNativePlatform()) return;
     return import("@capacitor/app").then(({ App }) => {
-      void App.addListener("pause", () => { appPaused = true; if (ctx) void ctx.suspend(); });
+      void App.addListener("pause", () => { appPaused = true; syncVisibility(); });
       void App.addListener("resume", () => { appPaused = false; syncVisibility(); });
       void App.addListener("appStateChange", ({ isActive }) => { appPaused = !isActive; syncVisibility(); });
     });
   }).catch(() => {});
   document.addEventListener("visibilitychange", syncVisibility);
-  window.addEventListener("pagehide", () => { if (ctx) void ctx.suspend(); });
-  window.addEventListener("blur", () => { if (ctx && document.hidden) void ctx.suspend(); });
+  window.addEventListener("pagehide", () => { pagePresent = false; syncVisibility(); });
+  window.addEventListener("pageshow", () => { pagePresent = true; syncVisibility(); });
+  window.addEventListener("blur", () => { focused = false; syncVisibility(); });
+  window.addEventListener("focus", () => { focused = true; syncVisibility(); });
   const unlock = () => { const c = context(); if (c && c.state === "running") for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.removeEventListener(ev, unlock, true); };
   for (const ev of ["touchend", "click", "keydown", "pointerup"]) window.addEventListener(ev, unlock, true);
 }
@@ -121,7 +137,7 @@ if (typeof window !== "undefined") {
 export async function sfx(name: Sound, volume = 0.8, rate = 1) {
   if (!loadSettings().sound) return;
   const c = context(), b = await buffer(name);
-  if (!c || !b) return;
+  if (!c || !b || !audible()) return;
   const src = c.createBufferSource(), g = c.createGain();
   src.buffer = b; src.playbackRate.value = rate; g.gain.value = effectGain(name, volume);
   if (!effectsBus) return;

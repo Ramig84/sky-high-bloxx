@@ -363,6 +363,11 @@ export function windCue(force: number, direction: number, held: boolean, falling
   return { visible: force !== 0 && !over && (held || falling), direction: direction < 0 ? -1 : 1 };
 }
 
+/** Painted pose clock, independent of physics; freezes with paused simulation. */
+export function windCuePose(time: number, reducedMotion: boolean) {
+  return reducedMotion ? 0 : Math.floor(((time % 1.8 + 1.8) % 1.8) / 1.8 * 6);
+}
+
 /** Low mist follows the street camera depth, never starts at pavement height. */
 export function mistBand(i: number, altitude: number, vw: number, vh: number) {
   return { x: vw * (i % 2 ? 0.93 : 0.07), y: vh * (0.41 + (i % 3) * 0.055) + altitude * 0.65,
