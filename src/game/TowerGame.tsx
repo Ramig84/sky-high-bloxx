@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
 import windSrc from "@/assets/wind-poses.webp";
-import windDirectionSrc from "@/assets/wind-direction-review.png";
+import windDirectionSrc from "@/assets/wind-arrow-poses.webp";
 import { backdropPoint, spawnAmbient, stepAmbient } from "./ambient";
 import { spawnRain, stepRain } from "./weather";
-import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_CLOUD_TINT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdPath, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion, mistBand, windCue } from "./sky";
+import { DISTRICT_ATMOS, cloudGlow, twinkle, DISTRICT_SKY, DISTRICT_CLOUD_TINT, districtSpirits, WANDER_KINDS, districtSkyMix, spiritMotion, spiritPresence, birdPath, cloudDensity, cloudField, cloudScreenY, cloudWorldY, highSkyGlow, skyBlend, skyProfile, skyVisitors, visitorMotion, mistBand, windCue, windCuePose } from "./sky";
 import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, drawSpirit, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
@@ -171,6 +171,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
     const windArrow = load(windDirectionSrc);
+    const cueTheme = getComputedStyle(surface);
+    const cueInk = cueTheme.getPropertyValue("--hud-accent").trim();
+    const cueOutline = cueTheme.getPropertyValue("--plaque-ink").trim();
     const climbTop = (districtGoal(baseSpec.district, LEVELS_PER_DISTRICT - 1) - 1.2) * BH;
     const life = spawnAmbient(district.id, 360);
     const ambientPoses = Object.fromEntries(Object.entries(spiritArtwork).map(([key, src]) => [key, load(src)])) as Record<PaintedSpirit, HTMLImageElement>;
@@ -790,10 +793,21 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       }
 
       if (cue.visible && ok(windArrow)) {
-        // Bare painted direction cue at the edge: no card, text, timer or physics changes.
-        const width = Math.min(72, vw * 0.2), height = width * windArrow.naturalHeight / windArrow.naturalWidth;
-        ctx.save(); ctx.translate(vw * 0.88, VH * 0.56); ctx.scale(cue.direction, 1);
-        ctx.drawImage(windArrow, -width / 2, -height / 2, width, height); ctx.restore();
+        // Whole authored poses: no sliding or stretching a static arrow.
+        const width = Math.min(78, vw * 0.23), height = width;
+        const x = vw - Math.max(49, vw * 0.15), y = VH * 0.56;
+        const cell = windArrow.naturalWidth / 6;
+        ctx.save(); ctx.translate(x, y); ctx.scale(cue.direction, 1);
+        ctx.drawImage(windArrow, windCuePose(s.t, reducedMotion) * cell, 0, cell, windArrow.naturalHeight, -width / 2, -height / 2, width, height); ctx.restore();
+        ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = '600 14px Fredoka, sans-serif'; ctx.lineJoin = "round"; ctx.lineWidth = 3;
+        ctx.strokeStyle = cueOutline; ctx.fillStyle = cueInk;
+        const lines = s.drop ? [cue.direction < 0 ? "← Wind" : "Wind →"] : ["Wind on", "release"];
+        lines.forEach((line, i) => {
+          ctx.strokeText(line, x, y + 32 + i * 16);
+          ctx.fillText(line, x, y + 32 + i * 16);
+        });
+        ctx.restore();
       }
 
       raf = requestAnimationFrame(frame);

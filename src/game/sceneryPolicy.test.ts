@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { cloudDensity, districtSpirits, mistBand, signatureBirdMotion, spiritPresence, windCue } from "./sky";
+import { cloudDensity, districtSpirits, mistBand, signatureBirdMotion, spiritPresence, windCue, windCuePose } from "./sky";
 import { DISTRICTS, districtGoal } from "./levels";
 import { BLOCK_H } from "./motion";
 
 describe("approved wind cue reads existing wind only", () => {
+  it("cycles six authored poses in 1.8 seconds and holds one pose under reduced motion", () => {
+    expect([0, 0.31, 0.61, 0.91, 1.21, 1.51].map(t => windCuePose(t, false))).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(windCuePose(1.81, false)).toBe(0);
+    expect(windCuePose(1.51, true)).toBe(0);
+  });
   it("is absent in calm levels", () => {
     expect(windCue(0, 1, true, false, false).visible).toBe(false);
   });
