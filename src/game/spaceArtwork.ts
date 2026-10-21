@@ -8,10 +8,11 @@ import moon from "@/assets/sky-space-moon.webp";
 import mars from "@/assets/sky-space-mars.webp";
 import asteroids from "@/assets/sky-space-asteroids.webp";
 import jupiter from "@/assets/sky-space-jupiter.webp";
+import saturn from "@/assets/sky-space-saturn.webp";
 import { SPACE_ZONES } from "./spaceClimb";
 
-/** Approved paintings so far, in climb order: Rooftops, High Clouds, Storm & Aurora, Edge of Space, Orbit, The Moon, Mars, Asteroid Belt, Jupiter. */
-const painted: readonly string[] = [rooftops, clouds, storm, edge, orbit, moon, mars, asteroids, jupiter];
+/** Approved paintings so far, in climb order: Rooftops, High Clouds, Storm & Aurora, Edge of Space, Orbit, The Moon, Mars, Asteroid Belt, Jupiter, Saturn. */
+const painted: readonly string[] = [rooftops, clouds, storm, edge, orbit, moon, mars, asteroids, jupiter, saturn];
 
 /** One sky per zone; a zone without its own painting yet reuses the closest approved one above it. */
 export const SPACE_ZONE_SKY: readonly string[] = SPACE_ZONES.map(
