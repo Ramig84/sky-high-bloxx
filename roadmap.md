@@ -151,4 +151,5 @@
 - [x] Integrated approved single red-deck metal gantry as smaller Space Climb blocks only, lossless transparent art with shared drawing/contact dimensions. Successful portrait touch landing and pause verified; campaign dimensions preserved; 208 tests pass. No Android build requested; physical-phone appearance awaits review.
 - [x] Zone rules + tests, fresh leaderboard, HUD (banner, marker, game-over zone)
 - [x] Added preloaded whole-pose space artwork, eleven zone-specific effect sets, smooth effect handovers and warned world-coordinate debris crossings; portrait browser reviewed all eleven scenes without changing earned progress, touch landing and pause verified. Automated checks pass; actual high-zone obstacle play/phone feel still needs review.
-- [ ] User approval and physical-phone review of new Space Climb motion (blocked: user review; no Android build requested).
+- [x] User approved the Space Climb motion, the larger front-facing gantry blocks and the dedicated connected rooftop launch base ("perfect", 2026-10-22). Presentation and rules now frozen unless the user asks.
+- [ ] Physical-phone review of Space Climb motion, blocks and base (blocked: latest APK must be installed; no Android build requested since the refinements).
