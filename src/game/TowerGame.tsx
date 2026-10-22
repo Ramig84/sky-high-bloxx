@@ -13,7 +13,7 @@ import { districtSkyArt, skyArt } from "./skyArtwork";
 import { spiritArtwork, drawSpirit, type PaintedSpirit } from "./spiritArtwork";
 import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./artwork";
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
-import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSkyLayers, spaceSpec, spaceDrift, spaceSwingRate, zoneAt } from "./spaceClimb";
+import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSkyLayers, spaceSpec, spaceDrift, zoneAt } from "./spaceClimb";
 import { SPACE_ZONE_SKY } from "./spaceArtwork";
 import { SPACE_BLOCK_IMAGE, SPACE_BASE_IMAGE, blockDimensions, spaceBaseDimensions } from "./spaceBlock";
 import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
@@ -399,7 +399,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
     const checkCollapse = () => {
       const xs = s.floors.map((_, i) => displayX(i));
-      const ci = collapseIndex(xs, BW, BW * 1.12, widths());
+      const ci = collapseIndex(xs, endless ? BW : bw, (endless ? BW : bw) * 1.12, widths());
       if (ci === -1) return false;
       const first = ci === -2 ? 0 : ci + 1;
       const anchor = ci === -2 ? 0 : (xs[ci] ?? 0);
@@ -516,7 +516,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const com = n ? s.floors.reduce((a, _, i) => a + displayX(i), 0) / n : 0;
       const lean = Math.max(-1.6, Math.min(1.6, com / (bw * 0.5)));
       const targetSway = targetTowerSway(lean, n, s.t);
-      const balance = towerBalance(s.floors.map((_, i) => displayX(i)), BW, BW * 1.12, widths());
+      const balance = towerBalance(s.floors.map((_, i) => displayX(i)), endless ? BW : bw, (endless ? BW : bw) * 1.12, widths());
       if (balanceMeter.current && Math.abs(balanceMeter.current.value - balance.risk) > 0.005) balanceMeter.current.value = balance.risk;
       const balanceText = balance.state === "stable" ? "Stable" : `${balance.direction < 0 ? "←" : "→"} ${balance.state === "danger" ? "Collapse risk" : "Leaning"}`;
       if (balanceLabel.current && balanceLabel.current.textContent !== balanceText) balanceLabel.current.textContent = balanceText;
