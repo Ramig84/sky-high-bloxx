@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpc = vi.hoisted(() => vi.fn());
+const finished = vi.hoisted(() => ({ ticket: Promise.resolve<string | null>(null) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc, from: vi.fn() } }));
-vi.mock("./account", () => ({ lastFinishedRun: Promise.resolve(null) }));
+vi.mock("./account", () => ({ get lastFinishedRun() { return finished.ticket; } }));
 import { submitScore } from "./leaderboard";
+beforeEach(() => { rpc.mockReset(); finished.ticket = Promise.resolve(null); });
 
 describe("truthful leaderboard submission", () => {
   it("a zero-floor zero-score run cannot report a submitted score", async () => {
@@ -13,6 +15,11 @@ describe("truthful leaderboard submission", () => {
   it("a guest without a validated finished run cannot post even a positive score", async () => {
     expect(await submitScore(100)).toBe(false);
     expect(rpc).not.toHaveBeenCalled();
+  });
+  it("submits cumulative earned landings and peak altitude independently of remaining floors", async () => {
+    finished.ticket = Promise.resolve("finished-ticket"); rpc.mockResolvedValue({ data: true, error: null });
+    expect(await submitScore(2500, 40, 30)).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("submit_space_score", { _run: "finished-ticket", _score: 2500, _landings: 40, _peak_floors: 30 });
   });
 });
 import { weekStart } from "./leaderboard";

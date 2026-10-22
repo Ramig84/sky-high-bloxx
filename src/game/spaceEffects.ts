@@ -1,4 +1,4 @@
-import { spaceSkyMix, zoneAt } from "./spaceClimb";
+import { spaceSkyLayers, zoneAt } from "./spaceClimb";
 
 export type SpaceEffectKind = "bird" | "cloud" | "aurora" | "lightning" | "debris" | "lunarDust" | "marsDust" | "asteroid" | "stormBand" | "ringIce" | "nebula" | "comet";
 export type SpaceEffect = { kind: SpaceEffectKind; count: number; size: number; alpha: number };
@@ -19,10 +19,9 @@ export const SPACE_EFFECTS: readonly (readonly SpaceEffect[])[] = [
 ];
 
 export function spaceEffectLayers(floors: number) {
-  const mix = spaceSkyMix(floors);
-  return mix.from === mix.to
-    ? [{ zone: mix.from, alpha: 1 }]
-    : [{ zone: mix.from, alpha: 1 - mix.t }, { zone: mix.to, alpha: mix.t }];
+  const layers = spaceSkyLayers(floors);
+  const top = layers[1];
+  return layers.map((layer, i) => ({ zone: layer.zone, alpha: i === 0 && top ? 1 - top.alpha : layer.alpha }));
 }
 
 /** Stable varied speeds/phases, with whole-pose action independent of travel. Keep the stacking lane clear. */
