@@ -10,7 +10,7 @@ import ringIce from "@/assets/space-ring-ice-poses.webp";
 import { atmosphereArtwork } from "./paintedAtmosphere";
 import { spiritArtwork } from "./spiritArtwork";
 import { poseBlend } from "./poseMotion";
-import { SPACE_EFFECTS, spaceEffectLayers, spaceEffectMotion, spaceMaterialAnchor, type SpaceEffectKind } from "./spaceEffects";
+import { SPACE_EFFECTS, spaceEffectLayers, spaceEffectMotion, spaceMaterialAnchor, spaceLightningClock, type SpaceEffectKind } from "./spaceEffects";
 
 export const spaceEffectArtwork = { debris, asteroid, lunarDust, marsDust, comet, stormBand, nebula, lightning, ringIce, cloud: atmosphereArtwork.cloud, aurora: atmosphereArtwork.aurora, bird: spiritArtwork.gull };
 export const SPACE_EFFECT_IMAGES = [...new Set([...Object.values(spaceEffectArtwork), spiritArtwork.eagle])];
@@ -45,7 +45,7 @@ export function drawSpaceEffects(ctx: CanvasRenderingContext2D, images: Record<S
       ctx.translate(anchor?.x ?? m.x, anchor?.y ?? m.y); ctx.rotate(anchor?.angle ?? m.angle);
       if (m.mirror) ctx.scale(-1, 1);
       if (effect.kind === "bird") drawBird(layer.zone, i, reduced ? 0 : time, effect.size);
-      else drawSpacePose(ctx, images[effect.kind], effect.kind, reduced ? 0 : effect.kind === "lightning" ? time % 13 : time, i, size);
+      else drawSpacePose(ctx, images[effect.kind], effect.kind, reduced ? 0 : effect.kind === "lightning" ? spaceLightningClock(time) : time, i, size);
       ctx.restore();
     }
   }

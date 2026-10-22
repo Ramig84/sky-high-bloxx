@@ -6,8 +6,8 @@ export type SpaceEffect = { kind: SpaceEffectKind; count: number; size: number; 
 /** Each scene has its own authored material/creature vocabulary, never Earth wildlife in space. */
 export const SPACE_EFFECTS: readonly (readonly SpaceEffect[])[] = [
   [{ kind: "bird", count: 2, size: 35, alpha: 0.8 }],
-  [{ kind: "cloud", count: 3, size: 140, alpha: 0.44 }, { kind: "bird", count: 1, size: 42, alpha: 0.66 }],
-  [{ kind: "cloud", count: 2, size: 150, alpha: 0.24 }, { kind: "aurora", count: 1, size: 210, alpha: 0.26 }, { kind: "lightning", count: 1, size: 120, alpha: 0.6 }],
+  [{ kind: "cloud", count: 2, size: 170, alpha: 0.18 }, { kind: "bird", count: 1, size: 42, alpha: 0.66 }],
+  [{ kind: "cloud", count: 2, size: 165, alpha: 0.14 }, { kind: "aurora", count: 1, size: 210, alpha: 0.26 }, { kind: "lightning", count: 1, size: 120, alpha: 0.6 }],
   [{ kind: "aurora", count: 1, size: 180, alpha: 0.17 }],
   [{ kind: "debris", count: 3, size: 32, alpha: 0.58 }],
   [{ kind: "lunarDust", count: 1, size: 58, alpha: 0.16 }, { kind: "debris", count: 1, size: 25, alpha: 0.42 }],
@@ -32,12 +32,17 @@ export function spaceEffectMotion(kind: SpaceEffectKind, index: number, time: nu
   const edge = width * (side < 0 ? 0.12 : 0.88);
   const y0 = height * (0.29 + (index % 3) * 0.17);
   if (["debris", "asteroid", "ringIce"].includes(kind)) {
-    // Independently phased depth passes, recycling only beyond the frame at zero opacity.
+    // Varied diagonal depth routes with offscreen turns, clear of the central stacking lane.
     const duration = 34 + index * 7;
+    const pass = Math.floor((t + index * 11.7) / duration);
     const k = reduced ? 0.35 + index * 0.08 : ((t + index * 11.7) % duration) / duration;
     const depth = 0.65 + (index % 3) * 0.17;
-    return { x: edge + side * width * (0.02 * Math.sin(k * Math.PI * 2 + phase) + 0.025 * (k - 0.5)),
-      y: -70 + k * (height + 140), alpha: Math.min(1, k * 10, (1 - k) * 10) * depth,
+    const upwards = (pass + index) % 2 === 1;
+    const travel = upwards ? 1 - k : k;
+    const lane = side < 0 ? 0.09 : 0.91;
+    const diagonal = (k - 0.5) * 0.12 * (pass % 2 === 0 ? 1 : -1);
+    return { x: width * (lane + diagonal + Math.sin(k * Math.PI * 2 + phase) * 0.018),
+      y: -70 + travel * (height + 140), alpha: Math.min(1, k * 10, (1 - k) * 10) * depth,
       mirror: side > 0, angle: kind === "ringIce" ? -0.3 : 0, scale: depth };
   }
   if (kind === "bird") {
@@ -51,10 +56,10 @@ export function spaceEffectMotion(kind: SpaceEffectKind, index: number, time: nu
     return { x: -90 + k * (width + 180), y: height * 0.37 - k * 55, alpha: reduced ? 0.4 : Math.min(1, k * 10, (1 - k) * 10), mirror: false, angle: -0.14 };
   }
   const atmosphere = ["cloud", "aurora", "stormBand", "nebula", "lightning"].includes(kind);
-  const lightningPhase = t % 13;
+  const lightningPhase = spaceLightningClock(t);
   return {
     x: edge + (atmosphere ? 0 : Math.sin(t * (0.12 + index * 0.019) + phase) * width * 0.055),
-    y: kind === "aurora" ? height * 0.3 : y0 + (atmosphere ? 0 : Math.cos(t * 0.13 + phase) * 15),
+    y: kind === "aurora" ? height * 0.3 : kind === "cloud" ? height * (0.57 + index * 0.15) : y0 + (atmosphere ? 0 : Math.cos(t * 0.13 + phase) * 15),
     alpha: kind === "lightning" ? (reduced || lightningPhase > 1.15 ? 0 : Math.sin(lightningPhase / 1.15 * Math.PI) * 0.8) : 0.9,
     mirror: side > 0,
     angle: 0,
@@ -136,3 +141,13 @@ export function spaceHazardHits(h0: Point, h1: Point, b0: Point, b1: Point, half
   }
   return true;
 }
+/** Deterministic irregular thunder cadence, shared by visibility and authored pose selection. */
+export function spaceLightningClock(time: number) {
+  let left = Math.max(0, time) % 91;
+  for (const interval of [13, 18, 15, 20, 11, 14]) {
+    if (left < interval) return left;
+    left -= interval;
+  }
+  return left;
+}
+export const spaceHazardName = (kind: HazardKind) => ({ debris: "Debris", asteroid: "Asteroid", ringIce: "Ring ice", comet: "Comet" })[kind];

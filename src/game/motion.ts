@@ -67,14 +67,14 @@ export const floorDifficulty = (floors: number, speed: number) => speed + floors
 /** Equal-mass stack balance at the actual contact overlap, including the footing.
  * -2 means foundation failure, -1 stable, otherwise the supporting floor index.
  */
-export function collapseIndex(xs: number[], width: number, foundationWidth = width * 1.12): number {
+export function collapseIndex(xs: number[], width: number, foundationWidth = width * 1.12, widths?: readonly number[]): number {
   let sum = xs.reduce((total, x) => total + x, 0);
   for (let i = -1; i < xs.length - 1; i++) {
     const lowerX = i < 0 ? 0 : (xs[i] ?? 0);
-    const lowerHalf = i < 0 ? foundationWidth / 2 : width / 2;
+    const lowerHalf = i < 0 ? foundationWidth / 2 : (widths?.[i] ?? width) / 2;
     const upperX = xs[i + 1] ?? 0;
-    const left = Math.max(lowerX - lowerHalf, upperX - width / 2);
-    const right = Math.min(lowerX + lowerHalf, upperX + width / 2);
+    const left = Math.max(lowerX - lowerHalf, upperX - (widths?.[i + 1] ?? width) / 2);
+    const right = Math.min(lowerX + lowerHalf, upperX + (widths?.[i + 1] ?? width) / 2);
     const com = sum / (xs.length - i - 1);
     if (left > right || com < left - 1e-7 || com > right + 1e-7) return i < 0 ? -2 : i;
     sum -= upperX;
@@ -83,12 +83,12 @@ export function collapseIndex(xs: number[], width: number, foundationWidth = wid
 }
 
 /** Risk is closeness to the weakest contact edge, not a probability or a floor-count estimate. */
-export function towerBalance(xs: number[], width: number, foundationWidth = width * 1.12) {
+export function towerBalance(xs: number[], width: number, foundationWidth = width * 1.12, widths?: readonly number[]) {
   let sum = xs.reduce((a, b) => a + b, 0), risk = 0, direction = 0;
   for (let i = -1; i < xs.length - 1; i++) {
     const lower = i < 0 ? 0 : (xs[i] ?? 0), upper = xs[i + 1] ?? 0;
-    const half = i < 0 ? foundationWidth / 2 : width / 2;
-    const left = Math.max(lower - half, upper - width / 2), right = Math.min(lower + half, upper + width / 2);
+    const half = i < 0 ? foundationWidth / 2 : (widths?.[i] ?? width) / 2;
+    const left = Math.max(lower - half, upper - (widths?.[i + 1] ?? width) / 2), right = Math.min(lower + half, upper + (widths?.[i + 1] ?? width) / 2);
     const com = sum / (xs.length - i - 1), midpoint = (left + right) / 2;
     const value = right <= left ? 1 : Math.min(1, Math.abs(com - midpoint) / ((right - left) / 2));
     if (value > risk) { risk = value; direction = Math.sign(com - midpoint); }
