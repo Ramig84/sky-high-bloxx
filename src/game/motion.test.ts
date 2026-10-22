@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { advanceSwing, suspendedBlock, HOOK_HEIGHT, ROPE_LENGTH, integrateFall, floorSway, advanceToLanding, targetTowerSway, floorPosition, collapseIndex, floorDifficulty } from "./motion";
 
 describe("continuous game motion", () => {
+  it("judges each authored contact width without resizing the fixed footing", () => {
+    expect(collapseIndex([0, 29], 72, 80.64, [72, 56])).toBe(-1);
+    expect(collapseIndex([0, 29], 72, 80.64, [40, 56])).toBe(0);
+    expect(collapseIndex([0], 72, 80.64, [56])).toBe(-1);
+  });
   it("slightly slows floor speed growth while keeping it increasing", () => {
     expect(floorDifficulty(10, 0)).toBe(4.5);
     expect(floorDifficulty(20, 0)).toBeGreaterThan(floorDifficulty(10, 0));

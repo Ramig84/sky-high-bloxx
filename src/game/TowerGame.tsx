@@ -482,7 +482,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const w = iw * sc, h = ih * sc;
       ctx.globalAlpha = alpha; ctx.drawImage(img, (vw - w) / 2, (VH - h) / 2 + yOff, w, h); ctx.globalAlpha = 1;
     };
-    const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0, shadow = false, blockWidth = blockWidth) => {
+    const drawBlock = (skin: number, cx: number, cyScreen: number, rot = 0, shadow = false, blockWidth = bw) => {
       const img = skins[skin];
       if (!img) return;
       ctx.save(); ctx.translate(vw / 2 + cx, cyScreen); if (rot) ctx.rotate(rot);

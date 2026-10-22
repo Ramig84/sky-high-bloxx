@@ -47,3 +47,10 @@ it("does not restore a revoked or explicitly signed-out session", async () => {
   expect(account.isSignedIn()).toBe(false);
   expect(account.isAccountReady()).toBe(true);
 });
+
+it("does not mark a rejected reward completion as a finished score ticket", async () => {
+  const account = await import("./account");
+  mocks.rpc.mockResolvedValueOnce({ data: null, error: new Error("Offline") });
+  await expect(account.finishRun(Promise.resolve("real-run"), { floors: 25, perfects: 4, stars: 0 }, 382)).rejects.toThrow("Offline");
+  expect(await account.lastFinishedRun).toBeNull();
+});
