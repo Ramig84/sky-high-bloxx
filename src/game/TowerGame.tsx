@@ -15,7 +15,7 @@ import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./a
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
 import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
 import { SPACE_ZONE_SKY } from "./spaceArtwork";
-import { SPACE_BLOCK_IMAGE, blockDimensions } from "./spaceBlock";
+import { SPACE_BLOCK_IMAGE, SPACE_BASE_IMAGE, blockDimensions, spaceBaseDimensions } from "./spaceBlock";
 import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
 import { advanceSpacePresentation, freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, spaceHazardPoseTime, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
 import { loadSettings, saveSettings, vibrate } from "./settings";
@@ -178,6 +178,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
     const confetti = load(confettiSrc);
     const contact = load(contactSrc), footing = load(footingSrc);
+    const launchBase = endless ? load(SPACE_BASE_IMAGE) : null;
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
     const windArrow = load(windDirectionSrc);
@@ -480,8 +481,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           ctx.drawImage(contact, -bw * 0.52, BH / 2 - 3, bw * 1.04, 6);
           ctx.restore();
         }
-        // The sprite is authored for this exact rectangle, including its painted side return.
-        ctx.drawImage(img, -bw / 2, -BH / 2, bw, BH);
+        // Trim the gantry's uneven pigment fringe to level contact beams, not perspective faces.
+        if (endless) {
+          const inset = Math.round(img.naturalHeight * 0.024);
+          ctx.drawImage(img, 0, inset, img.naturalWidth, img.naturalHeight - inset * 2, -bw / 2, -BH / 2 - 0.5, bw, BH + 1);
+        } else ctx.drawImage(img, -bw / 2, -BH / 2, bw, BH);
       }
       ctx.restore();
     };
@@ -758,7 +762,14 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // Painted stone plinth (same width as the physics foundation) set into the pavement,
       // with its own soft painted shadow underneath so the masonry sits in the street.
       const gy = toScreenY(0);
-      if (gy < VH + 200 && ok(footing)) {
+      if (endless && launchBase && ok(launchBase) && gy < VH + 200) {
+        const base = spaceBaseDimensions(bw);
+        const left = vw / 2 - base.width / 2;
+        // Continue the attached rooftop beneath the HUD rather than floating a plinth in sky.
+        ctx.drawImage(launchBase, 0, launchBase.naturalHeight - 32, launchBase.naturalWidth, 32,
+          left, gy + base.height - 2, base.width, 74);
+        ctx.drawImage(launchBase, left, gy - 0.5, base.width, base.height + 0.5);
+      } else if (!endless && gy < VH + 200 && ok(footing)) {
         const fw = bw * 1.12, fh = 13;
         if (ok(contact)) {
           ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.35;
