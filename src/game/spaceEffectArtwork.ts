@@ -10,6 +10,7 @@ import ringIce from "@/assets/space-ring-ice-poses.webp";
 import { atmosphereArtwork } from "./paintedAtmosphere";
 import { spiritArtwork } from "./spiritArtwork";
 import { poseBlend } from "./poseMotion";
+import { spaceSceneryTransform } from "./spaceScenery";
 import { SPACE_EFFECTS, spaceEffectLayers, spaceEffectMotion, spaceMaterialAnchor, spaceLightningClock, type SpaceEffectKind } from "./spaceEffects";
 
 export const spaceEffectArtwork = { debris, asteroid, lunarDust, marsDust, comet, stormBand, nebula, lightning, ringIce, cloud: atmosphereArtwork.cloud, aurora: atmosphereArtwork.aurora, bird: spiritArtwork.gull };
@@ -31,18 +32,25 @@ export function drawSpacePose(ctx: CanvasRenderingContext2D, image: HTMLImageEle
   ctx.globalAlpha = alpha;
 }
 
-export function drawSpaceEffects(ctx: CanvasRenderingContext2D, images: Record<SpaceEffectKind, HTMLImageElement>, floors: number, time: number, width: number, height: number, reduced: boolean, drawBird: (zone: number, index: number, time: number, size: number) => void) {
+export function drawSpaceEffects(ctx: CanvasRenderingContext2D, images: Record<SpaceEffectKind, HTMLImageElement>, floors: number, time: number, width: number, height: number, reduced: boolean, drawBird: (zone: number, index: number, time: number, size: number) => void, cameraFloors = floors) {
   for (const layer of spaceEffectLayers(floors)) {
     if (layer.alpha < 0.005) continue;
+    const frame = spaceSceneryTransform(layer.zone, cameraFloors, width, height);
+    const cover = Math.max(width / 864, height / 1536);
+    const baseW = 864 * cover, baseH = 1536 * cover;
+    const sceneryScale = frame.width / baseW;
     for (const effect of SPACE_EFFECTS[layer.zone] ?? []) for (let i = 0; i < effect.count; i++) {
       const m = spaceEffectMotion(effect.kind, i, time, width, height, reduced);
       const alpha = layer.alpha * effect.alpha * m.alpha;
       if (alpha < 0.005) continue;
       const anchor = spaceMaterialAnchor(effect.kind, i, width, height);
-      const size = anchor?.size ?? effect.size * ("scale" in m ? m.scale ?? 1 : 1);
+      const size = anchor ? anchor.size * sceneryScale : effect.size * ("scale" in m ? m.scale ?? 1 : 1);
+      const x = anchor?.x ?? m.x, y = anchor?.y ?? m.y;
+      const sceneX = frame.x + (x - (width - baseW) / 2) * sceneryScale;
+      const sceneY = frame.y + (y - (height - baseH) / 2) * sceneryScale;
       ctx.save(); ctx.globalAlpha = alpha;
       if (anchor) ctx.globalCompositeOperation = anchor.blend;
-      ctx.translate(anchor?.x ?? m.x, anchor?.y ?? m.y); ctx.rotate(anchor?.angle ?? m.angle);
+      ctx.translate(sceneX, sceneY); ctx.rotate(anchor?.angle ?? m.angle);
       if (m.mirror) ctx.scale(-1, 1);
       if (effect.kind === "bird") drawBird(layer.zone, i, reduced ? 0 : time, effect.size);
       else drawSpacePose(ctx, images[effect.kind], effect.kind, reduced ? 0 : effect.kind === "lightning" ? spaceLightningClock(time) : time, i, size);
