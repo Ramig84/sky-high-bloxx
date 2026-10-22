@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSpec, zoneAt } from "./spaceClimb";
+import { SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSkyLayers, spaceSpec, spaceSwingRate, spaceDrift, zoneAt } from "./spaceClimb";
 import { levelSpec } from "./levels";
 
 describe("Space Climb zones", () => {
@@ -15,9 +15,18 @@ describe("Space Climb zones", () => {
     expect(floorsToNextZone(20)).toBe(5);
     expect(floorsToNextZone(520)).toBeNull();
   });
-  it("starts harder than the campaign finale and steps up at every zone", () => {
-    expect(spaceSpec(0).speed).toBeGreaterThan(levelSpec(99).speed);
+  it("starts slower and steps up at every zone without reaching the crane cap early", () => {
+    expect(spaceSpec(0).speed).toBe(12);
+    expect(spaceSwingRate(0)).toBeCloseTo(2.26);
+    expect(spaceSpec(0).speed).toBeLessThan(levelSpec(99).speed);
     for (const z of SPACE_ZONES.slice(1)) expect(spaceSpec(z.start).speed).toBeGreaterThan(spaceSpec(z.start - 1).speed);
+    for (const z of SPACE_ZONES.slice(1)) expect(spaceSwingRate(z.start)).toBeGreaterThan(spaceSwingRate(z.start - 1));
+    expect(spaceSwingRate(600)).toBeLessThan(5);
+    expect(spaceSwingRate(900)).toBe(spaceSwingRate(600));
+  });
+  it("reports net drift including Jupiter's pull in both directions", () => {
+    expect(spaceDrift(spaceSpec(330), 1)).toEqual({ acceleration: 190, direction: 1 });
+    expect(spaceDrift(spaceSpec(330), -1)).toEqual({ acceleration: -110, direction: -1 });
   });
   it("adds obstacles by zone and keeps earlier ones", () => {
     expect(spaceSpec(24).wind).toBe(0);
@@ -41,6 +50,13 @@ describe("Space Climb zones", () => {
 });
 
 describe("zone sky crossfade", () => {
+  it("never double-exposes large planets during Moon/Mars and Jupiter/Saturn handovers", () => {
+    for (const floors of [175, 176, 375, 376]) {
+      const layers = spaceSkyLayers(floors);
+      expect(layers.filter(l => [5, 6, 8, 9].includes(l.zone))).toHaveLength(1);
+      expect(layers.some(l => l.zone === 10)).toBe(true);
+    }
+  });
   it("accepts continuous presentation floors without stepping or reversing at boundaries", () => {
     expect(spaceSkyMix(24.5).t).toBeGreaterThan(spaceSkyMix(24).t);
     expect(spaceSkyMix(24.99).t).toBeGreaterThan(0.999);

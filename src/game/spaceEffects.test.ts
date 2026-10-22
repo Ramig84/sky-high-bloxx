@@ -20,6 +20,8 @@ describe("Space Climb living scenes", () => {
     const a = spaceEffectMotion("asteroid", 0, 8, 360, 700);
     const b = spaceEffectMotion("asteroid", 0, 9, 360, 700);
     expect(b.y - a.y).toBeCloseTo(840 / 34);
+    expect(b.x).not.toBe(a.x);
+    expect(spaceEffectMotion("asteroid", 0, 43, 360, 700).y).toBeLessThan(spaceEffectMotion("asteroid", 0, 42, 360, 700).y);
     expect(spaceEffectMotion("asteroid", 0, 34, 360, 700).alpha).toBe(0);
     expect(spaceEffectMotion("asteroid", 1, 8, 360, 700).y).not.toBe(a.y);
   });

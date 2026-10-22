@@ -1,5 +1,6 @@
 // Browser-safe Space Climb (Endless) rules: rise from the rooftops through the sky to deep space.
 import type { LevelSpec } from "./levels";
+import { swingRate } from "./motion";
 
 export type SpaceZone = { id: string; name: string; start: number; speedStep: number };
 
@@ -57,8 +58,8 @@ export function spaceSpec(floors: number): LevelSpec {
   const mild = (from: number) => z >= from;
   return {
     index: -1, district: 0, level: 0, goal: Number.POSITIVE_INFINITY, perfectGoal: 0, lives: 3,
-    // Starts above the campaign finale; steps up at each zone plus a small climb inside it.
-    speed: 92 + zone.speedStep + Math.max(0, inZone) * 0.08,
+    // Space-only slower opening; actual swing rate rises across the full journey.
+    speed: 12 + zone.speedStep * 0.7 + Math.max(0, inZone) * 0.04,
     wind: mild(1) ? Math.round((z === 6 ? 190 : 110) + Math.min(f, MAX_SPEED_FLOORS) * 0.12) : 0,
     slip: mild(2) ? Math.min(7, 3.5 + f * 0.006) : 0,
     slide: mild(3) ? Math.round(Math.min(70, 26 + f * 0.06)) : 0,
@@ -69,4 +70,24 @@ export function spaceSpec(floors: number): LevelSpec {
     pull: mild(8) ? 40 : 0,
     arc: mild(9) ? 18 : 0,
   };
+}
+
+/** Use the zone progression directly: campaign's extra floor ramp must not cap space early. */
+export function spaceSwingRate(floors: number) { return swingRate(spaceSpec(floors).speed); }
+
+/** Warning and acceleration use the same combined sideways force, including planetary pull. */
+export function spaceDrift(spec: Pick<LevelSpec, "wind" | "pull">, direction: number) {
+  const acceleration = spec.wind * direction + (spec.pull ?? 0);
+  return { acceleration, direction: Math.sign(acceleration) || direction };
+}
+
+/** Planet handovers pass through existing dark sky, never double-expose two large planets. */
+export function spaceSkyLayers(floors: number) {
+  const m = spaceSkyMix(floors);
+  if (m.from === m.to) return [{ zone: m.from, alpha: 1 }];
+  const planetPair = [5, 6, 8, 9].includes(m.from);
+  if (!planetPair) return [{ zone: m.from, alpha: 1 }, { zone: m.to, alpha: m.t }];
+  return m.t < 0.5
+    ? [{ zone: m.from, alpha: 1 }, { zone: 10, alpha: m.t * 2 }]
+    : [{ zone: 10, alpha: 1 }, { zone: m.to, alpha: (m.t - 0.5) * 2 }];
 }

@@ -20,11 +20,11 @@ export async function topScores(limit = 50, scope: ScoreScope = "all"): Promise<
 }
 
 /** Only signed-in players' server-verified Space Climb runs reach the leaderboard. */
-export async function submitScore(score: number) {
+export async function submitScore(score: number, landings?: number, peakFloors?: number) {
   if (score <= 0) return false;
   const run = await lastFinishedRun;
   if (!run) return false;
-  const { data, error } = await supabase.rpc("submit_space_score", { _run: run, _score: score });
+  const { data, error } = await supabase.rpc("submit_space_score", landings !== undefined && peakFloors !== undefined ? { _run: run, _score: score, _landings: landings, _peak_floors: peakFloors } : { _run: run, _score: score });
   if (error) throw error;
   return Boolean(data);
 }

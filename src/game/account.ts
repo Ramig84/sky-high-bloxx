@@ -107,7 +107,7 @@ export async function startRun(mode: RunMode, level: number): Promise<string | n
 /** Resolves to the most recently finished signed-in run, used to post verified leaderboard scores. */
 export let lastFinishedRun: Promise<string | null> = Promise.resolve(null);
 export async function finishRun(ticket: Promise<string | null>, stats: { floors: number; perfects: number; stars: number }, guestReward: number): Promise<number> {
-  let done!: (v: string | null) => void;
+  let done: (v: string | null) => void = () => {};
   lastFinishedRun = new Promise(r => { done = r; });
   try { return await finishRunInner(ticket, stats, guestReward, done); } finally { done(null); }
 }
@@ -115,7 +115,8 @@ async function finishRunInner(ticket: Promise<string | null>, stats: { floors: n
   const id = await ticket;
   if (!id && !signedIn) { addCoins(guestReward); return guestReward; }
   if (!id) return 0;
-  const { data } = await supabase.rpc("finish_game_run", { _run: id, _floors: stats.floors, _perfects: stats.perfects, _stars: stats.stars });
+  const { data, error } = await supabase.rpc("finish_game_run", { _run: id, _floors: stats.floors, _perfects: stats.perfects, _stars: stats.stars });
+  if (error) throw error;
   done(id);
   await syncAccount();
   return Number((data as { reward?: number } | null)?.reward ?? 0);
