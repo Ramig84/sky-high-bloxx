@@ -21,7 +21,7 @@
 - Each district has its own painted street sky and high sky, crossfaded by districtSkyMix over the shared base layers and preloaded per district, so districts read distinctly without swapping or sliding images.
 - Every screen's birds fly through the shared birdPath in sky.ts (menus via SkyBirds), never CSS sliding paths, so flight looks the same everywhere.
 - Keep the rewarded-ad countdown in AdResumeCountdown with timing tests; pause simulation while rendering the existing game scene so players return to the same tower.
-- Space Climb skies/effects share render-only eased earned floors; map planet material through the sky cover crop and keep one hazard pose clock, so visual polish cannot alter rules or rewards.
+- Space Climb skies/effects share eased earned-floor dissolves and a tested overscanned camera-following scenery transform; attach planet material to the identical crop, while collision hazards remain world-coordinate, so ascent reveals higher painting without seams or rule changes.
 - Use one district-shaded world cloud field with whole painted poses, camera-anchored thin low mist and a single Rail Yard roof-steam source; extend sparse sky-creature presence to the district finale camera height, never terrestrial objects, so scenery depth remains coherent.
 - Preload aligned whole painted wind cue poses and dissolve between them using the simulation clock; direction sequencing in wind.ts advances only while held, freezes through falls/pause, and supplies both warnings and scenery, so wind changes are signalled without changing level force magnitude.
 - Gate the shared audio context and both gain buses on focus, page visibility/presence and native activity, so leaving the app silences recordings even when WebView visibility is stale.

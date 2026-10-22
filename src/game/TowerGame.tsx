@@ -15,6 +15,7 @@ import { districtFloors, districtStreet, phoneArtwork, tabletArtwork } from "./a
 import { DISTRICTS, districtGoal, LEVELS_PER_DISTRICT, levelSpec, starsFor } from "./levels";
 import { SPACE_BEST_KEY, SPACE_ZONES, floorsToNextZone, spaceSkyMix, spaceSkyLayers, spaceSpec, spaceDrift, zoneAt } from "./spaceClimb";
 import { SPACE_ZONE_SKY } from "./spaceArtwork";
+import { spaceSceneryTransform } from "./spaceScenery";
 import { SPACE_BLOCK_IMAGE, SPACE_BASE_IMAGE, blockDimensions, spaceBaseDimensions } from "./spaceBlock";
 import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
 import { advanceSpacePresentation, freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, spaceHazardPoseTime, spaceHazardName, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
@@ -571,13 +572,21 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       paintedFloors = advanceSpacePresentation(paintedFloors, s.floors.length, dt);
       const sceneFloors = review?.floors ?? paintedFloors;
       const sceneTime = review?.time ?? s.t;
+      const sceneryCameraFloors = review?.floors ?? s.camY / BH;
       const zoneSky = endless ? spaceSkyMix(sceneFloors) : null;
       const fromArt = zoneSky ? spaceSkies[zoneSky.from] : undefined, toArt = zoneSky ? spaceSkies[zoneSky.to] : undefined;
       const zoneArt = fromArt && toArt && ok(fromArt) && ok(toArt);
       // District's own painted sky: one continuous street-to-top journey, fully opaque (no grey veil).
       const districtArt = !zoneArt && ok(dSkyLow) && ok(dSkyHigh);
       if (zoneArt && zoneSky && fromArt && toArt) {
-        for (const layer of spaceSkyLayers(sceneFloors)) { const art = spaceSkies[layer.zone]; if (art && layer.alpha > 0.005) drawCover(art, layer.alpha, 0); } }
+        for (const layer of spaceSkyLayers(sceneFloors)) {
+          const art = spaceSkies[layer.zone];
+          if (!art || layer.alpha <= 0.005) continue;
+          const frame = spaceSceneryTransform(layer.zone, sceneryCameraFloors, vw, VH);
+          ctx.globalAlpha = layer.alpha;
+          ctx.drawImage(art, frame.x, frame.y, frame.width, frame.height);
+          ctx.globalAlpha = 1;
+        } }
       else if (districtArt) { const mix = districtSkyMix(alt);
         drawCover(dSkyLow, 1, 0);
         if (mix.high > 0.005) drawCover(dSkyHigh, mix.high, 0); }
@@ -667,7 +676,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (endless && spacePoses) drawSpaceEffects(ctx, spacePoses, sceneFloors, sceneTime, vw, VH, reducedMotion, (z, i, time, size) => {
         const kind = z === 1 ? "eagle" : "gull";
         drawSpirit(ctx, ambientPoses[kind], kind, i, time, size, !reducedMotion && Math.sin(time * 0.55 + i) < -0.5);
-      });
+      }, sceneryCameraFloors);
       // Painted thin mist, camera-anchored below the rooftops, never a full cloud puff.
       if (!endless && ok(wisp) && (atmos.weather.includes("mist") || district.id === "skyline" || district.id === "cloudpeak")) {
         for (let i = 0; i < 3; i++) {

@@ -143,6 +143,7 @@
 - [ ] Post-ad lag root cause: user confirmed Home/re-entering play does not clear it but a full app restart does. Read-only game/native investigations found no proven cause; blocked on a physical-phone performance trace, not further guessed recovery changes. Unchanged by scenery work.
 
 ## Space Climb (Endless)
+- [ ] Attach sky and painted effects to shared downward camera travel; retest earned climb, all zones and coverage. Campaign/rules/artwork unchanged; no Android build requested.
 - [x] Fixed approved audit findings: slower space-only crane ramp, collapse/zone refresh, retained landed widths/fixed footing, net-force cues, cumulative-landings/peak score submission, diagonal depth rock motion, irregular lightning, restrained clouds and planet-safe handovers. 220 game tests pass; eleven scenes/ten transitions, pause/resume, phone layouts and a signed-in earned 25-floor run with coins and leaderboard readback verified without errors. No Android build requested.
 - [ ] Verify fully earned high-zone collisions/collapse and physical-phone pacing (blocked: extended play and latest APK installation); high-zone visual previews and regression tests are not a fully earned ascent. Native post-ad slowdown remains unproven fixed.
 - [x] Review user phone screenshots: current module has painted perspective/sloping contact edges, and the campaign stone footing floats against the rooftop sky; explain findings and recommend larger front-facing modules before replacement.
