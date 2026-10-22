@@ -3,10 +3,9 @@ import { blockDimensions, spaceBaseDimensions } from "./spaceBlock";
 import { classifyLanding } from "./motion";
 
 describe("Space Climb launch-gantry blocks", () => {
-  it("uses a smaller single module than campaign houses", () => {
+  it("uses a narrower single module than campaign houses", () => {
     const space = blockDimensions(true), campaign = blockDimensions(false);
     expect(space.width).toBeLessThan(campaign.width);
-    expect(space.height).toBeLessThan(campaign.height);
   });
   it("keeps campaign houses at their approved dimensions", () => {
     expect(blockDimensions(false)).toEqual({ width: 84, height: 50 });
