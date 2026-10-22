@@ -324,10 +324,17 @@ export type Database = {
         Args: { _run: string; _score: number }
         Returns: boolean
       }
-      submit_space_score: {
-        Args: { _run: string; _score: number }
-        Returns: boolean
-      }
+      submit_space_score:
+        | { Args: { _run: string; _score: number }; Returns: boolean }
+        | {
+            Args: {
+              _landings: number
+              _peak_floors: number
+              _run: string
+              _score: number
+            }
+            Returns: boolean
+          }
       tour_district_for: { Args: { _day: string }; Returns: number }
     }
     Enums: {

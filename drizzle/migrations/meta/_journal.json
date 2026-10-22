@@ -78,6 +78,13 @@
       "when": 1792611839947,
       "tag": "0010_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792648677354,
+      "tag": "0011_space_climb_collapse_scores",
+      "breakpoints": true
     }
   ]
 }
