@@ -200,7 +200,7 @@ function Leaderboard({ onBack }: { onBack: () => void }) {
   const [err, setErr] = useState(false);
   const [me, setMe] = useState<string | null>(null);
   const [scope, setScope] = useState<ScoreScope>("all");
-  useEffect(() => { setRows(null); setErr(false); topScores(50, scope).then(setRows).catch(() => setErr(true)); }, [scope]);
+  useEffect(() => { let active = true; setRows(null); setErr(false); topScores(50, scope).then(rows => { if (active) setRows(rows); }).catch(() => { if (active) setErr(true); }); return () => { active = false; }; }, [scope]);
   useEffect(() => { void supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null)); }, []);
   return (
     <div className="hud-pill w-full max-w-sm gap-2 p-4">
