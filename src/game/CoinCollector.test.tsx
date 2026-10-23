@@ -27,3 +27,49 @@ it("lets overlapping collections finish and counts every arrived coin", () => {
   expect(completed).toHaveBeenCalledTimes(2);
   result.unmount();
 });
+
+it("replaces a collapsed run preview and ignores its late coin arrivals", () => {
+  const animations: { onfinish: (() => void) | null; cancel: ReturnType<typeof vi.fn> }[] = [];
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: () => {
+    const animation = { onfinish: null as (() => void) | null, cancel: vi.fn() };
+    animations.push(animation); return animation;
+  } });
+  const ref = createRef<CoinCollectorHandle>();
+  const result = render(<CoinCollector ref={ref} />);
+  const target = document.createElement("img"), counter = document.createElement("strong");
+  act(() => ref.current?.collect({ source: { x: 100, y: 100 }, target, counter, from: 22, to: 44 }));
+  const stale = animations.slice();
+  act(() => {
+    ref.current?.reset(counter, 30);
+    ref.current?.collect({ source: { x: 100, y: 100 }, target, counter, from: 30, to: 52 });
+    stale.forEach(animation => animation.onfinish?.());
+  });
+  expect(counter.textContent).toBe("30");
+  expect(stale.every(animation => animation.cancel.mock.calls.length === 1)).toBe(true);
+  act(() => animations.slice(22, 44).forEach(animation => animation.onfinish?.()));
+  expect(counter.textContent).toBe("52");
+  result.unmount();
+});
+
+it("keeps the validated wallet separate from unfinished preview arrivals", () => {
+  const animations: { onfinish: (() => void) | null; cancel: ReturnType<typeof vi.fn> }[] = [];
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: () => {
+    const animation = { onfinish: null as (() => void) | null, cancel: vi.fn() };
+    animations.push(animation); return animation;
+  } });
+  const ref = createRef<CoinCollectorHandle>();
+  const result = render(<CoinCollector ref={ref} />);
+  const target = document.createElement("img"), counter = document.createElement("strong");
+  act(() => ref.current?.collect({ source: { x: 100, y: 100 }, target, counter, from: 0, to: 22 }));
+  const stale = animations.slice();
+  act(() => {
+    ref.current?.reset(counter, 1000);
+    ref.current?.collect({ source: { x: 100, y: 100 }, target, counter, from: 1000, to: 1022 });
+    stale.forEach(animation => animation.onfinish?.());
+    animations.slice(22, 44).forEach(animation => animation.onfinish?.());
+  });
+  expect(counter.textContent).toBe("1,022");
+  result.unmount();
+});

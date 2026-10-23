@@ -3,7 +3,7 @@
 - Keep weather trajectories in browser-safe weather logic and draw individual painted rain strokes rather than tiled overlays, so wind direction and frame-rate behavior stay consistent.
 - Judge equal-mass balance against rendered contact-overlap intervals and the fixed footing on every gameplay frame; capture each floor's landing bend so artwork and physics share coordinates without contact jumps.
 - Animate game transforms through refs and publish HUD changes only on gameplay events, so React commits cannot reset moving objects.
-- Animate painted coin collection with CoinCollector and update counter refs only on sprite arrivals; live run coins are previews and only validated finish rewards enter the wallet.
+- Animate painted coin collection with CoinCollector and update counter refs on sprite arrivals; reset stale flights when collapse replaces a preview or validated rewards switch it to the wallet, so those separate totals never mix.
 - Coin sprite bundles are apportioned in browser-safe coinFlight logic; labelled bundle amounts sum exactly to each reward and small rewards use one sprite per coin.
 - Route recorded audio through independent music/effects gain buses; settings changes update ongoing playback immediately without creating additional audio contexts.
 - Anchor water scenery through the backdrop cover transform and derive the live balance meter from rendered contact intervals, so visual feedback shares gameplay coordinates.
