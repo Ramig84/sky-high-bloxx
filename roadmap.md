@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Correct Space Climb coin preview after collapse and isolate wallet arrivals; verify exact moving amounts and touch play. No Android build requested.
 - [x] Refined the rejected wind cue: smaller muted painted poses with dissolves, single-line bounded warning, shared scenery direction, four-drop groups with a held-only signalled turn. Force magnitude/rewards unchanged; 181 game tests pass and portrait touch releases/pause verified. No Android build requested; final phone appearance awaits user review.
 - [x] Animated the wind cue through six authored painted poses, with “Wind on release” before drop and actual-direction warning during descent. 177 game tests pass; real Home→Map→Market→touch drop browser flow verified with no errors. Wind physics unchanged; no Android workflow.
 - [x] Corrected audio focus/page-exit silencing and native activity gating without changing recordings or volumes; live browser audio context verified running→suspended→running on blur/focus and pagehide/pageshow. Physical-phone exit/lock verification remains pending.

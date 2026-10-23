@@ -411,6 +411,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         s.fallers.push({ x: xs[first + k] ?? f.x, y: (first + k) * BH + BH / 2, vx: dir * (60 + k * 20), vy: 0, rot: 0, vr: dir * (1.5 + k * 0.3), skin: f.skin, width: f.width });
       });
       syncSpace();
+      // Lost floors reduce the preview, not the wallet. Retire their in-flight coins
+      // before a later landing starts a collection from the corrected amount.
+      previewCoins = runReward({ perfects: s.perfects, floors: s.floors.length, endless, daily });
+      if (coinCounter.current) collector.current?.reset(coinCounter.current, previewCoins);
       loseLife("COLLAPSE!");
       // Discard a pending release rather than judging it against a vanished surface.
       s.drop = null; s.held = true;
@@ -931,6 +935,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     if (credited <= 0) return;
     const target = coinTarget.current, counter = coinCounter.current, source = rewardSource.current;
     if (!target || !counter || !source) return;
+    // A validated wallet total replaces the run preview: old preview arrivals must
+    // never add themselves to this separate balance.
+    collector.current?.reset(counter, Math.max(0, coins() - credited));
     if (coinLabel.current) coinLabel.current.textContent = "WALLET";
     const bounds = source.getBoundingClientRect();
     collector.current?.collect({ source: { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }, target, counter, from: Math.max(0, coins() - credited), to: coins() });

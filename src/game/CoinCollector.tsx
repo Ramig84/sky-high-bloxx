@@ -12,7 +12,7 @@ export type CoinCollection = {
   to: number;
   onComplete?: () => void;
 };
-export type CoinCollectorHandle = { collect: (collection: CoinCollection) => void; clear: () => void };
+export type CoinCollectorHandle = { collect: (collection: CoinCollection) => void; clear: () => void; reset: (counter: HTMLElement, value: number) => void };
 
 /** Painted reward sprites; compositor motion never commits React during play. */
 export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollector(_, ref) {
@@ -28,7 +28,10 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
     layer.current?.replaceChildren();
   };
   useEffect(() => clear, []);
-  useImperativeHandle(ref, () => ({ clear, collect: ({ source, target, counter, from, to, onComplete }) => {
+  useImperativeHandle(ref, () => ({ clear, reset: (counter, value) => {
+    clear();
+    counter.textContent = value.toLocaleString();
+  }, collect: ({ source, target, counter, from, to, onComplete }) => {
     const root = layer.current;
     if (!root || to <= from) { onComplete?.(); return; }
     const token = generation.current;
@@ -61,8 +64,8 @@ export const CoinCollector = forwardRef<CoinCollectorHandle>(function CoinCollec
       image.style.left = "0"; image.style.top = "0";
       sprite.appendChild(image);
       const amount = amounts[i] ?? 1;
-      if (i === 0) {
-        const label = document.createElement("strong"); label.textContent = `+${(to - from).toLocaleString()}`;
+      if (amount > 1) {
+        const label = document.createElement("strong"); label.textContent = `+${amount.toLocaleString()}`;
         sprite.appendChild(label);
       }
       root.appendChild(sprite);
