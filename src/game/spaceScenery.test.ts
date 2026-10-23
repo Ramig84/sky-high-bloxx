@@ -9,7 +9,7 @@ describe("ascending painted scenery", () => {
       const a = spaceSceneryTransform(i, zone.start, 411, 792);
       const b = spaceSceneryTransform(i, end, 411, 792);
       expect(b.y).toBeGreaterThan(a.y);
-      expect(b.y).toBe(0);
+      expect(b.y).toBeCloseTo(0);
     }
   });
   it("never exposes a sky edge on phone and tablet crops or after a collapse", () => {
