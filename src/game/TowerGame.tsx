@@ -40,6 +40,8 @@ import { AdResumeCountdown } from "./AdResumeCountdown";
 import { canvasResolution } from "./canvasResolution";
 import { freshWind, finishWindDrop, stepWind, windPresentation } from "./wind";
 import { frameDelta, physicsSteps } from "./frameClock";
+import { diagPixelRatio, recordDraw, setDiag, subscribeDiag, tapCounter } from "./diagnostics";
+import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { TowerGeometry, visibleFloorRange, retainInPlace } from "./towerGeometry";
 import { subscribeActivity } from "./activity";
 
@@ -187,7 +189,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const hook = load(hookSrc);
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
     const confetti = load(confettiSrc);
-    const contact = load(contactSrc), footing = load(footingSrc);
+    const contact = load(contactSrc), footing = endless ? new Image() : load(footingSrc);
     const launchBase = endless ? load(SPACE_BASE_IMAGE) : null;
     const roof = load(roofSrc);
     const amb = load(ambientSrc), windArt = load(windSrc);
@@ -216,7 +218,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const field = cloudField();
     const visitors = skyVisitors(dsky.lifeCount);
     const spirits = districtSpirits(district.id);
-    const dSkyLow = load(districtSkyArt[district.id].low), dSkyHigh = load(districtSkyArt[district.id].high);
+    const dSkyLow = endless ? new Image() : load(districtSkyArt[district.id].low), dSkyHigh = endless ? new Image() : load(districtSkyArt[district.id].high); // Space Climb paints its own zone skies
     // Space Climb paints its own sky per zone, dissolving from one into the next as the tower rises.
     const spaceSkies = endless ? SPACE_ZONE_SKY.map(load) : [];
     const spacePoses = endless ? Object.fromEntries(Object.entries(spaceEffectArtwork).map(([key, src]) => [key, load(src)])) as Record<SpaceEffectKind, HTMLImageElement> : null;
@@ -254,7 +256,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const cityHazeSpan = cityHazeArt === cityHaze ? 1.7 : 1.2;
     let cloudSeaLayer: HTMLCanvasElement | null = null;
     const cloudPoses = load(atmosphereArtwork.cloud), auroraPoses = load(atmosphereArtwork.aurora);
-    const visitorArt = load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = load(skyArt.auroraSrc);
+    const visitorArt = endless ? new Image() : load(dsky.life === "kite" ? spiritArtwork.kite : spiritArtwork.balloon), aurora = endless ? new Image() : load(skyArt.auroraSrc);
     // One depth field uses the original paintings and whole animated poses.
     const birds = Array.from({ length: dsky.birds.count }, (_, i) => ({ ph: i * 1.37 }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -315,7 +317,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     let scale = 1, vw = 360, needsPaint = true;
     const resize = () => {
       const bounds = surface.getBoundingClientRect();
-      const resolution = canvasResolution(bounds.width, bounds.height, window.devicePixelRatio);
+      const resolution = canvasResolution(bounds.width, bounds.height, diagPixelRatio(window.devicePixelRatio));
       scale = resolution.height / VH;
       vw = resolution.width / scale;
       if (canvas.width === resolution.width && canvas.height === resolution.height) return;
@@ -326,6 +328,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const observer = new ResizeObserver(resize);
     observer.observe(surface);
     window.addEventListener("resize", resize);
+    const unsubscribeDiag = subscribeDiag(resize);
     const rainStrokes = spawnRain(vw, VH);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
@@ -527,6 +530,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       // spending CPU/GPU on a full scenery redraw while the simulation is frozen.
       if (paused && !needsPaint) { raf = requestAnimationFrame(frame); return; }
       needsPaint = false;
+      const drawStart = performance.now();
       const steps = physicsSteps(dt);
       const stepDelta = steps ? dt / steps : 0;
       for (let step = 0; step < steps; step++) {
@@ -949,6 +953,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         }
       }
 
+      recordDraw(performance.now() - drawStart);
       raf = requestAnimationFrame(frame);
     };
     // Paint the already-decoded scene immediately, before exposing an empty opaque canvas.
@@ -960,6 +965,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       runGeneration.current++;
       cancelAnimationFrame(raf);
       observer.disconnect();
+      unsubscribeDiag();
       window.removeEventListener("resize", resize);
       canvas.remove();
       if (import.meta.env.DEV && (window as unknown as { __bloxx?: () => unknown }).__bloxx === inspect) delete (window as unknown as { __bloxx?: () => unknown }).__bloxx;
@@ -985,6 +991,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       <div ref={surfaceRef} className="game-surface absolute inset-0" />
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
+      <DiagnosticsPanel />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
       {resumingFromAd && <AdResumeCountdown onComplete={finishAdCountdown} />}
       <div ref={balancePanel} className={`tower-balance hud-pill${hud.over ? " invisible" : ""}`} data-state="stable">
@@ -1008,7 +1015,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       )}
       {pauseView && <div className="absolute inset-0 z-40 flex items-center justify-center bg-game-shell/50 p-6" role="dialog" aria-modal="true" aria-label={pauseView === "leave" ? "Leave game?" : "Game paused"} onPointerDown={e => e.stopPropagation()}>
         <div className="game-dialog hud-pill w-full max-w-xs items-center gap-4 p-6 text-center">
-          <h2 className="text-2xl font-extrabold">{pauseView === "leave" ? "Leave game?" : "Paused"}</h2>
+          <h2 className="text-2xl font-extrabold" onClick={() => { if (diagTap()) setDiag({ open: true }); }}>{pauseView === "leave" ? "Leave game?" : "Paused"}</h2>
           {pauseView === "leave" ? <>
             <p className="text-sm">Your unfinished tower and its pending coins will be lost. Your wallet and completed rewards stay safe.</p>
             <Button variant="ghost" className="plaque h-12 w-full rounded-none font-semibold" onClick={() => setPauseView("paused")}>Keep playing</Button>
