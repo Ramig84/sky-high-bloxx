@@ -33,3 +33,4 @@
 - Endless submission status mirrors the leaderboard response and resets per run, so guests/failures never show success.
 - Native Google sign-in returns via https /auth/app-return (custom app schemes are rejected), forwarding to the Android app link; src/game/nativeAuth.ts accepts only sign-ins started on this phone.
 - Rewarded ads: normal provider completion, then five-second in-game countdown; pause play, cache paintings at full sharpness. No experimental Android wake/layer settings, surface recycling or debugging, so the standard flow stays isolated from game rules.
+- Canvas loops advance by real elapsed time via frameClock (capped per frame, split into small physics steps) and reset the clock after pauses/ads, so low frame rates never turn play into slow motion.
