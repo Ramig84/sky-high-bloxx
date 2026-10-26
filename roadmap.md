@@ -158,3 +158,5 @@
 - [x] Added preloaded whole-pose space artwork, eleven zone-specific effect sets, smooth effect handovers and warned world-coordinate debris crossings; portrait browser reviewed all eleven scenes without changing earned progress, touch landing and pause verified. Automated checks pass; actual high-zone obstacle play/phone feel still needs review.
 - [x] User approved the Space Climb motion, the larger front-facing gantry blocks and the dedicated connected rooftop launch base ("perfect", 2026-10-22). Presentation and rules now frozen unless the user asks.
 - [ ] Physical-phone review of Space Climb motion, blocks and base (blocked: latest APK must be installed; no Android build requested since the refinements).
+- [x] Added hidden phone test panel (5 taps on "Paused": FPS, draw time, main-thread blocking, memory, focus, Sound OFF, Sharp LOW), Android full-screen (bars hidden and re-hidden after ads), and Space Climb no longer loads campaign floors/district skies. 259 tests pass. Lag remains UNRESOLVED until phone readings before/after a real ad.
+- [ ] Phone build with test panel (blocked: user says "start"), then read panel numbers after a real rewarded ad.

@@ -1,3 +1,4 @@
+import { diagState, subscribeDiag } from "./diagnostics";
 // Recorded sound effects, district ambience and music, mixed through one Web Audio context.
 import drop from "@/assets/audio/sfx-drop.mp3.asset.json";
 import perfect from "@/assets/audio/sfx-perfect.mp3.asset.json";
@@ -62,7 +63,7 @@ const buffers = new Map<Sound, Promise<AudioBuffer | null>>();
 const loops = new Map<string, { src: AudioBufferSourceNode; gain: GainNode }>();
 let appPaused = false;
 let focused = true, pagePresent = true;
-const audible = () => typeof document !== "undefined" && audioMayPlay(document.visibilityState === "visible", focused, pagePresent, !appPaused);
+const audible = () => !diagState().silent && typeof document !== "undefined" && audioMayPlay(document.visibilityState === "visible", focused, pagePresent, !appPaused);
 let musicBus: GainNode | null = null, effectsBus: GainNode | null = null;
 
 /** All ongoing recordings respond immediately, independently, to player volume changes. */
@@ -114,6 +115,7 @@ export function unlockAudio() { context(); }
 // Browsers (especially iOS Safari) only allow sound after a real tap; resume on every kind of first gesture.
 if (typeof window !== "undefined") {
   window.addEventListener(SETTINGS_EVENT, applyAudioSettings);
+  subscribeDiag(() => syncAudioLifecycle()); // test panel "Sound OFF" suspends the whole audio engine
   // Silence everything when the app is minimized, the screen locks, or another app covers it.
   const syncVisibility = syncAudioLifecycle;
   // Android WebView does not always report background; the native app state is authoritative.

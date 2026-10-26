@@ -76,6 +76,16 @@ export function levelAssets(district: DistrictId, extras: string[] = []): Screen
   };
 }
 
+/** Space Climb: only what it draws — no campaign floors, district skies, aurora or visitors (~half the decoded memory). */
+export function endlessAssets(extras: string[] = []): ScreenAssets {
+  const a = art(), t = isTablet();
+  return {
+    images: [coin, a.logoSrc, plaqueSrc, contactSrc, paperSrc, districtStreet("oldtown", t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
+      a.birdSrc, a.rainSrc, windSrc, windDirectionSrc, confettiSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...Object.values(spiritArtwork), ...extras],
+    sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC.oldtown, "tap"],
+  };
+}
+
 /** Resolves when every asset is decoded; reports progress 0..1. */
 export async function preload(list: ScreenAssets, onProgress?: (p: number) => void) {
   const jobs = [...[...new Set(list.images)].map(loadImage), ...preloadSounds([...new Set(list.sounds)])];
