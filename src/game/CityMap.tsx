@@ -67,7 +67,7 @@ export function CityMap({ stars, focus, onPlay, onHome }: { stars: Stars; focus:
         </div>
         {d && sel !== null && (
           <div className="absolute inset-0 flex items-end justify-center bg-game-shell/40 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] animate-in fade-in" onClick={() => setSel(null)}>
-            <div className="map-card hud-pill w-full max-w-sm gap-3 p-4 animate-in slide-in-from-bottom-6 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="map-card game-dialog hud-pill w-full max-w-sm gap-3 p-4 animate-in slide-in-from-bottom-6 duration-300" onClick={e => e.stopPropagation()}>
               <div className="flex items-start justify-between">
                 <div><span className="hud-label">DISTRICT {sel + 1} · {d.obstacle}</span><h2 className="text-2xl font-semibold leading-tight">{d.name}</h2></div>
                 <Button variant="ghost" size="icon" aria-label="Close" onClick={() => setSel(null)}><X className="h-5 w-5" /></Button>

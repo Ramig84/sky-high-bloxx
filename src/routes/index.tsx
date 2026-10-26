@@ -59,19 +59,18 @@ function Home() {
     document.addEventListener("visibilitychange", onVisible);
     return () => { disposed = true; clearTimeout(pending); data.subscription.unsubscribe(); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
-  // Quietly warm the map in the background so opening it is instant.
-  useEffect(() => { const t = window.setTimeout(() => void preload(mapAssets()), 2500); return () => window.clearTimeout(t); }, []);
+  // Warm only an idle menu on roomy devices. Never decode another district during play.
   useEffect(() => {
-    if (screen.kind !== "level" || screen.daily || screen.level + 1 >= TOTAL_LEVELS) return;
-    const nextDistrict = DISTRICTS[levelSpec(screen.level + 1).district];
-    if (!nextDistrict) return;
-    const t = window.setTimeout(() => {
-      const loadout = loadLoadout();
-      const extras = [craneSource(loadout.crane), blockSource(loadout.block)].filter((src): src is string => Boolean(src));
-      void preload(levelAssets(nextDistrict.id, extras));
-    }, 1800);
-    return () => window.clearTimeout(t);
-  }, [screen]);
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+    if (screen.kind !== "home" || (memory !== undefined && memory <= 4) || (navigator.hardwareConcurrency || 2) <= 4 || !window.requestIdleCallback) return;
+    let idle = 0;
+    const timer = window.setTimeout(() => {
+      idle = window.requestIdleCallback(() => {
+        if (!document.hidden) void preload(mapAssets()).catch(() => {});
+      });
+    }, 2500);
+    return () => { window.clearTimeout(timer); if (idle) window.cancelIdleCallback(idle); };
+  }, [screen.kind]);
   useEffect(() => {
     const onDown = (e: PointerEvent) => { unlockAudio(); if ((e.target as HTMLElement).closest("button")) void sfx("tap", 0.6); if (menu) { setMusic(true, 0.35); setAmbience(["birds"]); } };
     window.addEventListener("pointerdown", onDown);

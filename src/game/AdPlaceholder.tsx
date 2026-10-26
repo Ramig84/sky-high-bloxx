@@ -27,7 +27,7 @@ export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdP
   useEffect(() => { if (stage === "playing" && remaining === 0) setStage("complete"); }, [stage, remaining]);
   const item = AD_PLACEMENTS[placement];
   return <div className="fixed inset-0 z-[110] flex items-center justify-center bg-game-shell/80 p-5" role="dialog" aria-modal="true" aria-label={`${item.title} ad test`} onPointerDown={e => e.stopPropagation()}>
-    <div className="hud-pill relative w-full max-w-sm items-center gap-4 p-6 text-center">
+    <div className="game-dialog hud-pill relative w-full max-w-sm items-center gap-4 p-6 text-center">
       {(!automatic || stage === "complete") && <Button variant="ghost" size="icon" aria-label="Close ad test" className="absolute right-1 top-1" onClick={onClose}><X /></Button>}
       <span className="hud-label">TEST AD · {placement.toUpperCase()}</span>
       <h2 className="text-xl font-extrabold">{item.title}</h2>
@@ -36,7 +36,7 @@ export function AdPlaceholder({ placement, onClose, onReward }: { placement: AdP
           ? <><Play className="h-12 w-12" /><strong className="text-xl">Loading ad…</strong><span>The real ad opens in a moment</span></>
           : <><Play className="h-12 w-12" /><strong className="text-3xl" aria-live="polite">{remaining}</strong><span>{automatic ? "Level-break ad placeholder" : "Rewarded video placeholder"}</span></>
         : <><strong>Test ad complete</strong><Button variant="ghost" className="plaque h-14 w-full rounded-none font-extrabold" onClick={onReward ?? onClose}><Play className="mr-2 h-5 w-5" /> {onReward ? "Resume level" : "Return to game"}</Button></>}
-      <p className="text-xs opacity-75">Preview only. No real ads, coins, lives or leaderboard changes.</p>
+      <p className="text-xs opacity-75">{nativeAds() ? "Complete the video to receive the offered reward." : "Web preview. No real ads or wallet changes."}</p>
       {!automatic && stage !== "complete" && <Button variant="ghost" className="paper-btn w-full" onClick={onClose}>No thanks</Button>}
     </div>
   </div>;

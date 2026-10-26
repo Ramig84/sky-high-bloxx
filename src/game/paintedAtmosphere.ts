@@ -43,8 +43,10 @@ export function drawAtmosphere(ctx: CanvasRenderingContext2D, img: AtmosphereSou
   if (!cell || !height || alpha <= 0.004) return; // invisible layers cost a full paint, skip them
   const pose = atmospherePose(time, phase);
   ctx.save();
-  for (const [frame, weight] of [[pose.from, 1 - pose.blend], [pose.to, pose.blend]]) {
-    if (frame === undefined || weight === undefined || weight <= 0) continue;
+  for (let pass = 0; pass < 2; pass++) {
+    const frame = pass === 0 ? pose.from : pose.to;
+    const weight = pass === 0 ? 1 - pose.blend : pose.blend;
+    if (weight <= 0) continue;
     ctx.globalAlpha = alpha * weight;
     ctx.drawImage(img, frame % 4 * cell, Math.floor(frame / 4) * height, cell, height, x, y, width, width * height / cell);
   }

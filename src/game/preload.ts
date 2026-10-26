@@ -19,6 +19,16 @@ import { atmosphereArtwork } from "./paintedAtmosphere";
 const cache = new Map<string, HTMLImageElement>();
 const ready = new Map<string, Promise<void>>();
 
+/** Old screens must not retain every district's decoded paintings for the whole session. */
+export function retainScreenImages(images: readonly string[]) {
+  const keep = new Set(images);
+  for (const src of cache.keys()) {
+    if (keep.has(src)) continue;
+    cache.delete(src);
+    ready.delete(src);
+  }
+}
+
 /** Shared decoded image; the canvas reuses the same element so it is drawable on frame one. */
 export function getImage(src: string) {
   let i = cache.get(src);
@@ -30,7 +40,11 @@ function loadImage(src: string) {
   let p = ready.get(src);
   if (!p) {
     const i = getImage(src);
-    p = (i.decode ? i.decode() : new Promise<void>((res, rej) => { i.onload = () => res(); i.onerror = rej; })).catch(() => {});
+    p = (i.decode ? i.decode() : new Promise<void>((res, rej) => { i.onload = () => res(); i.onerror = rej; })).catch(error => {
+      ready.delete(src);
+      cache.delete(src);
+      throw error;
+    });
     ready.set(src, p);
   }
   return p;
@@ -56,7 +70,7 @@ export function shopAssets(): ScreenAssets { return { images: [...SHOP_IMAGES, p
 export function levelAssets(district: DistrictId, extras: string[] = []): ScreenAssets {
   const a = art(), t = isTablet();
   return {
-    images: [coin, contactSrc, footingSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
+    images: [coin, a.logoSrc, plaqueSrc, contactSrc, footingSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
       a.birdSrc, a.rainSrc, windSrc, windDirectionSrc, confettiSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...SKY_IMAGES, districtSkyArt[district].low, districtSkyArt[district].high, ...Object.values(spiritArtwork), ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
@@ -64,10 +78,15 @@ export function levelAssets(district: DistrictId, extras: string[] = []): Screen
 
 /** Resolves when every asset is decoded; reports progress 0..1. */
 export async function preload(list: ScreenAssets, onProgress?: (p: number) => void) {
-  const jobs = [...list.images.map(loadImage), ...preloadSounds(list.sounds)];
-  let done = 0;
+  const jobs = [...[...new Set(list.images)].map(loadImage), ...preloadSounds([...new Set(list.sounds)])];
+  let done = 0, percent = 0;
   onProgress?.(0);
-  await Promise.all(jobs.map(j => j.then(() => onProgress?.(++done / jobs.length))));
+  if (!jobs.length) { onProgress?.(1); return; }
+  await Promise.all(jobs.map(j => j.then(() => {
+    done++;
+    const next = Math.floor(done / jobs.length * 100);
+    if (next !== percent) { percent = next; onProgress?.(done / jobs.length); }
+  })));
 }
 export { roofSrc, confettiSrc };
 export function celebrateAssets(from: DistrictId, to: DistrictId | null): ScreenAssets {

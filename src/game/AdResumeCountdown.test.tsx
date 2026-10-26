@@ -41,3 +41,15 @@ it("cancels resuming when the game is left", () => {
   act(() => vi.advanceTimersByTime(5000));
   expect(complete).not.toHaveBeenCalled();
 });
+
+it("does not count time while the WebView has lost focus", () => {
+  vi.useFakeTimers();
+  vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+  const complete = vi.fn();
+  render(<AdResumeCountdown onComplete={complete} />);
+  act(() => { vi.advanceTimersByTime(2000); window.dispatchEvent(new Event("blur")); });
+  act(() => vi.advanceTimersByTime(9000));
+  expect(complete).not.toHaveBeenCalled();
+  act(() => { window.dispatchEvent(new Event("focus")); vi.advanceTimersByTime(3000); });
+  expect(complete).toHaveBeenCalledTimes(1);
+});

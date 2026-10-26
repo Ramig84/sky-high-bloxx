@@ -185,7 +185,7 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 .paper-btn { background: var(--hud-fg); color: var(--hud-bg); border: 1px solid var(--hud-edge); box-shadow: 0 2px 8px var(--hud-shadow); }
 
 /* Keep a phone-shaped stage on wider devices without changing world physics. */
-.game-viewport { width: 100%; max-width: 56.25dvh; }
+.game-viewport { width: 100%; max-width: max(20rem, 56.25vh); max-width: max(20rem, 56.25dvh); container-type: inline-size; }
 @media (min-width: 600px) {
   .game-hud { padding: max(1rem, env(safe-area-inset-top)) 1rem 0; }
   .game-status-bar { grid-template-columns: minmax(4rem, 1fr) minmax(0, 1.65fr) 5rem 3.5rem; min-height: 4.5rem; }
@@ -412,3 +412,48 @@ body { font-family: "Fredoka", system-ui, sans-serif; overscroll-behavior: none;
 
 .space-next { position: absolute; top: calc(100% + 0.25rem); left: 50%; transform: translateX(-50%); white-space: nowrap; color: var(--plaque-ink); font-weight: 600; font-size: 0.75rem; opacity: 1; text-shadow: 0 0 3px var(--hud-bg), 0 1px 2px var(--hud-bg), 0 -1px 2px var(--hud-bg); }
 .game-status-bar { position: relative; }
+
+/* Layout follows the stage's actual width, not the phone's landscape screen width.
+   Artwork density and world height stay unchanged. Only the usable view widens. */
+.game-surface { touch-action: none; }
+.game-dialog {
+  max-height: calc(100vh - 3rem);
+  max-height: calc(100dvh - max(3rem, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 2rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+}
+.game-dialog > * { flex-shrink: 0; }
+.reward-map, .market-inspect { max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; }
+.home-content .home-logo { max-width: 100%; height: auto; }
+.home-content { overscroll-behavior: contain; scrollbar-width: none; }
+.home-content::-webkit-scrollbar { display: none; }
+.home-buttons > button, .home-buttons .grid > button { white-space: normal; overflow-wrap: anywhere; }
+.home-buttons > button > svg, .home-buttons .grid > button > svg { flex-shrink: 0; }
+.home-topbar { left: max(0.6rem, env(safe-area-inset-left)); right: max(0.6rem, env(safe-area-inset-right)); }
+.home-topbar .home-wallet { min-width: 0; }
+.home-topbar .home-wallet strong { overflow-wrap: anywhere; }
+.game-wallet { width: min(43%, 9rem); min-width: 0; }
+.tower-balance { width: min(43%, 8.5rem); }
+@container (max-width: 360px) {
+  .game-hud { padding: max(0.5rem, env(safe-area-inset-top)) 0.5rem 0; }
+  .game-status-bar { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) 2.8rem 2.75rem; padding: 0.25rem; min-height: 3.5rem; }
+  .game-stat { padding: 0 0.25rem; }
+  .game-viewport .hud-label { font-size: 0.6rem; }
+  .game-viewport .hud-value { font-size: 1.2rem; }
+  .game-viewport .game-lives .hud-value { font-size: 1rem; }
+  .game-viewport .game-sound { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; }
+  .game-viewport .hud-pill { padding: 0.4rem 0.65rem; }
+  .home-buttons .menu-plaque { padding-inline: 1.2rem !important; font-size: 1.1rem; }
+  .home-buttons .grid > button { padding-inline: 0.4rem; font-size: 0.8rem; }
+  .game-viewport .msg-pop { font-size: 1rem; top: max(4.5rem, calc(env(safe-area-inset-top) + 4rem)); }
+}
+@media (max-height: 480px) {
+  .home-content { padding-inline: 1rem; }
+  .home-content .home-logo { width: 10rem; }
+  .home-buttons .menu-plaque { min-height: 3rem; }
+  .home-buttons .grid > button { min-height: 2.75rem; height: auto; }
+  .game-dialog { gap: 0.5rem; padding-block: 0.75rem; }
+  .celebrate-heading h1, .celebrate-heading h2 { font-size: 1.5rem; }
+}

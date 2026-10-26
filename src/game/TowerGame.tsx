@@ -21,7 +21,7 @@ import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffe
 import { advanceSpacePresentation, freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, spaceHazardPoseTime, spaceHazardName, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
 import { loadSettings, saveSettings, vibrate } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
-import { advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, floorPosition, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
+import { advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";
@@ -39,6 +39,9 @@ import { starPainting } from "./derivedArtwork";
 import { AdResumeCountdown } from "./AdResumeCountdown";
 import { canvasResolution } from "./canvasResolution";
 import { freshWind, finishWindDrop, stepWind, windPresentation } from "./wind";
+import { frameDelta, physicsSteps } from "./frameClock";
+import { TowerGeometry, visibleFloorRange, retainInPlace } from "./towerGeometry";
+import { subscribeActivity } from "./activity";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
 const GROUND_SCREEN = 534; // screen y of plot at camera 0 (same relative height as before)
@@ -119,23 +122,27 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   const [adPlacement, setAdPlacement] = useState<AdPlacement | null>(null);
   const adPaused = useRef(false);
   const manualPaused = useRef(false);
+  const activityPaused = useRef(false);
+  const clockReset = useRef(0);
   const [pauseView, setPauseView] = useState<"paused" | "leave" | null>(null);
   const pause = () => { manualPaused.current = true; setPauseView("paused"); };
-  const resume = () => { manualPaused.current = false; setPauseView(null); };
+  const resume = () => { clockReset.current++; manualPaused.current = false; setPauseView(null); };
   useEffect(() => {
-    const hide = () => { if (document.hidden && !adPaused.current && !api.current.isOver?.()) pause(); };
-    document.addEventListener("visibilitychange", hide);
-    return () => document.removeEventListener("visibilitychange", hide);
+    return subscribeActivity(active => {
+      activityPaused.current = !active;
+      clockReset.current++;
+      if (!active && !adPaused.current && !api.current.isOver?.()) pause();
+    });
   }, []);
   const openAd = (placement: AdPlacement) => { adPaused.current = true; setAdPlacement(placement); };
-  const closeAd = () => { adPaused.current = false; setAdPlacement(null); };
+  const closeAd = () => { clockReset.current++; adPaused.current = false; setAdPlacement(null); };
   const [resumingFromAd, setResumingFromAd] = useState(false);
   const reviveAfterAd = () => {
     api.current.revive?.();
     setAdPlacement(null);
     setResumingFromAd(true);
   };
-  const finishAdCountdown = () => { adPaused.current = false; setResumingFromAd(false); };
+  const finishAdCountdown = () => { clockReset.current++; adPaused.current = false; setResumingFromAd(false); };
   const runGeneration = useRef(0);
   const [hud, setHud] = useState<Hud>({ score: 0, floors: 0, lives: 3, combo: 0, best: 0, over: false, won: false, stars: 0, coins: 0, msg: "", msgKey: 0 });
   useEffect(() => {
@@ -158,7 +165,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     if (!surface) return;
     const makeCanvas = () => { const c = document.createElement("canvas"); c.className = "absolute inset-0 h-full w-full"; return c; };
     const canvas = makeCanvas();
-    const ctx = canvas.getContext("2d");
+    // The game always paints an opaque sky; avoid compositing a transparent full-screen surface.
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
     surface.appendChild(canvas);
     const tablet = window.matchMedia("(min-width: 600px)").matches;
@@ -198,10 +206,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.drawImage(img, Math.min(count - 1, Math.max(0, pose)) * cell, 0, cell, img.naturalHeight, -w / 2, -h, w, h);
       ctx.restore();
     };
-    let isStarted = true, isMuted = localStorage.getItem("bloxx-muted") === "1";
+    let isStarted = true, isMuted = !loadSettings().sound;
     setMuted(isMuted);
     api.current.mute = (m) => { isMuted = m; saveSettings({ ...loadSettings(), sound: !m }); setAmbience(m ? [] : ambienceFor(district.id, spec)); setMusic(!m, 0.22, DISTRICT_MUSIC[district.id]); };
-    setAmbience(ambienceFor(district.id, spec)); setMusic(true, 0.22, DISTRICT_MUSIC[district.id]);
+    setAmbience(isMuted ? [] : ambienceFor(district.id, spec)); setMusic(!isMuted, 0.22, DISTRICT_MUSIC[district.id]);
     api.current.start = () => { unlockAudio(); isStarted = true; };
     // Layered sky: world-anchored clouds at several depths, district visitors and birds.
     const dsky = DISTRICT_SKY[district.id];
@@ -210,7 +218,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const spirits = districtSpirits(district.id);
     const dSkyLow = load(districtSkyArt[district.id].low), dSkyHigh = load(districtSkyArt[district.id].high);
     // Space Climb paints its own sky per zone, dissolving from one into the next as the tower rises.
-    const spaceSkies = SPACE_ZONE_SKY.map(load);
+    const spaceSkies = endless ? SPACE_ZONE_SKY.map(load) : [];
     const spacePoses = endless ? Object.fromEntries(Object.entries(spaceEffectArtwork).map(([key, src]) => [key, load(src)])) as Record<SpaceEffectKind, HTMLImageElement> : null;
     let hazards = freshSpaceHazards();
     let paintedFloors = 0;
@@ -304,17 +312,20 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.globalAlpha = 1;
     };
 
-    let scale = 1, vw = 360;
+    let scale = 1, vw = 360, needsPaint = true;
     const resize = () => {
-      const bounds = canvas.getBoundingClientRect();
+      const bounds = surface.getBoundingClientRect();
       const resolution = canvasResolution(bounds.width, bounds.height, window.devicePixelRatio);
+      scale = resolution.height / VH;
+      vw = resolution.width / scale;
+      if (canvas.width === resolution.width && canvas.height === resolution.height) return;
       canvas.width = resolution.width; canvas.height = resolution.height;
-      scale = canvas.height / VH;
-      vw = canvas.width / scale;
+      needsPaint = true;
     };
     resize();
     const observer = new ResizeObserver(resize);
-    observer.observe(canvas);
+    observer.observe(surface);
+    window.addEventListener("resize", resize);
     const rainStrokes = spawnRain(vw, VH);
 
     let best0 = Number(localStorage.getItem(bestKey) || 0);
@@ -324,6 +335,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (target && counter) collector.current?.collect({ source, target, counter, from, to });
     };
     let s = fresh();
+    const geometry = new TowerGeometry();
     function fresh() {
       return { floors: [] as Floor[], fallers: [] as Faller[], parts: [] as Particle[],
         phase: 0, t: 0, camY: 0, held: true, drop: null as null | { x: number; y: number; vx: number; vy: number; rot: number },
@@ -342,10 +354,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     let ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex);
 
     const topY = () => s.floors.length * BH;
-    const displayX = (i: number) => {
-      const floor = s.floors[i];
-      return floor ? floorPosition(floor.x, floor.swayAtLanding, s.sway, i, floor.width) : 0;
-    };
+    const contacts = () => geometry.update(s.floors, s.sway);
+    const displayX = (i: number) => contacts().xs[i] ?? 0;
     // The crane speeds up with every floor inside a level and with every level across the city.
     const level = () => endless ? spec.speed : floorDifficulty(s.floors.length, spec.speed);
     const syncSpace = () => {
@@ -354,7 +364,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       setZone(zoneAt(s.floors.length)); setToNext(floorsToNextZone(s.floors.length));
       setAmbience(ambienceFor(district.id, spec));
     };
-    const widths = () => s.floors.map(f => f.width);
+    const widths = () => contacts().widths;
     api.current.isOver = () => s.over;
     api.current.peak = () => s.peakFloors;
     const pivot = () => ({ x: Math.sin(s.t * 0.35) * Math.min(s.floors.length * 3, 70) + (spec.slide ? Math.sin(s.t * 0.9) * spec.slide : 0), y: s.camY + GROUND_SCREEN - PIVOT_SCREEN + (spec.arc ? Math.abs(Math.sin(s.phase)) * spec.arc : 0) });
@@ -366,7 +376,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
     api.current.tap = () => {
       unlockAudio();
-      if (adPaused.current || manualPaused.current || s.over || !s.held || !isStarted) return;
+      if (adPaused.current || manualPaused.current || activityPaused.current || s.over || !s.held || !isStarted) return;
       void sfx("release", 0.5);
       setHud(h => ({ ...h, msg: "" }));
       const h = hung();
@@ -374,7 +384,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
     };
-    api.current.restart = () => { manualPaused.current = false; setPauseView(null); setRewardFailed(false); runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); setZone(0); setToNext(floorsToNextZone(0)); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; hazards = freshSpaceHazards(); s = fresh(); publish(); };
+    api.current.restart = () => { clockReset.current++; manualPaused.current = false; setPauseView(null); setRewardFailed(false); runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); setZone(0); setToNext(floorsToNextZone(0)); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; hazards = freshSpaceHazards(); s = fresh(); publish(); };
 
     api.current.revive = () => { if (!s.over || s.won || endless) return; s.over = false; s.lives = 1; s.combo = 0; s.shake = 0; if (!s.drop) s.held = true; publish("EXTRA LIFE!"); };
 
@@ -399,7 +409,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     };
 
     const checkCollapse = () => {
-      const xs = s.floors.map((_, i) => displayX(i));
+      const xs = contacts().xs;
       const ci = collapseIndex(xs, endless ? BW : bw, (endless ? BW : bw) * 1.12, widths());
       if (ci === -1) return false;
       const first = ci === -2 ? 0 : ci + 1;
@@ -507,10 +517,20 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       ctx.restore();
     };
 
-    let last = performance.now(), raf = 0;
+    let last = performance.now(), raf = 0, clockVersion = clockReset.current;
     const frame = (now: number) => {
-      const paused = adPaused.current || manualPaused.current;
-      const dt = paused ? 0 : Math.min((now - last) / 1000, 1 / 20); last = now;
+      const paused = adPaused.current || manualPaused.current || activityPaused.current;
+      const dt = frameDelta(last, now, paused || clockVersion !== clockReset.current);
+      clockVersion = clockReset.current;
+      last = now;
+      // Keep the last rendered canvas on screen during ads/countdowns and avoid
+      // spending CPU/GPU on a full scenery redraw while the simulation is frozen.
+      if (paused && !needsPaint) { raf = requestAnimationFrame(frame); return; }
+      needsPaint = false;
+      const steps = physicsSteps(dt);
+      const stepDelta = steps ? dt / steps : 0;
+      for (let step = 0; step < steps; step++) {
+      const dt = stepDelta;
       s.t += dt;
       wind = stepWind(wind, dt, s.held && !s.over);
       windDir = wind.direction;
@@ -518,14 +538,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       // lean & sway
       const n = s.floors.length;
-      const com = n ? s.floors.reduce((a, _, i) => a + displayX(i), 0) / n : 0;
+      const com = contacts().center;
       const lean = Math.max(-1.6, Math.min(1.6, com / (bw * 0.5)));
       const targetSway = targetTowerSway(lean, n, s.t);
-      const balance = towerBalance(s.floors.map((_, i) => displayX(i)), endless ? BW : bw, (endless ? BW : bw) * 1.12, widths());
-      if (balanceMeter.current && Math.abs(balanceMeter.current.value - balance.risk) > 0.005) balanceMeter.current.value = balance.risk;
-      const balanceText = balance.state === "stable" ? "Stable" : `${balance.direction < 0 ? "←" : "→"} ${balance.state === "danger" ? "Collapse risk" : "Leaning"}`;
-      if (balanceLabel.current && balanceLabel.current.textContent !== balanceText) balanceLabel.current.textContent = balanceText;
-      if (balancePanel.current && balancePanel.current.dataset['state'] !== balance.state) balancePanel.current.dataset['state'] = balance.state;
       if (!paused && !s.over && isStarted) {
         s.sway += (targetSway - s.sway) * (1 - Math.exp(-dt * 3));
         checkCollapse();
@@ -551,10 +566,16 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           loseLife("DEBRIS HIT!");
         } else if (landed) { const d = s.drop; s.drop = null; land(d); }
       }
+      }
+      const balance = towerBalance(contacts().xs, endless ? BW : bw, (endless ? BW : bw) * 1.12, widths());
+      if (balanceMeter.current && Math.abs(balanceMeter.current.value - balance.risk) > 0.005) balanceMeter.current.value = balance.risk;
+      const balanceText = balance.state === "stable" ? "Stable" : `${balance.direction < 0 ? "←" : "→"} ${balance.state === "danger" ? "Collapse risk" : "Leaning"}`;
+      if (balanceLabel.current && balanceLabel.current.textContent !== balanceText) balanceLabel.current.textContent = balanceText;
+      if (balancePanel.current && balancePanel.current.dataset['state'] !== balance.state) balancePanel.current.dataset['state'] = balance.state;
       for (const f of s.fallers) { integrateFall(f, dt, GRAVITY); f.rot += f.vr * dt; }
-      s.fallers = s.fallers.filter(f => f.y > s.camY - 800);
+      retainInPlace(s.fallers, f => f.y > s.camY - 800);
       for (const p of s.parts) { integrateFall(p, dt, 700); p.life -= dt; }
-      s.parts = s.parts.filter(p => p.life > 0);
+      retainInPlace(s.parts, p => p.life > 0);
 
       const target = Math.max(0, topY() - BH * 1.2);
       s.camY += (target - s.camY) * (1 - Math.exp(-dt * 3));
@@ -567,9 +588,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const sky = skyProfile(alt);
       const altC = alt + dsky.cloudOffset; // cloud bands (Cloud Peak starts nearer the clouds)
       const skyC = skyProfile(altC);
-      drawCover(clouds, 1, 0);
-      drawCover(sunset, sky.sunset, 0);
-      drawCover(space, sky.space, 0);
       // Space Climb: the zone's own painting, fading into the next zone's as the climb nears it.
       // Render-only development review: no fake floors, rewards, scores or progression.
       const review = import.meta.env.DEV && endless ? (window as unknown as { __spaceReview?: { floors: number; time: number } }).__spaceReview : undefined;
@@ -582,6 +600,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const zoneArt = fromArt && toArt && ok(fromArt) && ok(toArt);
       // District's own painted sky: one continuous street-to-top journey, fully opaque (no grey veil).
       const districtArt = !zoneArt && ok(dSkyLow) && ok(dSkyHigh);
+      // Approved district skies are opaque: painting hidden fallback skies underneath
+      // them costs up to three full-screen passes without changing a single visible pixel.
+      if (!districtArt) {
+        drawCover(clouds, 1, 0);
+        drawCover(sunset, sky.sunset, 0);
+        drawCover(space, sky.space, 0);
+      }
       if (zoneArt && zoneSky && fromArt && toArt) {
         for (const layer of spaceSkyLayers(sceneFloors)) {
           const art = spaceSkies[layer.zone];
@@ -802,7 +827,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.drawImage(featheredFoundation(footing, fw, fh), vw / 2 - fw / 2, gy, fw, fh);
       }
 
-      for (let i = 0; i < s.floors.length; i++) {
+      const visible = visibleFloorRange(s.floors.length, s.camY, BH, GROUND_SCREEN, VH);
+      for (let i = visible.first; i < visible.end; i++) {
         const floor = s.floors[i], y = toScreenY(i * BH + BH / 2);
         if (floor && y > -BH && y < VH + BH) drawBlock(floor.skin, displayX(i), y, 0, true, floor.width);
       }
@@ -925,11 +951,21 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
       raf = requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
-    (window as unknown as { __bloxx?: () => unknown }).__bloxx = () => s;
+    // Paint the already-decoded scene immediately, before exposing an empty opaque canvas.
+    frame(last);
+    const inspect = () => s;
+    if (import.meta.env.DEV) (window as unknown as { __bloxx?: () => unknown }).__bloxx = inspect;
     publish();
-    return () => { runGeneration.current++; cancelAnimationFrame(raf); observer.disconnect(); canvas.remove(); setAmbience([]); };
-  }, [levelIndex]);
+    return () => {
+      runGeneration.current++;
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+      window.removeEventListener("resize", resize);
+      canvas.remove();
+      if (import.meta.env.DEV && (window as unknown as { __bloxx?: () => unknown }).__bloxx === inspect) delete (window as unknown as { __bloxx?: () => unknown }).__bloxx;
+      setAmbience([]);
+    };
+  }, [levelIndex, endless, daily]);
 
   useEffect(() => {
     if (credited <= 0) return;
@@ -944,9 +980,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
   }, [credited]);
 
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none touch-none">
-    <div className="game-viewport relative h-full overflow-hidden" onPointerDown={() => api.current.tap()}>
-      <div ref={surfaceRef} className="absolute inset-0" />
+    <div className="fixed inset-0 flex justify-center overflow-hidden bg-game-shell select-none">
+    <div className="game-viewport relative h-full overflow-hidden" onPointerDown={event => { if (event.isPrimary !== false && event.button === 0) api.current.tap(); }}>
+      <div ref={surfaceRef} className="game-surface absolute inset-0" />
       <div className="game-wallet hud-pill"><span ref={coinLabel} className="hud-label">RUN COINS</span><div><img ref={coinTarget} src={coin} alt="" /><strong ref={coinCounter}>0</strong></div></div>
       <CoinCollector ref={collector} />
       {adPlacement && <AdPlaceholder placement={adPlacement} onClose={closeAd} onReward={adPlacement === "extra-life" || adPlacement === "continue" ? reviveAfterAd : undefined} />}
@@ -971,7 +1007,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         </div>
       )}
       {pauseView && <div className="absolute inset-0 z-40 flex items-center justify-center bg-game-shell/50 p-6" role="dialog" aria-modal="true" aria-label={pauseView === "leave" ? "Leave game?" : "Game paused"} onPointerDown={e => e.stopPropagation()}>
-        <div className="hud-pill w-full max-w-xs items-center gap-4 p-6 text-center">
+        <div className="game-dialog hud-pill w-full max-w-xs items-center gap-4 p-6 text-center">
           <h2 className="text-2xl font-extrabold">{pauseView === "leave" ? "Leave game?" : "Paused"}</h2>
           {pauseView === "leave" ? <>
             <p className="text-sm">Your unfinished tower and its pending coins will be lost. Your wallet and completed rewards stay safe.</p>
@@ -989,7 +1025,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       {rewardFailed && <span role="status" className="absolute inset-x-4 bottom-4 z-50 text-center hud-label">Coins could not be confirmed · connection error</span>}
       {hud.over && (
         <div className="absolute inset-0 flex items-center justify-center bg-game-shell/60" onPointerDown={e => e.stopPropagation()}>
-          <div className="hud-pill max-h-[90dvh] w-[min(20rem,calc(100%-1.5rem))] items-center gap-3 overflow-y-auto px-6 py-5">
+          <div className="game-dialog hud-pill w-[min(20rem,calc(100%-1.5rem))] items-center gap-3 overflow-y-auto px-6 py-5">
             <picture>
               <source media="(min-width: 600px)" srcSet={tabletArtwork.logoSrc} />
               <img src={phoneArtwork.logoSrc} alt="" width={1280} height={640} className="w-24" />
@@ -1024,4 +1060,3 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     </div>
   );
 }
-
