@@ -9,7 +9,7 @@ import { submitScore } from "@/game/leaderboard";
 import { DISTRICTS, LEVELS_PER_DISTRICT, TOTAL_LEVELS, levelSpec, loadStars, recordStars, saveStars } from "@/game/levels";
 import { Preloader } from "@/game/Preloader";
 import { DistrictCelebration } from "@/game/DistrictCelebration";
-import { celebrateAssets, homeAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
+import { celebrateAssets, homeAssets, endlessAssets, levelAssets, mapAssets, preload, shopAssets } from "@/game/preload";
 import { blockSource, craneSource } from "@/game/shopArtwork";
 import { SPACE_SKY_IMAGES } from "@/game/spaceArtwork";
 import { SPACE_EFFECT_IMAGES } from "@/game/spaceEffectArtwork";
