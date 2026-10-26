@@ -98,6 +98,7 @@ function featheredFoundation(img: HTMLImageElement, w: number, h: number): Canva
 
 export function TowerGame({ level: levelIndex, endless = false, daily = false, onMap, onNext, onComplete, onEndlessOver }: { level: number; endless?: boolean; daily?: boolean; onMap: () => void; onNext?: (() => void) | undefined; onComplete: (stars: number) => void; onEndlessOver?: (score: number, floors: number, landings: number) => Promise<boolean> }) {
   const baseSpec = endless ? spaceSpec(0) : levelSpec(levelIndex);
+  const [diagTap] = useState(() => tapCounter());
   const goal = baseSpec.goal;
   const endCb = useRef(onEndlessOver); endCb.current = onEndlessOver;
   const [tourIntro, setTourIntro] = useState(daily);

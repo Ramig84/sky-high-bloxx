@@ -4,6 +4,9 @@ import android.os.Bundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import org.json.JSONObject;
@@ -56,5 +59,26 @@ public class MainActivity extends BridgeActivity {
         // Reload after installing the client so even the initial document is local.
         getBridge().getWebView().stopLoading();
         getBridge().getWebView().loadUrl("https://sky-high-bloxx.lovable.app/");
+        hideSystemBars();
+    }
+
+    /** Full-screen play: status and navigation bars stay hidden, and are re-hidden after ads or app switches. */
+    private void hideSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        WindowInsetsControllerCompat bars = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        bars.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        bars.hide(WindowInsetsCompat.Type.systemBars());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        hideSystemBars();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) hideSystemBars();
     }
 }

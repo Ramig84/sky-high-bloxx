@@ -82,7 +82,7 @@ function Home() {
   if (screen.kind === "shop") return <Preloader key="shop" assets={shopAssets}><Shop onBack={home} /></Preloader>;
   const loadoutAssets = () => { const x = loadLoadout(); return [craneSource(x.crane), blockSource(x.block)].filter((v): v is string => Boolean(v)); };
   if (screen.kind === "endless") return (
-    <Preloader key={`e${screen.run}`} assets={() => levelAssets(DISTRICTS[0]?.id ?? "oldtown", [...loadoutAssets(), ...SPACE_BLOCK_IMAGES, ...SPACE_SKY_IMAGES, ...SPACE_EFFECT_IMAGES])}>
+    <Preloader key={`e${screen.run}`} assets={() => endlessAssets([...loadoutAssets(), ...SPACE_BLOCK_IMAGES, ...SPACE_SKY_IMAGES, ...SPACE_EFFECT_IMAGES])}>
       <TowerGame level={0} endless onMap={home} onComplete={() => {}}
         onEndlessOver={async (score, floors, landings) => { const sent = await submitScore(score, landings, floors); void pushProgress(); return sent; }} />
     </Preloader>
