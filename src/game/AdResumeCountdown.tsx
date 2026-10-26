@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { subscribeActivity } from "./activity";
 
 export const AD_RESUME_SECONDS = 5;
 
@@ -10,11 +11,11 @@ export function AdResumeCountdown({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     let elapsed = 0;
     let last = performance.now();
-    const visibility = () => { last = performance.now(); };
-    document.addEventListener("visibilitychange", visibility);
+    let active = !document.hidden;
+    const unsubscribe = subscribeActivity(value => { active = value; last = performance.now(); });
     const timer = window.setInterval(() => {
       const now = performance.now();
-      if (!document.hidden) elapsed += now - last;
+      if (active) elapsed += Math.max(0, now - last);
       last = now;
       setRemaining(Math.max(0, Math.ceil(AD_RESUME_SECONDS - elapsed / 1000)));
       if (elapsed >= AD_RESUME_SECONDS * 1000) {
@@ -24,7 +25,7 @@ export function AdResumeCountdown({ onComplete }: { onComplete: () => void }) {
     }, 100);
     return () => {
       window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", visibility);
+      unsubscribe();
     };
   }, []);
   // Only the number floats over the paused tower — no box or window.

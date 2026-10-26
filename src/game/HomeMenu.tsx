@@ -25,7 +25,7 @@ type Panel = "home" | "leaderboard" | "settings" | "missions";
 
 export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { onCampaign: () => void; onEndless: () => void; onDaily: () => void; onShop: () => void; onReset: () => void }) {
   const [panel, setPanel] = useState<Panel>("home");
-  const [tablet, setTablet] = useState(false);
+  const [tablet] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 600px)").matches);
   const [, refresh] = useState(0);
   const [gift, setGift] = useState({ available: false, day: 1, reward: 0, crane: false });
   const [showMap, setShowMap] = useState(false);
@@ -57,7 +57,6 @@ export function HomeMenu({ onCampaign, onEndless, onDaily, onShop, onReset }: { 
     window.addEventListener(ACCOUNT_EVENT, on);
     return () => window.removeEventListener(ACCOUNT_EVENT, on);
   }, []);
-  useEffect(() => setTablet(window.matchMedia("(min-width: 600px)").matches), []);
   useEffect(() => setGift(g => ({ ...g, available: giftAvailable(), day: nextRewardDay() })), []);
   const art = tablet ? tabletArtwork : phoneArtwork;
   return (

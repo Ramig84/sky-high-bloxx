@@ -7,7 +7,8 @@ export function spaceSceneryTransform(zone: number, cameraFloors: number, width:
   const progress = Math.max(0, Math.min(1, (cameraFloors - start) / Math.max(1, end - start)));
   const scale = Math.max(width / 864, height / 1536) * 1.18;
   const w = 864 * scale, h = 1536 * scale;
-  return { x: (width - w) / 2, y: (height - h) * (1 - progress), width: w, height: h, scale };
+  const y = (height - h) * (1 - progress);
+  return { x: (width - w) / 2, y: y === 0 ? 0 : y, width: w, height: h, scale };
 }
 
 /** Local painted coordinates follow precisely the same crop and travel as their planet. */
