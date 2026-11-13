@@ -160,3 +160,9 @@
 - [ ] Physical-phone review of Space Climb motion, blocks and base (blocked: latest APK must be installed; no Android build requested since the refinements).
 - [x] Added hidden phone test panel (5 taps on "Paused": FPS, draw time, main-thread blocking, memory, focus, Sound OFF, Sharp LOW), Android full-screen (bars hidden and re-hidden after ads), and Space Climb no longer loads campaign floors/district skies. 259 tests pass. Lag remains UNRESOLVED until phone readings before/after a real ad.
 - [x] Phone build with test panel delivered as build #97; user installed it and confirmed gameplay after a real rewarded ad is smooth — lag resolved with phone proof.
+
+## Studio polish (post-lag)
+- [x] Tower distance haze approved exactly as shown: top 2 floors always fully sharp, haze from floor 3 to ~30% at the bottom of the visible viewport, tinted with the active district's own sky colour; Space Climb unaffected. 261 game tests pass.
+- [ ] Painted landing dust puff: 8-pose atlas painted and measured (every frame filled, even grow-then-disperse volume curve, no grid clipping, one warm cream palette). Shown for approval; not yet wired into gameplay.
+- [ ] AAA+ gap list awaiting user decision: haptics on landing/Perfect, ambient audio beds with ducking, secondary micro-animation on stacked floors, dynamic light.
+- [ ] Release blockers still open: testing unlock must go back to sequential earned progression, silent account-error paths need truthful messages, fresh security scan needed.
