@@ -840,8 +840,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           // Aerial perspective: deep floors soften into the district's sky light.
           const haze = endless ? 0 : towerHaze(s.floors.length - 1 - i);
           if (haze > 0) {
-            const [r, g, bl] = dsky.wash;
-            ctx.fillStyle = `rgba(${Math.round((r + 214) / 2)},${Math.round((g + 228) / 2)},${Math.round((bl + 240) / 2)},${haze})`;
+            const [r, g, bl] = DISTRICT_CLOUD_TINT[district.id];
+            ctx.fillStyle = `rgba(${r},${g},${bl},${haze})`;
             ctx.fillRect(vw / 2 + displayX(i) - floor.width / 2 + 1, y - BH / 2 + 1, floor.width - 2, BH - 2);
           }
         }

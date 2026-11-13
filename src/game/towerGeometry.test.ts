@@ -54,9 +54,9 @@ describe("allocation-free tower contacts", () => {
 
 import { towerHaze } from "./towerGeometry";
 describe("towerHaze", () => {
-  it("keeps the top five floors fully crisp", () => { for (let d = 0; d <= 4; d++) expect(towerHaze(d)).toBe(0); });
-  it("softens deeper floors gradually and never past 0.32", () => {
-    expect(towerHaze(10)).toBeCloseTo(0.108);
-    expect(towerHaze(200)).toBe(0.32);
+  it("keeps the landing floor and the one under it fully crisp", () => { expect(towerHaze(0)).toBe(0); expect(towerHaze(1)).toBe(0); });
+  it("reaches about 30% by the screen bottom and never past 0.36", () => {
+    expect(towerHaze(11)).toBeCloseTo(0.30);
+    expect(towerHaze(200)).toBe(0.36);
   });
 });
