@@ -28,7 +28,7 @@ import mDowntown from "@/assets/audio/music-downtown.mp3.asset.json";
 import mSkyline from "@/assets/audio/music-skyline.mp3.asset.json";
 import mCloudpeak from "@/assets/audio/music-cloudpeak.mp3.asset.json";
 import { loadSettings, SETTINGS_EVENT } from "./settings";
-import { effectGain } from "./audioMix";
+import { duckProfile, effectGain, type DuckEvent } from "./audioMix";
 import { audioMayPlay } from "./audioLifecycle";
 import type { DistrictId, LevelSpec } from "./levels";
 
@@ -65,6 +65,8 @@ let appPaused = false;
 let focused = true, pagePresent = true;
 const audible = () => !diagState().silent && typeof document !== "undefined" && audioMayPlay(document.visibilityState === "visible", focused, pagePresent, !appPaused);
 let musicBus: GainNode | null = null, effectsBus: GainNode | null = null;
+// Duck stages sit after the player-volume buses, so ducking never fights settings or app silencing.
+let musicDuck: GainNode | null = null, ambienceDuck: GainNode | null = null;
 
 /** All ongoing recordings respond immediately, independently, to player volume changes. */
 export function applyAudioSettings() {
@@ -93,7 +95,9 @@ function context() {
   if (!ctx) { try {
     ctx = new AudioContext();
     musicBus = ctx.createGain(); effectsBus = ctx.createGain();
-    musicBus.connect(ctx.destination); effectsBus.connect(ctx.destination);
+    musicDuck = ctx.createGain(); ambienceDuck = ctx.createGain();
+    musicBus.connect(musicDuck).connect(ctx.destination); effectsBus.connect(ctx.destination);
+    ambienceDuck.connect(effectsBus);
     applyAudioSettings();
   } catch { return null; } }
   if (ctx.state === "suspended" && audible()) syncAudioLifecycle();
@@ -160,7 +164,7 @@ async function startLoop(key: string, name: Sound, volume: number) {
   const src = c.createBufferSource(), gain = c.createGain();
   src.buffer = b; src.loop = true;
   gain.gain.setValueAtTime(0, c.currentTime); gain.gain.linearRampToValueAtTime(volume, c.currentTime + 1.5);
-  const bus = key === "music" ? musicBus : effectsBus;
+  const bus = key === "music" ? musicBus : ambienceDuck;
   if (!bus) return;
   src.connect(gain).connect(bus); src.start();
   loops.set(key, { src, gain });
@@ -191,4 +195,16 @@ export function setMusic(on: boolean, volume = 0.3, track: Track = "music") {
     if (l && ctx) l.gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.6);
     else void startLoop("music", track, volume);
   } else stopLoop("music");
+}
+
+/** Briefly dip music and ambience under a heavy impact, then let them breathe back. */
+export function duck(ev: DuckEvent) {
+  if (!ctx || !musicDuck || !ambienceDuck || ctx.state !== "running") return;
+  const { depth, attack, release } = duckProfile(ev), t = ctx.currentTime;
+  for (const node of [musicDuck, ambienceDuck]) {
+    node.gain.cancelScheduledValues(t);
+    node.gain.setValueAtTime(node.gain.value, t);
+    node.gain.linearRampToValueAtTime(1 - depth, t + attack);
+    node.gain.setTargetAtTime(1, t + attack + 0.04, release / 3);
+  }
 }

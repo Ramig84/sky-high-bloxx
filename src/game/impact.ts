@@ -48,3 +48,25 @@ export function hapticPattern(ev: HapticEvent, combo = 0): number[] {
   const gap = Math.max(25, 60 - Math.min(combo, 7) * 5);
   return [18, gap, 28];
 }
+
+// ---- Window lamplight: Perfect drops light the landed floor and cascade down the tower ----
+/** Glass panes shared by every district floor painting (normalised to the floor rectangle). */
+export const WINDOW_PANES = [
+  { x0: 0.186, x1: 0.362, y0: 0.2, y1: 0.72 },
+  { x0: 0.633, x1: 0.814, y0: 0.2, y1: 0.72 },
+] as const;
+export const LIGHT_REST = 0.58;
+export const LIGHT_STEP = 0.09; // seconds between floors as the light travels down
+/** Floors a Perfect lights: the landed floor plus one more per combo step, at most six. */
+export const cascadeDepth = (combo: number) => Math.max(1, Math.min(6, combo));
+/** Lamp catch: two quick flickers, a warm peak, then a steady lived-in glow that stays. */
+export function windowGlow(age: number): number {
+  if (age < 0) return 0;
+  if (age < 0.06) return 0.55;
+  if (age < 0.1) return 0.12;
+  if (age < 0.16) return 0.8;
+  if (age < 0.2) return 0.4;
+  if (age < 0.35) return 0.4 + ((age - 0.2) / 0.15) * 0.6;
+  if (age < 1.6) return LIGHT_REST + (1 - LIGHT_REST) * Math.pow(1 - (age - 0.35) / 1.25, 2);
+  return LIGHT_REST;
+}

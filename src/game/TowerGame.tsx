@@ -20,11 +20,13 @@ import { SPACE_BLOCK_IMAGE, SPACE_BASE_IMAGE, blockDimensions, spaceBaseDimensio
 import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
 import { advanceSpacePresentation, freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, spaceHazardPoseTime, spaceHazardName, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
 import { loadSettings, saveSettings, vibrate, vibratePattern } from "./settings";
-import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
+import { DISTRICT_MUSIC, ambienceFor, duck, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import confettiSrc from "@/assets/painted-confetti.webp";
 import dustSrc from "@/assets/landing-dust-poses.webp";
-import { advanceKick, dustAlpha, dustPose, freshKick, hapticPattern, landingKick, settleSquash, DUST_COLS } from "./impact";
+import windowGlowSrc from "@/assets/window-glow.webp";
+import { landingPitch } from "./audioMix";
+import { advanceKick, dustAlpha, dustPose, freshKick, hapticPattern, landingKick, settleSquash, DUST_COLS, WINDOW_PANES, LIGHT_STEP, cascadeDepth, windowGlow } from "./impact";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";
 import { getImage } from "./preload";
@@ -193,6 +195,9 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
     const confetti = load(confettiSrc);
     const dust = load(dustSrc);
+    // Window lamplight belongs to the district floor paintings only (shared pane layout).
+    const lampGlow = !endless && !premiumBlock ? load(windowGlowSrc) : null;
+    const litAt: (number | undefined)[] = [];
     let kick = freshKick();
     const puffs: { x: number; y: number; age: number; w: number }[] = [];
     let settle = { i: -1, age: 1 };
@@ -402,6 +407,8 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
 
     const loseLife = (msg: string) => {
       s.lives--; s.combo = 0; s.shake = 10; void sfx(msg === "COLLAPSE!" ? "collapse" : "miss", 0.75);
+      if (msg === "COLLAPSE!") duck("collapse");
+      litAt.length = Math.min(litAt.length, s.floors.length);
       vibrate(120);
       if (s.lives <= 0) {
         s.over = true;
@@ -460,6 +467,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         let x = kind === "perfect" ? support : d.x;
         if (spec.slip && kind !== "perfect") x += Math.sign(off) * spec.slip; // rain-slick floors slide outward
         s.floors.push({ x, skin, swayAtLanding: s.sway, width: bw });
+        litAt[s.floors.length - 1] = undefined;
         if (checkCollapse()) return;
         s.landings++; s.peakFloors = Math.max(s.peakFloors, s.floors.length);
         if (kind === "perfect") s.perfects++;
@@ -481,10 +489,17 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         s.combo = reward.combo; s.score += reward.points;
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem(bestKey, String(s.best)); }
         if (kind === "perfect") {
-          void sfx("drop", 0.55); void sfx("perfect", 0.7, 1 + Math.min(s.combo, 8) * 0.04);
+          void sfx("drop", 0.55, landingPitch(s.floors.length - 1)); void sfx("perfect", 0.7, 1 + Math.min(s.combo, 8) * 0.04);
+          duck("perfect");
+          // Lamps catch from the landed floor downward; already-lit floors keep their glow.
+          for (let k = 0, top = s.floors.length - 1; k < cascadeDepth(s.combo) && top - k >= 0; k++) {
+            const i = top - k;
+            if (s.floors[i]?.skin === 3) break; // the ground floor has a door, not windows
+            if (litAt[i] === undefined) litAt[i] = s.t + k * LIGHT_STEP;
+          }
           vibratePattern(hapticPattern("perfect", s.combo));
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, chip: i % 6, rot: Math.random() * Math.PI * 2 });
-        } else { void sfx("drop", 0.8); vibratePattern(hapticPattern("land")); }
+        } else { void sfx("drop", 0.8, landingPitch(s.floors.length - 1)); duck("land"); vibratePattern(hapticPattern("land")); }
         kick = landingKick(kick, kind === "perfect" ? 0 : off / bw, kind === "perfect");
         puffs.push({ x, y: (s.floors.length - 1) * BH, age: 0, w: s.floors[s.floors.length - 1]?.width ?? bw });
         settle = { i: s.floors.length - 1, age: 0 };
@@ -848,6 +863,14 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         ctx.drawImage(featheredFoundation(footing, fw, fh), vw / 2 - fw / 2, gy, fw, fh);
       }
 
+      // Dust squeezes out of the joint behind the facade, so it billows past both sides.
+      if (ok(dust)) for (const pf of puffs) {
+        const pose = dustPose(pf.age), fw = dust.naturalWidth / DUST_COLS, fh = dust.naturalHeight / 2;
+        const dw = pf.w * 1.7, dh = dw * fh / fw * 0.62;
+        ctx.globalAlpha = dustAlpha(pf.age) * 0.85;
+        ctx.drawImage(dust, (pose % DUST_COLS) * fw, Math.floor(pose / DUST_COLS) * fh, fw, fh, vw / 2 + pf.x - dw / 2, toScreenY(pf.y) - dh * 0.6, dw, dh);
+        ctx.globalAlpha = 1;
+      }
       const visible = visibleFloorRange(s.floors.length, s.camY, BH, GROUND_SCREEN, VH);
       for (let i = visible.first; i < visible.end; i++) {
         const floor = s.floors[i], y = toScreenY(i * BH + BH / 2);
@@ -855,6 +878,24 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
           const sq = i === settle.i ? settleSquash(settle.age) : 0;
           if (sq > 0) { ctx.save(); ctx.translate(0, y + BH / 2); ctx.scale(1 + sq * 0.4, 1 - sq); ctx.translate(0, -(y + BH / 2)); }
           drawBlock(floor.skin, displayX(i), y, 0, true, floor.width);
+          const lit = litAt[i];
+          if (lampGlow && ok(lampGlow) && lit !== undefined && floor.skin !== 3) {
+            const g = windowGlow(s.t - lit) * (spec.night ? 1 : 0.9);
+            if (g > 0) {
+              const left = vw / 2 + displayX(i) - floor.width / 2, top = y - BH / 2;
+              ctx.save(); ctx.globalCompositeOperation = "screen";
+              for (const p of WINDOW_PANES) {
+                const px = left + p.x0 * floor.width, pw = (p.x1 - p.x0) * floor.width;
+                const py = top + p.y0 * BH, ph = (p.y1 - p.y0) * BH;
+                // Light inside the glass, plus a faint spill onto the surrounding wall.
+                // Multiply warms the cool glass first; screen then lifts it into lamplight (amber, not white).
+                ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = g * 0.65; ctx.drawImage(lampGlow, px, py, pw, ph);
+                ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = g * 0.85; ctx.drawImage(lampGlow, px, py, pw, ph);
+                ctx.globalAlpha = g * 0.28; ctx.drawImage(lampGlow, px - pw * 0.35, py - ph * 0.2, pw * 1.7, ph * 1.4);
+              }
+              ctx.restore();
+            }
+          }
           if (sq > 0) ctx.restore();
           // Aerial perspective: deep floors soften into the district's sky light.
           const haze = endless ? 0 : towerHaze(s.floors.length - 1 - i);
@@ -902,13 +943,6 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (s.held && !s.over) { drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th); roofOn(h.x, toScreenY(h.y), -h.th); }
       if (s.drop) { drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot); roofOn(s.drop.x, toScreenY(s.drop.y), s.drop.rot); }
 
-      if (ok(dust)) for (const pf of puffs) {
-        const pose = dustPose(pf.age), fw = dust.naturalWidth / DUST_COLS, fh = dust.naturalHeight / 2;
-        const dw = pf.w * 1.25, dh = dw * fh / fw * 0.7;
-        ctx.globalAlpha = dustAlpha(pf.age) * 0.72;
-        ctx.drawImage(dust, (pose % DUST_COLS) * fw, Math.floor(pose / DUST_COLS) * fh, fw, fh, vw / 2 + pf.x - dw / 2, toScreenY(pf.y) - dh * 0.72, dw, dh);
-        ctx.globalAlpha = 1;
-      }
       if (ok(confetti)) for (const p of s.parts) {
         ctx.save(); ctx.translate(vw / 2 + p.x, toScreenY(p.y)); ctx.rotate(p.rot + (1.4 - p.life) * p.vx * 0.025);
         ctx.globalAlpha = Math.min(1, p.life * 2);
