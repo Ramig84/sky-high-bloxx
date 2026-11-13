@@ -42,7 +42,7 @@ import { freshWind, finishWindDrop, stepWind, windPresentation } from "./wind";
 import { frameDelta, physicsSteps } from "./frameClock";
 import { diagPixelRatio, recordDraw, setDiag, subscribeDiag, tapCounter } from "./diagnostics";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
-import { TowerGeometry, visibleFloorRange, retainInPlace } from "./towerGeometry";
+import { TowerGeometry, visibleFloorRange, retainInPlace, towerHaze } from "./towerGeometry";
 import { subscribeActivity } from "./activity";
 
 const VH = 700; // logical height (zoomed back ~9% so the tower sits smaller and the scene breathes)
@@ -835,7 +835,16 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const visible = visibleFloorRange(s.floors.length, s.camY, BH, GROUND_SCREEN, VH);
       for (let i = visible.first; i < visible.end; i++) {
         const floor = s.floors[i], y = toScreenY(i * BH + BH / 2);
-        if (floor && y > -BH && y < VH + BH) drawBlock(floor.skin, displayX(i), y, 0, true, floor.width);
+        if (floor && y > -BH && y < VH + BH) {
+          drawBlock(floor.skin, displayX(i), y, 0, true, floor.width);
+          // Aerial perspective: deep floors soften into the district's sky light.
+          const haze = endless ? 0 : towerHaze(s.floors.length - 1 - i);
+          if (haze > 0) {
+            const [r, g, bl] = dsky.wash;
+            ctx.fillStyle = `rgba(${Math.round((r + 214) / 2)},${Math.round((g + 228) / 2)},${Math.round((bl + 240) / 2)},${haze})`;
+            ctx.fillRect(vw / 2 + displayX(i) - floor.width / 2 + 1, y - BH / 2 + 1, floor.width - 2, BH - 2);
+          }
+        }
       }
       if (s.won && ok(roof) && s.floors.length) {
         // Painted roof caps the finished tower.

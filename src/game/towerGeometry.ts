@@ -51,3 +51,9 @@ export function retainInPlace<T>(items: T[], keep: (item: T) => boolean) {
   }
   items.length = write;
 }
+
+/** Aerial perspective: floors far below the newest one soften toward the sky (0 at top, capped at 0.32). */
+export function towerHaze(floorsBelowTop: number): number {
+  if (floorsBelowTop <= 4) return 0;
+  return Math.min(0.32, (floorsBelowTop - 4) * 0.018);
+}
