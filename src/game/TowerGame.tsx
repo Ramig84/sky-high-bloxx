@@ -19,10 +19,12 @@ import { spaceSceneryTransform } from "./spaceScenery";
 import { SPACE_BLOCK_IMAGE, SPACE_BASE_IMAGE, blockDimensions, spaceBaseDimensions } from "./spaceBlock";
 import { drawSpaceEffects, drawSpacePose, spaceEffectArtwork } from "./spaceEffectArtwork";
 import { advanceSpacePresentation, freshSpaceHazards, resetSpaceHazardLane, spaceHazardHits, spaceHazardPosition, spaceHazardPoseTime, spaceHazardName, stepSpaceHazards, type SpaceEffectKind } from "./spaceEffects";
-import { loadSettings, saveSettings, vibrate } from "./settings";
+import { loadSettings, saveSettings, vibrate, vibratePattern } from "./settings";
 import { DISTRICT_MUSIC, ambienceFor, setAmbience, setMusic, sfx, unlockAudio } from "./audio";
 import { advanceSwing, swingRate, advanceToLanding, classifyLanding, collapseIndex, integrateFall, landingReward, targetTowerSway, floorDifficulty, towerBalance } from "./motion";
 import confettiSrc from "@/assets/painted-confetti.webp";
+import dustSrc from "@/assets/landing-dust-poses.webp";
+import { advanceKick, dustAlpha, dustPose, freshKick, hapticPattern, landingKick, settleSquash, DUST_COLS } from "./impact";
 import contactSrc from "@/assets/painted-ground-contact.webp";
 import footingSrc from "@/assets/storybook-footing.webp";
 import { getImage } from "./preload";
@@ -190,6 +192,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
     const hook = load(hookSrc);
     const crane = load(craneSource(loadout.crane)), cloud = load(cloudSrc), bird = load(birdSrc);
     const confetti = load(confettiSrc);
+    const dust = load(dustSrc);
+    let kick = freshKick();
+    const puffs: { x: number; y: number; age: number; w: number }[] = [];
+    let settle = { i: -1, age: 1 };
+    let lastBalance = "stable";
     const contact = load(contactSrc), footing = endless ? new Image() : load(footingSrc);
     const launchBase = endless ? load(SPACE_BASE_IMAGE) : null;
     const roof = load(roofSrc);
@@ -387,6 +394,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const dth = SWING * Math.cos(s.phase) * swingRate(level());
       s.drop = { x: h.x, y: h.y, vx: Math.cos(h.th) * ROPE * dth * 0.2, vy: 0, rot: -h.th };
       s.held = false;
+      vibratePattern(hapticPattern("release"));
     };
     api.current.restart = () => { clockReset.current++; manualPaused.current = false; setPauseView(null); setRewardFailed(false); runGeneration.current++; setScoreStatus("idle"); collector.current?.clear(); previewCoins = 0; setCredited(0); setHud(h => ({ ...h, coins: 0 })); if (coinCounter.current) coinCounter.current.textContent = "0"; if (coinLabel.current) coinLabel.current.textContent = "RUN COINS"; ticket = startRun(daily ? "daily" : endless ? "endless" : "city", levelIndex); setZone(0); setToNext(floorsToNextZone(0)); best0 = s.best; spec = baseSpec; bw = BW * spec.width; wind = freshWind(); windDir = wind.direction; hazards = freshSpaceHazards(); s = fresh(); publish(); };
 
@@ -474,10 +482,12 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         if (s.score > s.best) { s.best = s.score; best0 = s.best; localStorage.setItem(bestKey, String(s.best)); }
         if (kind === "perfect") {
           void sfx("drop", 0.55); void sfx("perfect", 0.7, 1 + Math.min(s.combo, 8) * 0.04);
-          vibrate(30);
+          vibratePattern(hapticPattern("perfect", s.combo));
           for (let i = 0; i < 40; i++) s.parts.push({ x, y: topY(), vx: (Math.random() - 0.5) * 420, vy: 200 + Math.random() * 350, life: 1.4, chip: i % 6, rot: Math.random() * Math.PI * 2 });
-        } else { void sfx("drop", 0.8); }
-        s.shake = 3;
+        } else { void sfx("drop", 0.8); vibratePattern(hapticPattern("land")); }
+        kick = landingKick(kick, kind === "perfect" ? 0 : off / bw, kind === "perfect");
+        puffs.push({ x, y: (s.floors.length - 1) * BH, age: 0, w: s.floors[s.floors.length - 1]?.width ?? bw });
+        settle = { i: s.floors.length - 1, age: 0 };
         if (zoneClear) {
           s.won = true; s.over = true;
           doneCb.current(starsFor(spec, s.floors.length, s.perfects, spec.lives - s.lives));
@@ -585,6 +595,11 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       const target = Math.max(0, topY() - BH * 1.2);
       s.camY += (target - s.camY) * (1 - Math.exp(-dt * 3));
       s.shake *= Math.exp(-dt * 7.67);
+      kick = advanceKick(kick, dt); settle.age += dt;
+      for (const pf of puffs) pf.age += dt;
+      retainInPlace(puffs, pf => dustPose(pf.age) >= 0);
+      if (balance.state === "danger" && lastBalance !== "danger") vibratePattern(hapticPattern("danger"));
+      lastBalance = balance.state;
 
       // render
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -810,6 +825,7 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
         if (flash <= 0 && Math.random() < dt * 0.08) flash = 0.5;
         if (flash > 0) { ctx.fillStyle = `rgba(240,236,220,${flash * 0.35})`; ctx.fillRect(0, 0, vw, VH); flash -= dt * 1.6; }
       }
+      if (Math.abs(kick.x) + Math.abs(kick.y) > 0.05) ctx.translate(kick.x * 0.04, kick.y * 0.04);
       if (s.shake > 0.3) ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
 
       // Painted stone plinth (same width as the physics foundation) set into the pavement,
@@ -836,7 +852,10 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       for (let i = visible.first; i < visible.end; i++) {
         const floor = s.floors[i], y = toScreenY(i * BH + BH / 2);
         if (floor && y > -BH && y < VH + BH) {
+          const sq = i === settle.i ? settleSquash(settle.age) : 0;
+          if (sq > 0) { ctx.save(); ctx.translate(0, y + BH / 2); ctx.scale(1 + sq * 0.4, 1 - sq); ctx.translate(0, -(y + BH / 2)); }
           drawBlock(floor.skin, displayX(i), y, 0, true, floor.width);
+          if (sq > 0) ctx.restore();
           // Aerial perspective: deep floors soften into the district's sky light.
           const haze = endless ? 0 : towerHaze(s.floors.length - 1 - i);
           if (haze > 0) {
@@ -883,6 +902,13 @@ export function TowerGame({ level: levelIndex, endless = false, daily = false, o
       if (s.held && !s.over) { drawBlock(s.nextSkin, h.x, toScreenY(h.y), -h.th); roofOn(h.x, toScreenY(h.y), -h.th); }
       if (s.drop) { drawBlock(s.nextSkin, s.drop.x, toScreenY(s.drop.y), s.drop.rot); roofOn(s.drop.x, toScreenY(s.drop.y), s.drop.rot); }
 
+      if (ok(dust)) for (const pf of puffs) {
+        const pose = dustPose(pf.age), fw = dust.naturalWidth / DUST_COLS, fh = dust.naturalHeight / 2;
+        const dw = pf.w * 1.25, dh = dw * fh / fw * 0.7;
+        ctx.globalAlpha = dustAlpha(pf.age) * 0.72;
+        ctx.drawImage(dust, (pose % DUST_COLS) * fw, Math.floor(pose / DUST_COLS) * fh, fw, fh, vw / 2 + pf.x - dw / 2, toScreenY(pf.y) - dh * 0.72, dw, dh);
+        ctx.globalAlpha = 1;
+      }
       if (ok(confetti)) for (const p of s.parts) {
         ctx.save(); ctx.translate(vw / 2 + p.x, toScreenY(p.y)); ctx.rotate(p.rot + (1.4 - p.life) * p.vx * 0.025);
         ctx.globalAlpha = Math.min(1, p.life * 2);

@@ -31,3 +31,4 @@ export const vibrate = (ms: number) => { if (loadSettings().vibrate) navigator.v
 export function resetProgress() {
   for (const k of ["bloxx-stars", "bloxx-best", "bloxx-endless-best", "bloxx-space-best"]) localStorage.removeItem(k);
 }
+export const vibratePattern = (ms: number[]) => { if (loadSettings().vibrate) navigator.vibrate?.(ms); };

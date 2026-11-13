@@ -25,3 +25,4 @@
 - Use one district-shaded world cloud field with whole painted poses, camera-anchored thin low mist and a single Rail Yard roof-steam source; extend sparse sky-creature presence to the district finale camera height, never terrestrial objects, so scenery depth remains coherent.
 - Preload aligned whole painted wind cue poses and dissolve between them using the simulation clock; direction sequencing in wind.ts advances only while held, freezes through falls/pause, and supplies both warnings and scenery, so wind changes are signalled without changing level force magnitude.
 - Gate the shared audio context and both gain buses on focus, page visibility/presence and native activity, so leaving the app silences recordings even when WebView visibility is stale.
+- Landing impact (dust puff, camera spring, floor settle, haptics) lives in browser-safe impact.ts with tests; cosmetic only, never alters physics or rewards.

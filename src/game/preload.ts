@@ -2,6 +2,7 @@
 import roofSrc from "@/assets/roof-cap.webp";
 import ambientSrc from "@/assets/ambient.webp";
 import confettiSrc from "@/assets/painted-confetti.webp";
+import dustSrc from "@/assets/landing-dust-poses.webp";
 import windSrc from "@/assets/wind-poses.webp";
 import windDirectionSrc from "@/assets/wind-cue-soft.webp";
 import plaqueSrc from "@/assets/ui-plaque.webp";
@@ -71,7 +72,7 @@ export function levelAssets(district: DistrictId, extras: string[] = []): Screen
   const a = art(), t = isTablet();
   return {
     images: [coin, a.logoSrc, plaqueSrc, contactSrc, footingSrc, paperSrc, ...districtFloors(district, t), districtStreet(district, t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
-      a.birdSrc, a.rainSrc, windSrc, windDirectionSrc, confettiSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...SKY_IMAGES, districtSkyArt[district].low, districtSkyArt[district].high, ...Object.values(spiritArtwork), ...extras],
+      a.birdSrc, a.rainSrc, windSrc, windDirectionSrc, confettiSrc, dustSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...SKY_IMAGES, districtSkyArt[district].low, districtSkyArt[district].high, ...Object.values(spiritArtwork), ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC[district], "tap"],
   };
 }
@@ -81,7 +82,7 @@ export function endlessAssets(extras: string[] = []): ScreenAssets {
   const a = art(), t = isTablet();
   return {
     images: [coin, a.logoSrc, plaqueSrc, contactSrc, paperSrc, districtStreet("oldtown", t), a.cloudsSrc, a.sunsetSrc, a.spaceSrc, a.hookSrc, a.craneSrc, a.cloudSrc,
-      a.birdSrc, a.rainSrc, windSrc, windDirectionSrc, confettiSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...Object.values(spiritArtwork), ...extras],
+      a.birdSrc, a.rainSrc, windSrc, windDirectionSrc, confettiSrc, dustSrc, roofSrc, ambientSrc, ...Object.values(atmosphereArtwork), ...Object.values(spiritArtwork), ...extras],
     sounds: [...PLAY_SOUNDS, DISTRICT_MUSIC.oldtown, "tap"],
   };
 }
